@@ -1,3 +1,4 @@
+import { longPress } from '../../lib/longPress'
 import { relativeTime } from '../../lib/relativeTime'
 import { Avatar } from '../../ui/Avatar/Avatar'
 import type { HistoryRow } from '../../protocol/types'
@@ -24,6 +25,10 @@ export function CommitRow({ row, pills, tracking, isHead, selected, dim, graphWi
     <div
       className={`${styles.row} ${selected ? styles.selected : ''} ${dim ? styles.dim : ''}`}
       onClick={onSelect}
+      {...longPress((at) => {
+        onSelect()
+        onContextMenu(at)
+      })}
       onContextMenu={(e) => {
         e.preventDefault()
         onSelect()

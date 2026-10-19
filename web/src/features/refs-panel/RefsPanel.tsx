@@ -1,6 +1,7 @@
 import { type MouseEvent, type ReactNode, useMemo, useState } from 'react'
 import type { GitRef, Stash } from '../../protocol/types'
 import { type RefNode, refTree } from './refTree'
+import { longPress } from '../../lib/longPress'
 import { Chevron } from '../../ui/Chevron/Chevron'
 import styles from './RefsPanel.module.css'
 
@@ -39,6 +40,7 @@ export function RefsPanel({ refs, stashes, currentBranch, aheadBehind, onPick, o
           title={n.ref.name}
           onClick={() => onPick(n.ref.sha)}
           onContextMenu={menu({ kind: 'ref', ref: n.ref })}
+          {...longPress((at) => onContext({ kind: 'ref', ref: n.ref }, at))}
         >
           {n.name}
           <span className={styles.meta}>{aheadBehind(n.ref)}</span>
@@ -64,6 +66,7 @@ export function RefsPanel({ refs, stashes, currentBranch, aheadBehind, onPick, o
             title={s.message}
             onClick={() => onPick(s.sha)}
             onContextMenu={menu({ kind: 'stash', stash: s })}
+            {...longPress((at) => onContext({ kind: 'stash', stash: s }, at))}
           >
             {s.message}
           </div>

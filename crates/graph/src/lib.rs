@@ -133,4 +133,17 @@ mod tests {
         assert_eq!(lanes(&rows), [0, 1, 0]);
         assert_ne!(rows[0].color, rows[1].color);
     }
+
+    #[test]
+    fn lanes_passing_through_a_row_never_shift() {
+        // three interleaved branches with merges: every pass-through piece stays vertical
+        let parents = [vec![2, 1], vec![3], vec![4, 3], vec![5], vec![5], vec![]];
+        for row in layout(&parents) {
+            for s in row.segments {
+                if let (Some(a), Some(b)) = (s.from, s.to) {
+                    assert_eq!(a, b);
+                }
+            }
+        }
+    }
 }

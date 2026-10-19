@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { longPress } from '../../lib/longPress'
 import { Chevron } from '../../ui/Chevron/Chevron'
 import styles from './WorkspaceTree.module.css'
 
@@ -20,6 +21,7 @@ export function TreeRow({ depth, expanded, selected, onToggle, onClick, onContex
       className={`${styles.row} ${selected ? styles.selected : ''}`}
       style={{ paddingLeft: depth * INDENT_PX }}
       onClick={onClick ?? onToggle}
+      {...(onContextMenu ? longPress(onContextMenu) : {})}
       onContextMenu={
         onContextMenu &&
         ((e) => {
