@@ -1,7 +1,7 @@
 import type { GitRef } from '../../protocol/types'
 
 export type Pill =
-  | { kind: 'branch'; name: string; head: boolean; remote: string | null; gone: boolean }
+  | { kind: 'branch'; name: string; head: boolean; remote: string | null; diverged: string | null; gone: boolean }
   | { kind: 'remote'; name: string }
   | { kind: 'tag'; name: string }
 
@@ -21,6 +21,7 @@ export function pillsBySha(refs: GitRef[], headBranch: string | null): Map<strin
       name: r.name,
       head: r.name === headBranch,
       remote: nestled ? up.name.split('/')[0] : null,
+      diverged: up && !nestled ? up.name.split('/')[0] : null,
       gone: !!r.upstream && !up,
     })
   }

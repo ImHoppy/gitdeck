@@ -67,5 +67,10 @@ export function useHistory(repoId: number | null, filter = '') {
     [repoId, filter],
   )
 
-  return { info, rows, ensure, error, locate }
+  const ancestors = useCallback(
+    (sha: string) => gitd.call<number[]>('log.ancestors', { id: repoId, sha, filter }),
+    [repoId, filter],
+  )
+
+  return { info, rows, ensure, error, locate, ancestors }
 }

@@ -13,8 +13,8 @@ test('joins a branch with its upstream only when both point at the same commit',
     ],
     'main',
   )
-  expect(pills.get('a')).toEqual([{ kind: 'branch', name: 'main', head: true, remote: 'origin', gone: false }])
-  expect(pills.get('b')?.[0]).toMatchObject({ name: 'feat', remote: null })
+  expect(pills.get('a')).toEqual([{ kind: 'branch', name: 'main', head: true, remote: 'origin', diverged: null, gone: false }])
+  expect(pills.get('b')?.[0]).toMatchObject({ name: 'feat', remote: null, diverged: 'origin' })
   expect(pills.get('c')?.map((p) => p.kind)).toEqual(['remote', 'tag'])
   expect(pills.get('d')?.[0]).toMatchObject({ gone: true })
 })

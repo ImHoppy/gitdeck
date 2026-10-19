@@ -91,6 +91,20 @@ impl History {
             .collect()
     }
 
+    /// Row indices of `sha` and every commit it descends from, ascending.
+    pub fn ancestors(&self, sha: &str) -> Vec<u32> {
+        let Some(start) = self.index_of(sha) else { return Vec::new() };
+        let parents = parent_indices(&self.commits);
+        let mut seen = vec![false; self.commits.len()];
+        let mut stack = vec![start as u32];
+        while let Some(i) = stack.pop() {
+            if !std::mem::replace(&mut seen[i as usize], true) {
+                stack.extend(&parents[i as usize]);
+            }
+        }
+        seen.iter().enumerate().filter(|(_, s)| **s).map(|(i, _)| i as u32).collect()
+    }
+
     pub fn index_of(&self, sha: &str) -> Option<usize> {
         self.commits.iter().position(|c| c.sha.starts_with(sha))
     }
@@ -134,5 +148,15 @@ mod tests {
         assert_eq!(shas("TREE"), ["bb2"]);
         assert_eq!(shas("cc"), ["cc3"]);
         assert_eq!(h.filtered("x").key.key, "k:x");
+    }
+
+    #[test]
+    fn ancestors_follow_every_parent() {
+        let mut commits = vec![commit("m", "merge", "a"), commit("x", "x", "a"), commit("y", "y", "a"), commit("r", "root", "a")];
+        commits[0].parents = vec!["x".into(), "y".into()];
+        commits[2].parents = vec!["r".into()];
+        let h = History { key: HistoryKey { key: "k".into(), head: None, refs: vec![] }, rows: vec![], commits };
+        assert_eq!(h.ancestors("m"), [0, 1, 2, 3]);
+        assert_eq!(h.ancestors("y"), [2, 3]);
     }
 }

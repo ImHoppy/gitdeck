@@ -22,9 +22,10 @@ type Props = {
   onCommitMenu: (row: HistoryRow, at: { x: number; y: number }) => void
   scrollTo: number | null
   onScrollTo: (index: number) => void
+  highlighted: ReadonlySet<number> | null
 }
 
-export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, scrollTo, onScrollTo }: Props) {
+export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, scrollTo, onScrollTo, highlighted }: Props) {
   const head = repo.state?.head
   const pills = useMemo(() => pillsBySha(info.refs, head?.kind === 'branch' ? head.name : null), [info.refs, head])
   const [range, setRange] = useState<[number, number]>([0, 0])
@@ -49,6 +50,8 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
     [ensure],
   )
 
+  const t = repo.state?.tracking
+  const trackingText = t && (t.ahead || t.behind) ? `${t.ahead ?? 0}↑${t.behind ?? 0}↓` : undefined
   const status = repo.state?.status
   const unstaged = (status?.unstaged ?? 0) + (status?.untracked ?? 0)
   const staged = status?.staged ?? 0
@@ -86,6 +89,8 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
       <CommitRow
         row={row}
         pills={pills.get(row.sha) ?? []}
+        tracking={trackingText}
+        dim={highlighted !== null && !highlighted.has(i - ARTIFICIAL)}
         isHead={row.sha === info.head}
         selected={selection?.kind === 'commit' && selection.sha === row.sha}
         graphWidth={graphWidth}

@@ -25,6 +25,7 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "repo.rebase" => repo::rebase(app, serde_json::from_value(params)?).await,
         "log.open" => log::open(app, serde_json::from_value(params)?).await,
         "log.rows" => log::rows(app, serde_json::from_value(params)?).await,
+        "log.ancestors" => log::ancestors(app, serde_json::from_value(params)?).await,
         "log.find" => log::find(app, serde_json::from_value(params)?).await,
         "commit.body" => log::body(app, serde_json::from_value(params)?).await,
         "diff.files" => changes::files(app, serde_json::from_value(params)?).await,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
 import { CommitInfo } from '../features/commit-info'
@@ -36,6 +36,19 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
   const dialogs = useDialogs()
   const [selection, setSelection] = useState<GridSelection | null>(null)
   const [scrollTo, setScrollTo] = useState<number | null>(null)
+  const [ancestry, setAncestry] = useState(false)
+  const [lineage, setLineage] = useState<{ sha: string; rows: ReadonlySet<number> } | null>(null)
+  const selectedSha = selection?.kind === 'commit' ? selection.sha : null
+  const { ancestors } = history
+  useEffect(() => {
+    if (!ancestry || !selectedSha) return
+    let live = true
+    ancestors(selectedSha).then((rows) => live && setLineage({ sha: selectedSha, rows: new Set(rows) }), () => {})
+    return () => {
+      live = false
+    }
+  }, [ancestry, selectedSha, ancestors])
+  const highlighted = ancestry && lineage && lineage.sha === selectedSha ? lineage.rows : null
   const [committing, setCommitting] = useState(false)
   const [tab, setTab] = useState<'commit' | 'diff' | 'files' | 'output'>('commit')
   const commandLog = useCommandLog()
@@ -87,6 +100,9 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
         <IconButton title="Stash all changes" disabled={changes === 0 || commands.busy} onClick={() => void stashPush(ctx)}>
           Stash
         </IconButton>
+        <IconButton title="Dim commits that are not ancestors of the selected one" onClick={() => setAncestry(!ancestry)}>
+          {ancestry ? '◉ ancestry' : '○ ancestry'}
+        </IconButton>
         <input
           className={styles.filter}
           placeholder="Filter: message, author, hash"
@@ -120,6 +136,7 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
               onCommitMenu={onCommitMenu}
               scrollTo={scrollTo}
               onScrollTo={setScrollTo}
+              highlighted={highlighted}
             />
           </div>
           <Resizer axis="y" onDrag={(d) => bottomHeight.drag(-d)} onDone={bottomHeight.save} />

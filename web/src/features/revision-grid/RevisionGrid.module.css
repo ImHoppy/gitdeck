@@ -123,3 +123,24 @@
   border-left: 1px solid var(--accent);
   color: var(--accent);
 }
+
+.virtual {
+  border-left-style: dashed;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.more {
+  flex: none;
+  margin-left: auto;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg-muted);
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.dim {
+  opacity: 0.35;
+}

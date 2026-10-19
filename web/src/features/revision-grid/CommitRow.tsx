@@ -9,18 +9,20 @@ import styles from './RevisionGrid.module.css'
 type Props = {
   row: HistoryRow
   pills: Pill[]
+  tracking?: string
   isHead: boolean
   selected: boolean
+  dim?: boolean
   graphWidth: number
   height: number
   onSelect: () => void
   onContextMenu: (at: { x: number; y: number }) => void
 }
 
-export function CommitRow({ row, pills, isHead, selected, graphWidth, height, onSelect, onContextMenu }: Props) {
+export function CommitRow({ row, pills, tracking, isHead, selected, dim, graphWidth, height, onSelect, onContextMenu }: Props) {
   return (
     <div
-      className={`${styles.row} ${selected ? styles.selected : ''}`}
+      className={`${styles.row} ${selected ? styles.selected : ''} ${dim ? styles.dim : ''}`}
       onClick={onSelect}
       onContextMenu={(e) => {
         e.preventDefault()
@@ -32,10 +34,11 @@ export function CommitRow({ row, pills, isHead, selected, graphWidth, height, on
       <GraphCell row={row.graph} height={height} width={graphWidth} square={pills.length > 0} head={isHead} />
       <span className={styles.message}>
         {pills.map((p) => (
-          <RefPill key={`${p.kind}:${p.name}`} pill={p} />
+          <RefPill key={`${p.kind}:${p.name}`} pill={p} tracking={p.kind === 'branch' && p.head ? tracking : undefined} />
         ))}
         <span className={styles.subject}>{row.subject}</span>
         {row.bodyHint && <span className={styles.body}>{row.bodyHint}</span>}
+        {row.multiline && <span className={styles.more}>⋯</span>}
       </span>
       <span className={styles.author}>
         <Avatar name={row.author} email={row.email} />

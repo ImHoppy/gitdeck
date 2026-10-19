@@ -63,6 +63,16 @@ pub async fn find(app: &AppState, p: FindParams) -> anyhow::Result<Value> {
     Ok(json!(h.index_of(&p.sha)))
 }
 
+pub async fn ancestors(app: &AppState, p: FindParams) -> anyhow::Result<Value> {
+    let hub = hub(app).await?;
+    let h = match p.filter.trim() {
+        "" => hub.histories.cached(p.id).await,
+        q => hub.histories.filtered(p.id, q).await,
+    }
+    .context("log not open")?;
+    Ok(json!(h.ancestors(&p.sha)))
+}
+
 #[derive(Deserialize)]
 pub struct BodyParams {
     id: RepoId,
