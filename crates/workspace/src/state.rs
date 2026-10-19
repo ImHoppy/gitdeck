@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 pub struct RepoState {
     pub head: Head,
     pub head_sha: Option<String>,
+    pub gitdir: PathBuf,
     pub tracking: Tracking,
     pub status: StatusCounts,
     pub operation: Option<Operation>,
@@ -41,6 +42,7 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path) -> Result<RepoState, Ru
         tracking,
         status: status::parse(&status_out),
         operation: operation::detect(&gitdir),
+        gitdir,
     })
 }
 
