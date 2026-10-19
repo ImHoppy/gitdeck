@@ -34,7 +34,7 @@ export type RepoSnapshot = {
 
 export type WorkspaceSnapshot = { name: string; repos: RepoSnapshot[] }
 
-export type SyncKind = 'fetch' | 'sync'
+export type SyncKind = 'fetch' | 'pull' | 'push' | 'sync'
 
 export type RebaseAction = 'continue' | 'skip' | 'abort'
 

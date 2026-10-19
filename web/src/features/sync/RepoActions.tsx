@@ -1,10 +1,10 @@
-import type { RebaseAction, RepoSnapshot } from '../../protocol/types'
+import type { RebaseAction, RepoSnapshot, SyncKind } from '../../protocol/types'
 import { IconButton } from '../../ui/IconButton/IconButton'
 
 type Props = {
   repo: RepoSnapshot
   busy: boolean
-  onSync: () => void
+  onSync: (kind: SyncKind) => void
   onRebase: (action: RebaseAction) => void
 }
 
@@ -20,13 +20,27 @@ export function RepoActions({ repo, busy, onSync, onRebase }: Props) {
       </>
     )
   }
-  if (s.operation || s.head.kind !== 'branch') return null
-  const { ahead, behind } = s.tracking
-  const counts = ahead || behind ? ` ${behind ?? 0}↓ ${ahead ?? 0}↑` : ''
-  return (
-    <IconButton title="Sync: fetch, rebase if behind, push if ahead" disabled={busy} onClick={onSync}>
-      {busy ? '…' : '⟳'}
-      {counts}
+  if (s.operation) return null
+  const fetch = (
+    <IconButton title="Fetch" disabled={busy} onClick={() => onSync('fetch')}>
+      ⤓
     </IconButton>
+  )
+  if (s.head.kind !== 'branch') return fetch
+  const { ahead, behind } = s.tracking
+  return (
+    <>
+      {fetch}
+      <IconButton title="Pull (rebase)" disabled={busy || !behind} onClick={() => onSync('pull')}>
+        ⇣
+      </IconButton>
+      <IconButton title="Push" disabled={busy || !ahead} onClick={() => onSync('push')}>
+        ⇡
+      </IconButton>
+      <IconButton title="Sync: fetch, rebase if behind, push if ahead" disabled={busy} onClick={() => onSync('sync')}>
+        {busy ? '…' : '⟳'}
+        {ahead || behind ? ` ${behind ?? 0}↓ ${ahead ?? 0}↑` : ''}
+      </IconButton>
+    </>
   )
 }

@@ -13,6 +13,8 @@ pub use sync::SyncOutcome;
 #[serde(rename_all = "camelCase")]
 pub enum SyncKind {
     Fetch,
+    Pull,
+    Push,
     /// One button, like VS Code: fetch, rebase onto the upstream if behind, push if ahead.
     Sync,
 }
@@ -23,9 +25,11 @@ pub async fn run<R: GitRunner>(runner: &R, path: &Path, kind: SyncKind) -> SyncO
         Ok(None) => {}
         Err(e) => return failed(e),
     }
-    let fetched = git(runner, path, sync::FETCH_ARGS).await;
-    if matches!(kind, SyncKind::Fetch) || !succeeded(&fetched) {
-        return fetched;
+    if matches!(kind, SyncKind::Fetch | SyncKind::Sync) {
+        let fetched = git(runner, path, sync::FETCH_ARGS).await;
+        if matches!(kind, SyncKind::Fetch) || !succeeded(&fetched) {
+            return fetched;
+        }
     }
     let tracking = match state::load(runner, path).await {
         Ok(s) => s.tracking,
@@ -34,16 +38,19 @@ pub async fn run<R: GitRunner>(runner: &R, path: &Path, kind: SyncKind) -> SyncO
     let (Some(ahead), Some(behind)) = (tracking.ahead, tracking.behind) else {
         return SyncOutcome::Skipped { reason: "no upstream".into() };
     };
-    if behind > 0 {
+    // a repo with nothing to pull or push is left untouched, so "pull all" only rebases what is behind
+    let pull = matches!(kind, SyncKind::Pull | SyncKind::Sync) && behind > 0;
+    let push = matches!(kind, SyncKind::Push | SyncKind::Sync) && ahead > 0;
+    if pull {
         let pulled = git(runner, path, sync::PULL_ARGS).await;
-        if !succeeded(&pulled) {
+        if !push || !succeeded(&pulled) {
             return pulled;
         }
     }
-    if ahead > 0 {
+    if push {
         return git(runner, path, sync::PUSH_ARGS).await;
     }
-    if behind > 0 { SyncOutcome::Done } else { SyncOutcome::UpToDate }
+    SyncOutcome::UpToDate
 }
 
 pub async fn rebase<R: GitRunner>(runner: &R, path: &Path, action: RebaseAction) -> SyncOutcome {
@@ -69,7 +76,7 @@ async fn guard<R: GitRunner>(
     if let Some(op) = operation::detect(&git_dir(runner, path).await?) {
         return Ok(Some(format!("{op:?} in progress")));
     }
-    if matches!(kind, SyncKind::Sync) && !runner.run(path, head::SYMBOLIC_ARGS).await?.ok() {
+    if !matches!(kind, SyncKind::Fetch) && !runner.run(path, head::SYMBOLIC_ARGS).await?.ok() {
         return Ok(Some("detached HEAD".into()));
     }
     Ok(None)
@@ -134,6 +141,23 @@ mod tests {
         let git = Fake::new(BEHIND_AND_AHEAD, (1, "CONFLICT (content): Merge conflict in a"));
         assert_eq!(run(&git, Path::new("."), SyncKind::Sync).await, SyncOutcome::Conflict);
         assert_eq!(git.commands(), ["fetch", "pull"]);
+    }
+
+    #[tokio::test]
+    async fn pull_and_push_run_alone() {
+        let git = Fake::new(BEHIND_AND_AHEAD, (0, ""));
+        assert_eq!(run(&git, Path::new("."), SyncKind::Pull).await, SyncOutcome::Done);
+        assert_eq!(git.commands(), ["pull"]);
+        let git = Fake::new(BEHIND_AND_AHEAD, (0, ""));
+        run(&git, Path::new("."), SyncKind::Push).await;
+        assert_eq!(git.commands(), ["push"]);
+    }
+
+    #[tokio::test]
+    async fn pull_leaves_a_repo_that_is_not_behind_untouched() {
+        let git = Fake::new("::ahead 1::refs/remotes/origin/main", (0, ""));
+        assert_eq!(run(&git, Path::new("."), SyncKind::Pull).await, SyncOutcome::UpToDate);
+        assert!(git.commands().is_empty());
     }
 
     #[tokio::test]

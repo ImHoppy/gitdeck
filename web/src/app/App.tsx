@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RepoActions, SyncAllButton, SyncSummary, useSync } from '../features/sync'
+import { RepoActions, SyncSummary, SyncToolbar, useSync } from '../features/sync'
 import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
 import styles from './App.module.css'
 
@@ -17,12 +17,12 @@ export function App() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onRefresh={() => open(workspace.name)}
-            toolbar={<SyncAllButton running={sync.bulk !== null} onClick={() => sync.syncAll('sync')} />}
+            toolbar={<SyncToolbar running={sync.bulk} onRunAll={sync.syncAll} />}
             actions={(repo) => (
               <RepoActions
                 repo={repo}
                 busy={sync.busy.has(repo.id) || sync.bulk !== null}
-                onSync={() => sync.sync(repo.id, 'sync')}
+                onSync={(kind) => sync.sync(repo.id, kind)}
                 onRebase={(action) => sync.rebase(repo.id, action)}
               />
             )}

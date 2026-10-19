@@ -1,4 +1,4 @@
 export { RepoActions } from './RepoActions'
-export { SyncAllButton } from './SyncAllButton'
 export { SyncSummary } from './SyncSummary'
+export { SyncToolbar } from './SyncToolbar'
 export { useSync } from './useSync'
