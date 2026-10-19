@@ -1,5 +1,6 @@
 pub mod backoff;
 pub mod bulk;
+pub mod changes;
 pub mod config;
 pub mod discovery;
 pub mod fetch_log;

@@ -1,0 +1,106 @@
+.panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 32%) 1fr;
+  height: 100%;
+  min-height: 0;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+}
+
+.right {
+  min-width: 0;
+  min-height: 0;
+}
+
+.title {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.files {
+  flex: 1;
+  overflow: auto;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 6px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.file:hover {
+  background: var(--hover);
+}
+
+.selected,
+.selected:hover {
+  background: var(--selection);
+}
+
+.icon {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.added,
+.untracked {
+  color: var(--ahead);
+}
+
+.modified,
+.renamed,
+.copied,
+.typeChanged {
+  color: var(--dirty);
+}
+
+.deleted,
+.unmerged {
+  color: var(--danger);
+}
+
+.path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.action {
+  flex: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg);
+  font-size: 11px;
+  line-height: 14px;
+  cursor: pointer;
+  visibility: hidden;
+}
+
+.file:hover .action {
+  visibility: visible;
+}
+
+.empty {
+  padding: 12px;
+  color: var(--fg-muted);
+}

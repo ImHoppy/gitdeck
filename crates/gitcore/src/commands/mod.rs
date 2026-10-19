@@ -1,5 +1,7 @@
 pub mod ahead_behind;
+pub mod commit;
 pub mod conflicts;
+pub mod diff;
 pub mod gitlinks;
 pub mod head;
 pub mod log;

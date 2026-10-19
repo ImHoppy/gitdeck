@@ -1,0 +1,54 @@
+.viewer {
+  height: 100%;
+  font: 12px/18px ui-monospace, Consolas, 'Cascadia Mono', monospace;
+}
+
+.empty {
+  padding: 12px;
+  color: var(--fg-muted);
+}
+
+.line {
+  display: flex;
+  height: 100%;
+  white-space: pre;
+}
+
+.no {
+  flex: none;
+  width: 48px;
+  padding-right: 6px;
+  text-align: right;
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+.sign {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  user-select: none;
+}
+
+.text {
+  flex: 1;
+}
+
+.add {
+  background: var(--diff-add);
+}
+
+.del {
+  background: var(--diff-del);
+}
+
+.hunk {
+  color: var(--accent);
+  background: var(--bg-panel);
+  padding-left: 6px;
+}
+
+.meta {
+  color: var(--fg-muted);
+  padding-left: 6px;
+}

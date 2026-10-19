@@ -72,3 +72,19 @@ export type HistoryRow = {
   multiline: boolean
   graph: GraphRow
 }
+
+export type DiffTarget = { kind: 'worktree' } | { kind: 'index' } | { kind: 'commit'; sha: string; parent: string | null }
+
+export type ChangeKind =
+  | 'added'
+  | 'modified'
+  | 'deleted'
+  | 'renamed'
+  | 'copied'
+  | 'typeChanged'
+  | 'unmerged'
+  | 'untracked'
+
+export type ChangedFile = { path: string; oldPath: string | null; kind: ChangeKind }
+
+export type Patch = { text: string; diffId: string }

@@ -11,6 +11,8 @@
   --border: #d0d7de;
   --hover: #eaeef2;
   --selection: #ddf4ff;
+  --diff-add: #dafbe1;
+  --diff-del: #ffebe9;
   font: 13px/1.4 system-ui, sans-serif;
   color: var(--fg);
 }
@@ -29,6 +31,8 @@
     --border: #30363d;
     --hover: #1f2630;
     --selection: #1c2d41;
+    --diff-add: #12261e;
+    --diff-del: #25171c;
   }
 }
 

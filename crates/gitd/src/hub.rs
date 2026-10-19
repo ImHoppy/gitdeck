@@ -1,6 +1,6 @@
 use crate::{events::Event, histories::Histories, snapshot::RepoSnapshot};
 use futures::future::join_all;
-use gitcore::{commands::gitlinks, ProcessRunner};
+use gitcore::{commands::gitlinks, GitOutput, GitRunner, ProcessRunner};
 use serde::Serialize;
 use std::collections::HashMap;
 use tokio::sync::broadcast;
@@ -94,6 +94,19 @@ impl Hub {
         }
         self.publish(id).await;
         result
+    }
+
+    /// Runs a user write (stage, commit…) in the repo's queue, then pushes the new state.
+    pub async fn write_git(&self, id: RepoId, args: Vec<String>) -> anyhow::Result<GitOutput> {
+        let entry = self.entry(id)?;
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        let out = self.scheduler.write(id, self.runner.run(&entry.path, &args)).await;
+        self.publish(id).await;
+        let out = out?;
+        if !out.ok() {
+            anyhow::bail!("{}", String::from_utf8_lossy(&out.stderr).trim());
+        }
+        Ok(out)
     }
 
     pub async fn update_submodules(&self, id: RepoId) -> SyncOutcome {
