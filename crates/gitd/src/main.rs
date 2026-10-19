@@ -1,5 +1,6 @@
 mod auth;
 mod autofetch;
+mod autostart;
 mod browser;
 mod cli;
 mod command_log;
@@ -19,5 +20,10 @@ use clap::Parser;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = cli::Args::parse();
+    if let Some(mode) = &args.autostart {
+        autostart::set(mode == "on")?;
+        println!("autostart {mode}");
+        return Ok(());
+    }
     server::run(args).await
 }

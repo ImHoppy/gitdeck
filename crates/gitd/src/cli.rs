@@ -15,6 +15,9 @@ pub struct Args {
     /// Don't open the browser on start.
     #[arg(long)]
     pub no_open: bool,
+    /// Start gitd (kept running) at login, or stop doing so, then exit.
+    #[arg(long, value_parser = ["on", "off"])]
+    pub autostart: Option<String>,
 }
 
 pub fn config_dir() -> PathBuf {

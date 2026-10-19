@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: web
+        working-directory: web
+        run: |
+          bun install --frozen-lockfile
+          bun run lint
+          bun test
+          bun run build
+
+      - name: git identity for the real-git tests
+        run: |
+          git config --global user.name ci
+          git config --global user.email ci@example.invalid
+          git config --global init.defaultBranch main
+
+      - name: test
+        run: cargo test --workspace
+
+      - name: release build
+        run: cargo build --release -p gitd
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gitd-${{ matrix.os }}
+          path: |
+            target/release/gitd
+            target/release/gitd.exe
+          if-no-files-found: ignore
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: name binaries per platform
+        run: |
+          mv dist/gitd-windows-latest/gitd.exe gitd-windows-x64.exe
+          mv dist/gitd-ubuntu-latest/gitd gitd-linux-x64
+          chmod +x gitd-linux-x64
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            gitd-windows-x64.exe
+            gitd-linux-x64
