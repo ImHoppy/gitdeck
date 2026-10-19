@@ -1,7 +1,7 @@
 use crate::server::AppState;
 use anyhow::{anyhow, Context};
 use futures::future::join_all;
-use gitcore::{ProcessRunner, RunError};
+use gitcore::RunError;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use workspace::{discovery, state, RepoEntry, RepoState};
@@ -54,7 +54,7 @@ async fn workspace_open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> 
         .config
         .workspace(&p.name)
         .with_context(|| format!("no workspace {}", p.name))?;
-    let runner = ProcessRunner::default();
+    let runner = app.runner.clone();
     let repos = discovery::discover(&runner, ws).await?;
     let snapshots = join_all(repos.into_iter().map(|entry| {
         let runner = runner.clone();

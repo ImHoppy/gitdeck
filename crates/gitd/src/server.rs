@@ -9,10 +9,12 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::mpsc;
+use gitcore::ProcessRunner;
 use workspace::Config;
 
 pub struct AppState {
     pub config: Config,
+    pub runner: ProcessRunner,
     pub token: String,
 }
 
@@ -23,7 +25,7 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let config_path = args.config.unwrap_or_else(|| dir.join("config.toml"));
     let config = Config::load(&config_path)?;
     let token = auth::load_or_create(&dir)?;
-    let app = Arc::new(AppState { config, token });
+    let app = Arc::new(AppState { config, token, runner: ProcessRunner::default() });
 
     let router = Router::new()
         .route("/", get(index))
