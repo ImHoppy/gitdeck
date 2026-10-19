@@ -1,0 +1,9 @@
+[package]
+name = "gitcore"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+tokio.workspace = true
