@@ -1,7 +1,7 @@
-use crate::{auth, cli, handlers, protocol::{Request, Response}};
+use crate::{auth, cli, handlers, static_files, protocol::{Request, Response}};
 use axum::{
     extract::{ws::{Message, WebSocket}, Query, State, WebSocketUpgrade},
-    http::{header, HeaderMap, StatusCode},
+    http::{header, HeaderMap, StatusCode, Uri},
     response::{IntoResponse, Redirect, Response as HttpResponse},
     routing::get,
     Router,
@@ -28,9 +28,9 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let app = Arc::new(AppState { config, token, runner: ProcessRunner::default() });
 
     let router = Router::new()
-        .route("/", get(index))
         .route("/login", get(login))
         .route("/ws", get(ws_upgrade))
+        .fallback(get(web))
         .with_state(app.clone());
 
     let listener = tokio::net::TcpListener::bind(args.bind).await?;
@@ -52,11 +52,11 @@ async fn login(State(app): State<Shared>, Query(q): Query<HashMap<String, String
     ([(header::SET_COOKIE, cookie)], Redirect::to("/")).into_response()
 }
 
-async fn index(State(app): State<Shared>, headers: HeaderMap) -> HttpResponse {
+async fn web(State(app): State<Shared>, headers: HeaderMap, uri: Uri) -> HttpResponse {
     if !authorized(&app, &headers) {
         return StatusCode::UNAUTHORIZED.into_response();
     }
-    "gitd running".into_response()
+    static_files::serve(&uri)
 }
 
 async fn ws_upgrade(State(app): State<Shared>, headers: HeaderMap, ws: WebSocketUpgrade) -> HttpResponse {

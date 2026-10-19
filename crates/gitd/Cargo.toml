@@ -14,3 +14,5 @@ axum = { version = "0.8", features = ["ws"] }
 futures = "0.3"
 clap = { version = "4", features = ["derive"] }
 rand = "0.9"
+rust-embed = "8"
+mime_guess = "2"

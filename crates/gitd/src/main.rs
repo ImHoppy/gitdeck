@@ -3,6 +3,7 @@ mod cli;
 mod handlers;
 mod protocol;
 mod server;
+mod static_files;
 
 use clap::Parser;
 
