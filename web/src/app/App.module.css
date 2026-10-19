@@ -44,7 +44,34 @@
 .bottomPane {
   height: 42%;
   min-height: 120px;
+  display: flex;
+  flex-direction: column;
   border-top: 1px solid var(--border);
+}
+
+.tabs {
+  display: flex;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 3px 12px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.tabs .activeTab {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+
+.tabBody {
+  flex: 1;
+  min-height: 0;
 }
 
 .repoBody {

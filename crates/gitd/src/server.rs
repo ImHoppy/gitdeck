@@ -1,4 +1,8 @@
-use crate::{auth, cli, events::Event, handlers, live::LiveWorkspace, static_files, protocol::{Request, Response}};
+use crate::{
+    auth, browser, cli, command_log::CommandLog, events::Event, handlers, lifecycle::Lifecycle, live::LiveWorkspace,
+    protocol::{Request, Response},
+    static_files,
+};
 use axum::{
     extract::{ws::{Message, WebSocket}, Query, State, WebSocketUpgrade},
     http::{header, HeaderMap, StatusCode, Uri},
@@ -7,7 +11,7 @@ use axum::{
     Router,
 };
 use futures::{SinkExt, StreamExt};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::{broadcast, mpsc, Mutex};
 use gitcore::ProcessRunner;
 use workspace::Config;
@@ -18,6 +22,15 @@ pub struct AppState {
     pub token: String,
     pub events: broadcast::Sender<Event>,
     pub live: Mutex<Option<LiveWorkspace>>,
+    pub lifecycle: Lifecycle,
+    pub commands: Arc<CommandLog>,
+}
+
+impl AppState {
+    fn busy(&self) -> bool {
+        // a held lock means a workspace is being opened: count it as work
+        self.live.try_lock().map_or(true, |l| l.as_ref().is_some_and(|l| l.hub.busy()))
+    }
 }
 
 const EVENT_BUFFER: usize = 256;
@@ -29,12 +42,29 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let config_path = args.config.unwrap_or_else(|| dir.join("config.toml"));
     let config = Config::load(&config_path)?;
     let token = auth::load_or_create(&dir)?;
+    let listener = match tokio::net::TcpListener::bind(args.bind).await {
+        Ok(l) => l,
+        Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+            let url = format!("http://{}/login?token={token}", args.bind);
+            println!("gitd already running, opening {url}");
+            if !args.no_open {
+                browser::open(&url);
+            }
+            return Ok(());
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let events = broadcast::channel(EVENT_BUFFER).0;
+    let commands = Arc::new(CommandLog::new(events.clone()));
+    let sink = commands.clone();
     let app = Arc::new(AppState {
         config,
         token,
-        runner: ProcessRunner::default(),
-        events: broadcast::channel(EVENT_BUFFER).0,
+        runner: ProcessRunner::default().with_sink(Arc::new(move |rec| sink.push(rec))),
+        events,
         live: Mutex::new(None),
+        lifecycle: Lifecycle::new(Duration::from_secs(args.grace), args.keep),
+        commands,
     });
 
     let router = Router::new()
@@ -43,9 +73,15 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         .fallback(get(web))
         .with_state(app.clone());
 
-    let listener = tokio::net::TcpListener::bind(args.bind).await?;
-    println!("gitd listening on http://{}/login?token={}", args.bind, app.token);
-    axum::serve(listener, router).await?;
+    let url = format!("http://{}/login?token={}", args.bind, app.token);
+    println!("gitd listening on {url}");
+    if !args.no_open {
+        browser::open(&url);
+    }
+    let shutdown = app.clone();
+    axum::serve(listener, router)
+        .with_graceful_shutdown(async move { shutdown.lifecycle.shutdown.notified().await })
+        .await?;
     Ok(())
 }
 
@@ -86,6 +122,7 @@ async fn client(app: Shared, socket: WebSocket) {
             }
         }
     });
+    app.lifecycle.connected();
     let forwarder = tokio::spawn(forward_events(app.events.subscribe(), tx.clone()));
     while let Some(Ok(msg)) = stream.next().await {
         let Message::Text(text) = msg else { continue };
@@ -100,6 +137,8 @@ async fn client(app: Shared, socket: WebSocket) {
     forwarder.abort();
     drop(tx);
     let _ = writer.await;
+    let state = app.clone();
+    app.lifecycle.disconnected(move || state.busy()).await;
 }
 
 async fn forward_events(mut events: broadcast::Receiver<Event>, tx: mpsc::UnboundedSender<String>) {

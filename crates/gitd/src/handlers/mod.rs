@@ -1,6 +1,7 @@
 mod changes;
 mod cmd;
 mod log;
+mod meta;
 pub mod repo;
 mod tree;
 mod workspace;
@@ -34,6 +35,9 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "repo.checkoutTracked" => tree::checkout_tracked(app, serde_json::from_value(params)?).await,
         "repo.submodule" => tree::submodule(app, serde_json::from_value(params)?).await,
         "repo.reveal" => tree::reveal(app, serde_json::from_value(params)?).await,
+        "server.info" => meta::info(app),
+        "server.keepRunning" => meta::keep_running(app, serde_json::from_value(params)?),
+        "commands.recent" => meta::commands(app),
         "repo.sync" => repo::sync(app, serde_json::from_value(params)?).await,
         _ => Err(anyhow!("unknown method {method}")),
     }

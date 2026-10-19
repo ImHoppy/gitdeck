@@ -113,3 +113,5 @@ export type RepoAction =
   | { kind: 'recordPointers'; paths: string[] }
 
 export type Stash = { index: number; sha: string; time: number; message: string }
+
+export type CommandRecord = { cwd: string; args: string[]; code: number; millis: number; at: number }

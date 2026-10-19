@@ -46,6 +46,10 @@ impl Hub {
         }
     }
 
+    pub fn busy(&self) -> bool {
+        self.scheduler.busy()
+    }
+
     pub fn entry(&self, id: RepoId) -> anyhow::Result<&RepoEntry> {
         self.entries.get(&id).ok_or_else(|| anyhow::anyhow!("no repo {id}"))
     }

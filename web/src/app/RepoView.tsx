@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CommitDialog } from '../features/commit'
 import { DiffPanel } from '../features/diff'
+import { OutputPanel, useCommandLog } from '../features/output'
 import { RefsPanel, type RefTarget, useStashes } from '../features/refs-panel'
 import { type Commands, commitMenu, refMenu, stashMenu, stashPush, useRepoCommands } from '../features/repo-actions'
 import { type GridSelection, RevisionGrid, useHistory } from '../features/revision-grid'
@@ -30,6 +31,8 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
   const [selection, setSelection] = useState<GridSelection | null>(null)
   const [scrollTo, setScrollTo] = useState<number | null>(null)
   const [committing, setCommitting] = useState(false)
+  const [tab, setTab] = useState<'diff' | 'output'>('diff')
+  const commandLog = useCommandLog()
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
   const head = repo.state?.head
@@ -102,11 +105,25 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
               scrollTo={scrollTo}
             />
           </div>
-          {selection && (
-            <div className={styles.bottomPane}>
-              <DiffPanel key={JSON.stringify(selection)} repoId={repo.id} target={diffTarget(selection)} title={diffTitle(selection)} />
+          <div className={styles.bottomPane}>
+            <div className={styles.tabs}>
+              <button className={tab === 'diff' ? styles.activeTab : ''} onClick={() => setTab('diff')}>
+                Diff
+              </button>
+              <button className={tab === 'output' ? styles.activeTab : ''} onClick={() => setTab('output')}>
+                Output
+              </button>
             </div>
-          )}
+            <div className={styles.tabBody}>
+              {tab === 'output' ? (
+                <OutputPanel records={commandLog} cwd={repo.path} />
+              ) : selection ? (
+                <DiffPanel key={JSON.stringify(selection)} repoId={repo.id} target={diffTarget(selection)} title={diffTitle(selection)} />
+              ) : (
+                <div className={styles.message}>Select a row to see its changes.</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       {menu && <Menu items={menu.items} at={menu.at} onClose={() => setMenu(null)} />}

@@ -3,13 +3,14 @@ import {
   ConflictPanel,
   hasConflicts,
   RepoActions,
-  SubmoduleChoiceSelect,
   SubmoduleUpdateDialog,
   SyncSummary,
   SyncToolbar,
   useConflicts,
+  PULL_ACTIONS,
   useSync,
 } from '../features/sync'
+import { SettingsPage, useServerInfo, useTheme } from '../features/settings'
 import { treeMenu, useTreeCommands } from '../features/repo-actions'
 import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
 import type { RepoSnapshot } from '../protocol/types'
@@ -25,6 +26,9 @@ export function App() {
   const selected = workspace?.repos.find((r) => r.id === selectedId)
   const conflictFiles = useConflicts(selected)
   const tree = useTreeCommands()
+  const theme = useTheme()
+  const server = useServerInfo()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
   const onRepoMenu = (repo: RepoSnapshot, at: { x: number; y: number }) =>
@@ -59,7 +63,16 @@ export function App() {
                   onSetPullAction={sync.setPullAction}
                   onRunAll={sync.syncAll}
                 />
-                <SubmoduleChoiceSelect value={sync.choice} onChange={sync.setChoice} />
+                <IconButton
+                  title={server.info?.keepRunning ? 'gitd keeps running with no window open' : 'gitd stops after the last window closes'}
+                  disabled={!server.info}
+                  onClick={() => server.setKeepRunning(!server.info?.keepRunning)}
+                >
+                  {server.info?.keepRunning ? '📌 kept' : '📌'}
+                </IconButton>
+                <IconButton title="Settings" onClick={() => setSettingsOpen(true)}>
+                  ⚙
+                </IconButton>
               </>
             }
             actions={(repo) => (
@@ -112,6 +125,20 @@ export function App() {
         )}
       </main>
       {menu && <Menu items={menu.items} at={menu.at} onClose={() => setMenu(null)} />}
+      {settingsOpen && (
+        <SettingsPage
+          theme={{ value: theme.theme, onChange: theme.setTheme, options: [['auto', 'Follow the system'], ['light', 'Light'], ['dark', 'Dark']] }}
+          pullAction={{ value: sync.pullAction, onChange: sync.setPullAction, options: PULL_ACTIONS.map((a) => [a.kind, a.label]) }}
+          submodules={{
+            value: sync.choice,
+            onChange: sync.setChoice,
+            options: [['ask', 'Ask every time'], ['always', 'Always update'], ['never', 'Never update']],
+          }}
+          keepRunning={server.info ? { value: server.info.keepRunning, onChange: server.setKeepRunning } : null}
+          version={server.info?.version ?? null}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   )
 }

@@ -6,6 +6,15 @@ pub struct Args {
     pub bind: SocketAddr,
     #[arg(long)]
     pub config: Option<PathBuf>,
+    /// Seconds to wait after the last client closes before exiting.
+    #[arg(long, default_value_t = 30)]
+    pub grace: u64,
+    /// Stay up with no client connected.
+    #[arg(long)]
+    pub keep: bool,
+    /// Don't open the browser on start.
+    #[arg(long)]
+    pub no_open: bool,
 }
 
 pub fn config_dir() -> PathBuf {

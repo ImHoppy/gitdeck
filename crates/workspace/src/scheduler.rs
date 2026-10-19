@@ -1,17 +1,39 @@
 use crate::RepoId;
-use std::{collections::HashMap, future::Future, sync::Arc};
+use std::{
+    collections::HashMap,
+    future::Future,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
 use tokio::sync::Mutex;
 
 #[derive(Default)]
 pub struct Scheduler {
     queues: std::sync::Mutex<HashMap<RepoId, Arc<Mutex<()>>>>,
+    running: AtomicUsize,
+}
+
+struct Running<'a>(&'a AtomicUsize);
+
+impl Drop for Running<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
 }
 
 impl Scheduler {
     pub async fn write<T>(&self, id: RepoId, job: impl Future<Output = T>) -> T {
         let queue = self.queues.lock().unwrap().entry(id).or_default().clone();
         let _turn = queue.lock().await;
+        self.running.fetch_add(1, Ordering::SeqCst);
+        let _running = Running(&self.running);
         job.await
+    }
+
+    pub fn busy(&self) -> bool {
+        self.running.load(Ordering::SeqCst) > 0
     }
 }
 

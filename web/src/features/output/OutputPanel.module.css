@@ -1,0 +1,46 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.bar {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  font: 12px/18px ui-monospace, Consolas, monospace;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  padding: 0 8px;
+  white-space: pre;
+}
+
+.failed {
+  color: var(--danger);
+}
+
+.time,
+.ms,
+.code {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.ms {
+  width: 64px;
+  text-align: right;
+}
+
+.code {
+  width: 24px;
+  text-align: right;
+}

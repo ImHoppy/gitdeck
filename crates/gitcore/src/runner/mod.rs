@@ -3,7 +3,19 @@ mod process;
 
 pub use process::ProcessRunner;
 
-use std::path::Path;
+use serde::Serialize;
+use std::{path::Path, sync::Arc};
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CommandRecord {
+    pub cwd: String,
+    pub args: Vec<String>,
+    pub code: i32,
+    pub millis: u64,
+    pub at: u64,
+}
+
+pub type CommandSink = Arc<dyn Fn(CommandRecord) + Send + Sync>;
 
 #[derive(Debug, Clone)]
 pub struct GitOutput {
