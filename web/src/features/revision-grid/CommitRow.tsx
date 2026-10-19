@@ -1,4 +1,5 @@
 import { relativeTime } from '../../lib/relativeTime'
+import { Avatar } from '../../ui/Avatar/Avatar'
 import type { HistoryRow } from '../../protocol/types'
 import { GraphCell } from './GraphCell'
 import { RefPill } from './RefPill'
@@ -36,7 +37,10 @@ export function CommitRow({ row, pills, isHead, selected, graphWidth, height, on
         <span className={styles.subject}>{row.subject}</span>
         {row.bodyHint && <span className={styles.body}>{row.bodyHint}</span>}
       </span>
-      <span className={styles.author}>{row.author}</span>
+      <span className={styles.author}>
+        <Avatar name={row.author} email={row.email} />
+        <span className={styles.authorName}>{row.author}</span>
+      </span>
       <span className={styles.date} title={new Date(row.time * 1000).toLocaleString()}>
         {relativeTime(row.time)}
       </span>

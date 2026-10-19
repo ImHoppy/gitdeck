@@ -58,10 +58,16 @@
 
 .author {
   flex: none;
-  width: 150px;
+  width: 170px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px;
+}
+
+.authorName {
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 8px;
 }
 
 .date {
