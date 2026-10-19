@@ -22,6 +22,11 @@ pub fn parse(out: &[u8]) -> Vec<Gitlink> {
         .collect()
 }
 
+/// Paths whose recorded submodule commit changed or appeared between two listings.
+pub fn moved(before: &[Gitlink], after: &[Gitlink]) -> Vec<String> {
+    after.iter().filter(|a| !before.contains(a)).map(|a| a.path.clone()).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -33,5 +38,13 @@ mod tests {
             parse(out),
             vec![Gitlink { recorded_sha: "bbb".into(), path: "res/[s]/ui".into() }]
         );
+    }
+
+    #[test]
+    fn moved_lists_changed_and_new_pointers() {
+        let link = |sha: &str, path: &str| Gitlink { recorded_sha: sha.into(), path: path.into() };
+        let before = [link("a", "x"), link("b", "y")];
+        let after = [link("a", "x"), link("c", "y"), link("d", "z")];
+        assert_eq!(moved(&before, &after), ["y", "z"]);
     }
 }

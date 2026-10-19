@@ -1,0 +1,37 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.35);
+  z-index: 10;
+}
+
+.dialog {
+  min-width: 320px;
+  max-width: min(520px, calc(100vw - 32px));
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.body {
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}

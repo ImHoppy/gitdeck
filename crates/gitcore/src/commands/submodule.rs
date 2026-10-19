@@ -2,6 +2,8 @@ use crate::model::{SubmoduleEntry, SubmoduleFlag};
 
 pub const ARGS: &[&str] = &["submodule", "status", "--recursive"];
 
+pub const UPDATE_ARGS: &[&str] = &["submodule", "update", "--init", "--recursive"];
+
 pub fn parse(out: &[u8]) -> Vec<SubmoduleEntry> {
     String::from_utf8_lossy(out)
         .lines()

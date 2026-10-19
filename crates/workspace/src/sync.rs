@@ -1,6 +1,6 @@
 use crate::state::{self, git_dir};
 use gitcore::{
-    commands::{head, operation, rebase, sync},
+    commands::{gitlinks, head, operation, rebase, submodule, sync},
     GitRunner, RunError,
 };
 use serde::Deserialize;
@@ -51,6 +51,15 @@ pub async fn run<R: GitRunner>(runner: &R, path: &Path, kind: SyncKind) -> SyncO
         return git(runner, path, sync::PUSH_ARGS).await;
     }
     SyncOutcome::UpToDate
+}
+
+/// Recorded submodule pointers, compared before and after a pull to offer `submodule update`.
+pub async fn gitlinks<R: GitRunner>(runner: &R, path: &Path) -> Vec<gitlinks::Gitlink> {
+    runner.run_ok(path, gitlinks::ARGS).await.map(|out| gitlinks::parse(&out)).unwrap_or_default()
+}
+
+pub async fn update_submodules<R: GitRunner>(runner: &R, path: &Path) -> SyncOutcome {
+    git(runner, path, submodule::UPDATE_ARGS).await
 }
 
 pub async fn rebase<R: GitRunner>(runner: &R, path: &Path, action: RebaseAction) -> SyncOutcome {

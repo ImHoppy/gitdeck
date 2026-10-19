@@ -49,4 +49,4 @@ export type SyncOutcome =
 
 export type LastFetch = { at: number; outcome: SyncOutcome }
 
-export type RepoResult = { id: number; outcome: SyncOutcome }
+export type RepoResult = { id: number; outcome: SyncOutcome; submodulesMoved: string[] }

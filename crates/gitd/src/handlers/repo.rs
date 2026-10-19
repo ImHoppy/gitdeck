@@ -40,3 +40,12 @@ pub struct RebaseParams {
 pub async fn rebase(app: &AppState, p: RebaseParams) -> anyhow::Result<Value> {
     Ok(serde_json::to_value(hub(app).await?.rebase(p.id, p.action).await)?)
 }
+
+#[derive(Deserialize)]
+pub struct RepoParams {
+    id: RepoId,
+}
+
+pub async fn update_submodules(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {
+    Ok(serde_json::to_value(hub(app).await?.update_submodules(p.id).await)?)
+}

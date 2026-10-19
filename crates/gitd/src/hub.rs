@@ -1,6 +1,6 @@
 use crate::{events::Event, snapshot::RepoSnapshot};
 use futures::future::join_all;
-use gitcore::ProcessRunner;
+use gitcore::{commands::gitlinks, ProcessRunner};
 use serde::Serialize;
 use std::collections::HashMap;
 use tokio::sync::broadcast;
@@ -25,6 +25,14 @@ pub struct Hub {
 pub struct RepoResult {
     pub id: RepoId,
     pub outcome: SyncOutcome,
+    /// Submodule pointers the pull moved; the client asks whether to run `submodule update`.
+    pub submodules_moved: Vec<String>,
+}
+
+impl RepoResult {
+    fn of(id: RepoId, outcome: SyncOutcome) -> Self {
+        Self { id, outcome, submodules_moved: Vec::new() }
+    }
 }
 
 impl Hub {
@@ -58,15 +66,37 @@ impl Hub {
         self.active().filter(|e| self.fetch_log.older_than(e.id, secs)).map(|e| e.id).collect()
     }
 
-    pub async fn sync(&self, id: RepoId, kind: SyncKind) -> SyncOutcome {
+    pub async fn sync(&self, id: RepoId, kind: SyncKind) -> RepoResult {
+        let Some(entry) = self.entries.get(&id) else {
+            return RepoResult::of(id, SyncOutcome::Failed { message: format!("no repo {id}") });
+        };
+        let pulls = matches!(kind, SyncKind::Pull | SyncKind::Sync);
+        let job = async {
+            let before = if pulls { sync::gitlinks(&self.runner, &entry.path).await } else { Vec::new() };
+            let outcome = sync::run(&self.runner, &entry.path, kind).await;
+            let moved = match outcome {
+                SyncOutcome::Done | SyncOutcome::UpToDate if pulls => {
+                    gitlinks::moved(&before, &sync::gitlinks(&self.runner, &entry.path).await)
+                }
+                _ => Vec::new(),
+            };
+            RepoResult { id, outcome, submodules_moved: moved }
+        };
+        let result = self.scheduler.write(id, job).await;
+        if matches!(kind, SyncKind::Fetch) && !matches!(result.outcome, SyncOutcome::Skipped { .. }) {
+            self.fetch_log.record(id, result.outcome.clone());
+        }
+        self.publish(id).await;
+        result
+    }
+
+    pub async fn update_submodules(&self, id: RepoId) -> SyncOutcome {
         let Some(entry) = self.entries.get(&id) else {
             return SyncOutcome::Failed { message: format!("no repo {id}") };
         };
-        let outcome = self.scheduler.write(id, sync::run(&self.runner, &entry.path, kind)).await;
-        if matches!(kind, SyncKind::Fetch) && !matches!(outcome, SyncOutcome::Skipped { .. }) {
-            self.fetch_log.record(id, outcome.clone());
-        }
-        self.publish(id).await;
+        let outcome = self.scheduler.write(id, sync::update_submodules(&self.runner, &entry.path)).await;
+        let children: Vec<RepoId> = self.entries.values().filter(|e| e.parent == Some(id)).map(|e| e.id).collect();
+        join_all(std::iter::once(id).chain(children).map(|id| self.publish(id))).await;
         outcome
     }
 
@@ -80,10 +110,7 @@ impl Hub {
     }
 
     pub async fn fetch(&self, ids: Vec<RepoId>) -> Vec<RepoResult> {
-        join_all(ids.into_iter().map(|id| async move {
-            RepoResult { id, outcome: self.sync(id, SyncKind::Fetch).await }
-        }))
-        .await
+        join_all(ids.into_iter().map(|id| self.sync(id, SyncKind::Fetch))).await
     }
 
     /// Submodules run before their superproject; one repo's failure never stops the others.
@@ -92,21 +119,14 @@ impl Hub {
             .entries
             .values()
             .filter(|e| !e.initialized || e.excluded)
-            .map(|e| RepoResult {
-                id: e.id,
-                outcome: SyncOutcome::Skipped {
-                    reason: if e.excluded { "excluded" } else { "not initialized" }.into(),
-                },
+            .map(|e| {
+                let reason = if e.excluded { "excluded" } else { "not initialized" };
+                RepoResult::of(e.id, SyncOutcome::Skipped { reason: reason.into() })
             })
             .collect();
         let active: Vec<RepoEntry> = self.active().cloned().collect();
         for wave in bulk::waves(&active) {
-            results.extend(
-                join_all(wave.into_iter().map(|id| async move {
-                    RepoResult { id, outcome: self.sync(id, kind).await }
-                }))
-                .await,
-            );
+            results.extend(join_all(wave.into_iter().map(|id| self.sync(id, kind))).await);
         }
         results
     }

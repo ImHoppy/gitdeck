@@ -1,4 +1,6 @@
 export { RepoActions } from './RepoActions'
+export { SubmoduleChoiceSelect } from './SubmoduleChoiceSelect'
+export { SubmoduleUpdateDialog } from './SubmoduleUpdateDialog'
 export { SyncSummary } from './SyncSummary'
 export { SyncToolbar } from './SyncToolbar'
 export { useSync } from './useSync'

@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { RepoActions, SyncSummary, SyncToolbar, useSync } from '../features/sync'
+import {
+  RepoActions,
+  SubmoduleChoiceSelect,
+  SubmoduleUpdateDialog,
+  SyncSummary,
+  SyncToolbar,
+  useSync,
+} from '../features/sync'
 import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
 import styles from './App.module.css'
 
@@ -17,7 +24,12 @@ export function App() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onRefresh={() => open(workspace.name)}
-            toolbar={<SyncToolbar running={sync.bulk} onRunAll={sync.syncAll} />}
+            toolbar={
+              <>
+                <SyncToolbar running={sync.bulk} onRunAll={sync.syncAll} />
+                <SubmoduleChoiceSelect value={sync.choice} onChange={sync.setChoice} />
+              </>
+            }
             actions={(repo) => (
               <RepoActions
                 repo={repo}
@@ -39,6 +51,9 @@ export function App() {
             onSelect={setSelectedId}
             onDismiss={sync.dismiss}
           />
+        )}
+        {workspace && sync.moved.length > 0 && (
+          <SubmoduleUpdateDialog moved={sync.moved} repos={workspace.repos} onAnswer={sync.answerMoved} />
         )}
       </main>
     </div>
