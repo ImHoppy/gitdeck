@@ -1,0 +1,77 @@
+.tree {
+  height: 100%;
+  overflow: auto;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+}
+
+.header button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.attention {
+  margin-left: auto;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.selected .name {
+  font-weight: 700;
+}
+
+.twisty {
+  width: 12px;
+  flex: none;
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+.folder {
+  color: var(--fg-muted);
+}
+
+.head {
+  color: var(--fg-muted);
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.rollup {
+  margin-left: auto;
+  color: var(--fg-muted);
+  font-size: 11px;
+}

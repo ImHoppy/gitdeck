@@ -1,0 +1,25 @@
+.badge {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ahead {
+  color: var(--ahead);
+}
+
+.behind {
+  color: var(--behind);
+}
+
+.dirty {
+  color: var(--dirty);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.muted {
+  color: var(--fg-muted);
+}

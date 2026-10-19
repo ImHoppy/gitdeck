@@ -1,0 +1,18 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  height: 100%;
+}
+
+.left {
+  min-width: 0;
+}
+
+.main {
+  min-width: 0;
+}
+
+.message {
+  padding: 12px;
+  color: var(--fg-muted);
+}
