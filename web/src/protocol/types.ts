@@ -29,6 +29,24 @@ export type RepoSnapshot = {
   state: RepoState | null
   pointerDiffers: boolean
   error: string | null
+  lastFetch: LastFetch | null
 }
 
 export type WorkspaceSnapshot = { name: string; repos: RepoSnapshot[] }
+
+export type SyncKind = 'fetch' | 'sync'
+
+export type RebaseAction = 'continue' | 'skip' | 'abort'
+
+export type SyncOutcome =
+  | { kind: 'done' }
+  | { kind: 'upToDate' }
+  | { kind: 'conflict' }
+  | { kind: 'autostashConflict' }
+  | { kind: 'authFailed' }
+  | { kind: 'skipped'; reason: string }
+  | { kind: 'failed'; message: string }
+
+export type LastFetch = { at: number; outcome: SyncOutcome }
+
+export type RepoResult = { id: number; outcome: SyncOutcome }

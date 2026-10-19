@@ -1,61 +1,40 @@
-use crate::{events::Event, snapshot::RepoSnapshot};
-use gitcore::ProcessRunner;
-use std::{collections::HashMap, sync::Arc};
-use tokio::{sync::{broadcast, mpsc}, task::JoinHandle};
+use crate::{autofetch, hub::Hub};
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::mpsc, task::JoinHandle};
 use workspace::{
     watch::{RepoWatcher, WatchTarget},
-    RepoEntry, RepoId,
+    RepoId,
 };
 
 pub struct LiveWorkspace {
+    pub hub: Arc<Hub>,
     _watcher: RepoWatcher,
     refresher: JoinHandle<()>,
+    fetcher: JoinHandle<()>,
 }
 
 impl Drop for LiveWorkspace {
     fn drop(&mut self) {
         self.refresher.abort();
+        self.fetcher.abort();
     }
 }
 
 impl LiveWorkspace {
-    pub fn start(
-        snapshots: &[RepoSnapshot],
-        runner: ProcessRunner,
-        events: broadcast::Sender<Event>,
-    ) -> notify::Result<Self> {
-        let targets = snapshots
-            .iter()
-            .filter(|s| s.entry.initialized && !s.entry.excluded)
-            .map(|s| WatchTarget {
-                id: s.entry.id,
-                worktree: s.entry.path.clone(),
-                gitdir: s.state.as_ref().map(|st| st.gitdir.clone()),
-            })
-            .collect();
-        let entries: Arc<HashMap<RepoId, RepoEntry>> =
-            Arc::new(snapshots.iter().map(|s| (s.entry.id, s.entry.clone())).collect());
+    pub fn start(hub: Arc<Hub>, targets: Vec<WatchTarget>, fetch_interval: Duration) -> notify::Result<Self> {
         let (tx, rx) = mpsc::unbounded_channel();
         let watcher = RepoWatcher::start(targets, tx)?;
-        let refresher = tokio::spawn(refresh_loop(rx, entries, runner, events));
-        Ok(Self { _watcher: watcher, refresher })
+        let refresher = tokio::spawn(refresh_loop(rx, hub.clone()));
+        let fetcher = tokio::spawn(autofetch::run(hub.clone(), fetch_interval));
+        Ok(Self { hub, _watcher: watcher, refresher, fetcher })
     }
 }
 
-async fn refresh_loop(
-    mut changed: mpsc::UnboundedReceiver<Vec<RepoId>>,
-    entries: Arc<HashMap<RepoId, RepoEntry>>,
-    runner: ProcessRunner,
-    events: broadcast::Sender<Event>,
-) {
+async fn refresh_loop(mut changed: mpsc::UnboundedReceiver<Vec<RepoId>>, hub: Arc<Hub>) {
     while let Some(ids) = changed.recv().await {
         for id in ids {
-            let Some(entry) = entries.get(&id).cloned() else { continue };
-            let (runner, events) = (runner.clone(), events.clone());
-            tokio::spawn(async move {
-                let snapshot = RepoSnapshot::load(&runner, entry).await;
-                let _ = events.send(Event::RepoState(snapshot));
-            });
+            let hub = hub.clone();
+            tokio::spawn(async move { hub.publish(id).await });
         }
     }
 }

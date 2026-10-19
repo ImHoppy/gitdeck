@@ -14,6 +14,7 @@ function repo(id: number, parent: number | null, pathInParent: string | null, be
     excluded: false,
     pointerDiffers: false,
     error: null,
+    lastFetch: null,
     state: {
       head: { kind: 'branch', name: 'main' },
       headSha: 'a',

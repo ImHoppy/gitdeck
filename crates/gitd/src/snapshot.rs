@@ -1,6 +1,6 @@
 use gitcore::GitRunner;
 use serde::Serialize;
-use workspace::{state, RepoEntry, RepoState};
+use workspace::{fetch_log::LastFetch, state, RepoEntry, RepoState};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -10,6 +10,7 @@ pub struct RepoSnapshot {
     pub state: Option<RepoState>,
     pub pointer_differs: bool,
     pub error: Option<String>,
+    pub last_fetch: Option<LastFetch>,
 }
 
 impl RepoSnapshot {
@@ -23,6 +24,6 @@ impl RepoSnapshot {
         };
         let head_sha = state.as_ref().and_then(|s| s.head_sha.as_ref());
         let pointer_differs = matches!((&entry.recorded_sha, head_sha), (Some(r), Some(h)) if r != h);
-        Self { entry, state, pointer_differs, error }
+        Self { entry, state, pointer_differs, error, last_fetch: None }
     }
 }

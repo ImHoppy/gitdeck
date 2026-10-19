@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { RepoActions, SyncAllButton, SyncSummary, useSync } from '../features/sync'
 import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
 import styles from './App.module.css'
 
 export function App() {
   const { workspace, error, open } = useWorkspace()
+  const sync = useSync()
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
   return (
@@ -15,12 +17,30 @@ export function App() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onRefresh={() => open(workspace.name)}
+            toolbar={<SyncAllButton running={sync.bulk !== null} onClick={() => sync.syncAll('sync')} />}
+            actions={(repo) => (
+              <RepoActions
+                repo={repo}
+                busy={sync.busy.has(repo.id) || sync.bulk !== null}
+                onSync={() => sync.sync(repo.id, 'sync')}
+                onRebase={(action) => sync.rebase(repo.id, action)}
+              />
+            )}
           />
         ) : (
           <div className={styles.message}>{error ?? 'Loading…'}</div>
         )}
       </aside>
-      <main className={styles.main} />
+      <main className={styles.main}>
+        {workspace && sync.summary && (
+          <SyncSummary
+            summary={sync.summary}
+            repos={workspace.repos}
+            onSelect={setSelectedId}
+            onDismiss={sync.dismiss}
+          />
+        )}
+      </main>
     </div>
   )
 }

@@ -50,7 +50,9 @@ export function needsAttention(repo: RepoSnapshot): boolean {
     (s.tracking.behind ?? 0) > 0 ||
     s.tracking.gone ||
     s.head.kind === 'detached' ||
-    s.operation !== null
+    s.operation !== null ||
+    repo.lastFetch?.outcome.kind === 'failed' ||
+    repo.lastFetch?.outcome.kind === 'authFailed'
   )
 }
 

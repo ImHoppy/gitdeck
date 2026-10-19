@@ -20,7 +20,22 @@ export function RepoBadges({ repo }: { repo: RepoSnapshot }) {
       {s.status.conflicts > 0 && <Badge tone="danger">✖{s.status.conflicts}</Badge>}
       {s.head.kind === 'detached' && <Badge tone="danger">⚠ detached</Badge>}
       {s.operation && <Badge tone="danger">⚠ {OPERATION_LABEL[s.operation]} in progress</Badge>}
+      {fetchFailed(repo) && (
+        <Badge tone="danger" title={fetchError(repo)}>
+          fetch failed
+        </Badge>
+      )}
       {repo.pointerDiffers && <Badge tone="muted" title="differs from superproject pointer">+</Badge>}
     </>
   )
+}
+
+function fetchFailed(repo: RepoSnapshot) {
+  const kind = repo.lastFetch?.outcome.kind
+  return kind === 'failed' || kind === 'authFailed'
+}
+
+function fetchError(repo: RepoSnapshot) {
+  const o = repo.lastFetch?.outcome
+  return o?.kind === 'failed' ? o.message : 'authentication needed'
 }

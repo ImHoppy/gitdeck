@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
+import type { RepoSnapshot } from '../../protocol/types'
 import type { TreeNode } from './model'
 import { rollup } from './model'
 import { RepoBadges } from './RepoBadges'
@@ -10,9 +11,10 @@ type Props = {
   depth: number
   selectedId: number | null
   onSelect: (repoId: number) => void
+  actions?: (repo: RepoSnapshot) => ReactNode
 }
 
-export function TreeNodeView({ node, depth, selectedId, onSelect }: Props) {
+export function TreeNodeView({ node, depth, selectedId, onSelect, actions }: Props) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children.length > 0
   const toggle = () => setExpanded((e) => !e)
@@ -27,6 +29,7 @@ export function TreeNodeView({ node, depth, selectedId, onSelect }: Props) {
         <span className={styles.badges}>
           <RepoBadges repo={node.repo} />
         </span>
+        {actions && <span className={styles.actions}>{actions(node.repo)}</span>}
       </>
     )
 
@@ -44,7 +47,7 @@ export function TreeNodeView({ node, depth, selectedId, onSelect }: Props) {
       </TreeRow>
       {expanded &&
         node.children.map((child) => (
-          <TreeNodeView key={child.key} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} />
+          <TreeNodeView key={child.key} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} actions={actions} />
         ))}
     </>
   )

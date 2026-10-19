@@ -46,7 +46,7 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path) -> Result<RepoState, Ru
     })
 }
 
-async fn git_dir<R: GitRunner>(runner: &R, path: &Path) -> Result<PathBuf, RunError> {
+pub(crate) async fn git_dir<R: GitRunner>(runner: &R, path: &Path) -> Result<PathBuf, RunError> {
     let out = runner.run_ok(path, &["rev-parse", "--absolute-git-dir"]).await?;
     Ok(PathBuf::from(String::from_utf8_lossy(&out).trim()))
 }

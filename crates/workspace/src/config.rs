@@ -14,6 +14,12 @@ pub struct WorkspaceConfig {
     pub roots: Vec<RootConfig>,
     #[serde(default)]
     pub exclude: Exclude,
+    #[serde(default = "default_fetch_minutes")]
+    pub fetch_interval_minutes: u64,
+}
+
+fn default_fetch_minutes() -> u64 {
+    5
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

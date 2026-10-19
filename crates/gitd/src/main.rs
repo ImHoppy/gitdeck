@@ -1,7 +1,9 @@
 mod auth;
+mod autofetch;
 mod cli;
 mod events;
 mod handlers;
+mod hub;
 mod live;
 mod protocol;
 mod server;

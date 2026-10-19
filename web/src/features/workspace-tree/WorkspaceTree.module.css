@@ -75,3 +75,8 @@
   color: var(--fg-muted);
   font-size: 11px;
 }
+
+.actions {
+  display: flex;
+  gap: 4px;
+}
