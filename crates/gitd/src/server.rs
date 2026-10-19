@@ -80,6 +80,8 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     if !args.no_open {
         browser::open(&url);
     }
+    #[cfg(windows)]
+    crate::tray::spawn(app.clone(), url.clone());
     let shutdown = app.clone();
     axum::serve(listener, router)
         .with_graceful_shutdown(async move { shutdown.lifecycle.shutdown.notified().await })

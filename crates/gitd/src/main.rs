@@ -14,6 +14,8 @@ mod protocol;
 mod server;
 mod snapshot;
 mod static_files;
+#[cfg(windows)]
+mod tray;
 
 use clap::Parser;
 
