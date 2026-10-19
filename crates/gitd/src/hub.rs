@@ -1,4 +1,4 @@
-use crate::{events::Event, snapshot::RepoSnapshot};
+use crate::{events::Event, histories::Histories, snapshot::RepoSnapshot};
 use futures::future::join_all;
 use gitcore::{commands::gitlinks, ProcessRunner};
 use serde::Serialize;
@@ -15,6 +15,7 @@ use workspace::{
 pub struct Hub {
     pub runner: ProcessRunner,
     pub entries: HashMap<RepoId, RepoEntry>,
+    pub histories: Histories,
     events: broadcast::Sender<Event>,
     scheduler: Scheduler,
     fetch_log: FetchLog,
@@ -41,9 +42,14 @@ impl Hub {
             runner,
             entries: entries.iter().map(|e| (e.id, e.clone())).collect(),
             events,
+            histories: Histories::default(),
             scheduler: Scheduler::default(),
             fetch_log: FetchLog::default(),
         }
+    }
+
+    pub fn entry(&self, id: RepoId) -> anyhow::Result<&RepoEntry> {
+        self.entries.get(&id).ok_or_else(|| anyhow::anyhow!("no repo {id}"))
     }
 
     pub async fn snapshot(&self, entry: RepoEntry) -> RepoSnapshot {

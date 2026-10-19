@@ -1,0 +1,16 @@
+.box {
+  height: 100%;
+  overflow: auto;
+  position: relative;
+}
+
+.spacer {
+  position: relative;
+  min-width: 100%;
+}
+
+.row {
+  position: absolute;
+  left: 0;
+  right: 0;
+}

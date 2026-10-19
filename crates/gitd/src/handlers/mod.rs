@@ -1,3 +1,4 @@
+mod log;
 pub mod repo;
 mod workspace;
 
@@ -14,6 +15,10 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "repo.updateSubmodules" => repo::update_submodules(app, serde_json::from_value(params)?).await,
         "repo.conflicts" => repo::conflicts(app, serde_json::from_value(params)?).await,
         "repo.rebase" => repo::rebase(app, serde_json::from_value(params)?).await,
+        "log.open" => log::open(app, serde_json::from_value(params)?).await,
+        "log.rows" => log::rows(app, serde_json::from_value(params)?).await,
+        "log.find" => log::find(app, serde_json::from_value(params)?).await,
+        "commit.body" => log::body(app, serde_json::from_value(params)?).await,
         "repo.sync" => repo::sync(app, serde_json::from_value(params)?).await,
         _ => Err(anyhow!("unknown method {method}")),
     }

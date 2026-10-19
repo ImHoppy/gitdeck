@@ -50,3 +50,25 @@ export type SyncOutcome =
 export type LastFetch = { at: number; outcome: SyncOutcome }
 
 export type RepoResult = { id: number; outcome: SyncOutcome; submodulesMoved: string[] }
+
+export type RefKind = 'branch' | 'remote' | 'tag'
+
+export type GitRef = { sha: string; kind: RefKind; name: string; upstream: string | null }
+
+export type HistoryInfo = { key: string; head: string | null; refs: GitRef[]; count: number }
+
+export type GraphSegment = { from: number | null; to: number | null; color: number }
+
+export type GraphRow = { lane: number; color: number; segments: GraphSegment[] }
+
+export type HistoryRow = {
+  sha: string
+  parents: string[]
+  author: string
+  email: string
+  time: number
+  subject: string
+  bodyHint: string
+  multiline: boolean
+  graph: GraphRow
+}

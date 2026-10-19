@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gitcore", "crates/workspace", "crates/gitd"]
+members = ["crates/graph", "crates/gitcore", "crates/workspace", "crates/gitd"]
 
 [workspace.package]
 edition = "2021"

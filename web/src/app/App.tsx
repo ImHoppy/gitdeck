@@ -12,6 +12,7 @@ import {
 } from '../features/sync'
 import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
 import styles from './App.module.css'
+import { RepoView } from './RepoView'
 
 export function App() {
   const { workspace, error, open } = useWorkspace()
@@ -74,6 +75,11 @@ export function App() {
         )}
         {workspace && sync.moved.length > 0 && (
           <SubmoduleUpdateDialog moved={sync.moved} repos={workspace.repos} onAnswer={sync.answerMoved} />
+        )}
+        {selected?.initialized && !selected.excluded ? (
+          <RepoView key={selected.id} repo={selected} />
+        ) : (
+          <div className={styles.message}>Select a repo in the tree.</div>
         )}
       </main>
     </div>

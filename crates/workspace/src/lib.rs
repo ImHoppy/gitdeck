@@ -3,6 +3,7 @@ pub mod bulk;
 pub mod config;
 pub mod discovery;
 pub mod fetch_log;
+pub mod history;
 pub mod registry;
 pub mod scheduler;
 pub mod state;

@@ -5,6 +5,7 @@ version.workspace = true
 
 [dependencies]
 gitcore = { path = "../gitcore" }
+graph = { path = "../graph" }
 thiserror.workspace = true
 serde.workspace = true
 tokio.workspace = true

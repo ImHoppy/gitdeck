@@ -450,6 +450,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "graph"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1375,6 +1382,7 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "gitcore",
+ "graph",
  "notify",
  "serde",
  "thiserror",

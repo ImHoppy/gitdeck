@@ -3,6 +3,7 @@ mod autofetch;
 mod cli;
 mod events;
 mod handlers;
+mod histories;
 mod hub;
 mod live;
 mod protocol;

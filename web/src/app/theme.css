@@ -10,6 +10,7 @@
   --danger: #cf222e;
   --border: #d0d7de;
   --hover: #eaeef2;
+  --selection: #ddf4ff;
   font: 13px/1.4 system-ui, sans-serif;
   color: var(--fg);
 }
@@ -27,6 +28,7 @@
     --danger: #f85149;
     --border: #30363d;
     --hover: #1f2630;
+    --selection: #1c2d41;
   }
 }
 
