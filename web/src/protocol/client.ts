@@ -2,6 +2,10 @@ type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void }
 
 type Reply = { id: number; result?: unknown; error?: string }
 
+type PushedEvent = { event: string; data: unknown }
+
+type Listener = (data: unknown) => void
+
 const RECONNECT_MS = 1000
 
 export class GitdClient {
@@ -9,6 +13,7 @@ export class GitdClient {
   private nextId = 1
   private pending = new Map<number, Pending>()
   private ready: Promise<void> | null = null
+  private listeners = new Map<string, Set<Listener>>()
 
   private connect(): Promise<void> {
     if (this.ready) return this.ready
@@ -17,11 +22,24 @@ export class GitdClient {
       const socket = new WebSocket(url)
       socket.onopen = () => resolve()
       socket.onerror = () => reject(new Error('gitd unreachable'))
-      socket.onmessage = (m) => this.onReply(JSON.parse(m.data) as Reply)
+      socket.onmessage = (m) => this.onMessage(JSON.parse(m.data))
       socket.onclose = () => this.onClose()
       this.socket = socket
     })
     return this.ready
+  }
+
+  private onMessage(msg: Reply | PushedEvent) {
+    if ('event' in msg) this.listeners.get(msg.event)?.forEach((l) => l(msg.data))
+    else this.onReply(msg)
+  }
+
+  on<T>(event: string, listener: (data: T) => void): () => void {
+    const set = this.listeners.get(event) ?? new Set()
+    set.add(listener as Listener)
+    this.listeners.set(event, set)
+    this.connect().catch(() => {})
+    return () => set.delete(listener as Listener)
   }
 
   private onReply(reply: Reply) {

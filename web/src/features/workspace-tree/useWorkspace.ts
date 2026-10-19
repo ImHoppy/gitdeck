@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { gitd } from '../../protocol/client'
-import type { WorkspaceSnapshot } from '../../protocol/types'
+import type { RepoSnapshot, WorkspaceSnapshot } from '../../protocol/types'
 
 export function useWorkspace() {
   const [names, setNames] = useState<string[]>([])
@@ -25,6 +25,14 @@ export function useWorkspace() {
       })
       .catch((e: Error) => setError(e.message))
   }, [open])
+
+  useEffect(
+    () =>
+      gitd.on<RepoSnapshot>('repo-state', (updated) =>
+        setWorkspace((ws) => ws && { ...ws, repos: ws.repos.map((r) => (r.id === updated.id ? updated : r)) }),
+      ),
+    [],
+  )
 
   return { names, workspace, error, open }
 }
