@@ -10,9 +10,12 @@ import { PatchView } from './PatchView'
 import { useDiffFiles } from './useDiffFiles'
 import { usePatch } from './usePatch'
 
-type Props = { repoId: number; target: DiffTarget; title: string }
+type Props = { repoId: number; target: DiffTarget; title: string; parents?: string[] }
 
-export function DiffPanel({ repoId, target, title }: Props) {
+export function DiffPanel({ repoId, target: base, title, parents = [] }: Props) {
+  const [parentIndex, setParentIndex] = useState(0)
+  const target: DiffTarget =
+    base.kind === 'commit' && parents.length > 1 ? { ...base, parent: parents[parentIndex] ?? base.parent } : base
   const { files: all, error } = useDiffFiles(repoId, target)
   const [query, setQuery] = useState('')
   const files = useMemo(() => filterFiles(all, query), [all, query])
@@ -30,6 +33,15 @@ export function DiffPanel({ repoId, target, title }: Props) {
         <div className={styles.title} title={title}>
           ({files.length}) {title}
         </div>
+        {parents.length > 1 && (
+          <select className={styles.fileFilter} value={parentIndex} onChange={(e) => setParentIndex(Number(e.target.value))}>
+            {parents.map((p, i) => (
+              <option key={p} value={i}>
+                Diff with parent {i + 1}: {p.slice(0, 8)}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           className={styles.fileFilter}
           placeholder="Filter files (regex)"

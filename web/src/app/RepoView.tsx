@@ -167,7 +167,13 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
               ) : tab === 'commit' && selection?.kind === 'commit' ? (
                 <CommitInfo repoId={repo.id} sha={selection.sha} refs={refs} onPick={(sha) => void pick(sha)} />
               ) : selection ? (
-                <DiffPanel key={JSON.stringify(selection)} repoId={repo.id} target={diffTarget(selection)} title={diffTitle(selection)} />
+                <DiffPanel
+                  key={JSON.stringify(selection)}
+                  repoId={repo.id}
+                  target={diffTarget(selection)}
+                  title={diffTitle(selection)}
+                  parents={selection.kind === 'commit' ? selection.parents : undefined}
+                />
               ) : (
                 <div className={styles.message}>Select a row to see its changes.</div>
               )}
