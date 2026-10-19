@@ -82,3 +82,17 @@
   display: flex;
   gap: 4px;
 }
+
+.picker {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.picker select {
+  max-width: 140px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}

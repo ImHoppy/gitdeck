@@ -12,7 +12,8 @@ import {
 } from '../features/sync'
 import { SettingsPage, useServerInfo, useTheme } from '../features/settings'
 import { treeMenu, useTreeCommands } from '../features/repo-actions'
-import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
+import { useWorkspace, WorkspacePicker, WorkspaceTree } from '../features/workspace-tree'
+import { useDialogs } from '../ui/Dialog/useDialogs'
 import type { RepoSnapshot } from '../protocol/types'
 import { IconButton } from '../ui/IconButton/IconButton'
 import { Menu, type MenuItem } from '../ui/Menu/Menu'
@@ -20,7 +21,15 @@ import styles from './App.module.css'
 import { RepoView } from './RepoView'
 
 export function App() {
-  const { workspace, error, open } = useWorkspace()
+  const { names, workspace, error, open, addRoot, removeRoot, setExcluded } = useWorkspace()
+  const dialogs = useDialogs()
+
+  const addRepo = async () => {
+    const path = await dialogs.prompt('Add a repository', 'Folder of a git repository (its submodules come along)', '')
+    if (!path) return
+    const name = await dialogs.prompt('Workspace', 'Add it to workspace (an existing name or a new one)', workspace?.name ?? 'default')
+    if (name) await addRoot(name, path)
+  }
   const sync = useSync()
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const selected = workspace?.repos.find((r) => r.id === selectedId)
@@ -42,6 +51,8 @@ export function App() {
         submodule: tree.submodule,
         recordPointer: (parentId, path) => void tree.recordPointer(parentId, path),
         refresh: () => workspace && open(workspace.name),
+        removeRoot: (path) => workspace && void removeRoot(workspace.name, path),
+        setExcluded: (path, excluded) => workspace && void setExcluded(workspace.name, path, excluded),
       }),
     })
 
@@ -54,6 +65,7 @@ export function App() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onRefresh={() => open(workspace.name)}
+            picker={<WorkspacePicker names={names ?? []} current={workspace.name} onOpen={(n) => void open(n)} onAdd={() => void addRepo()} />}
             onRepoMenu={onRepoMenu}
             toolbar={
               <>
@@ -87,7 +99,18 @@ export function App() {
             )}
           />
         ) : (
-          <div className={styles.message}>{error ?? 'Loading…'}</div>
+          <div className={styles.message}>
+            {names?.length === 0 ? (
+              <>
+                <p>No workspace yet.</p>
+                <IconButton title="Add a repository folder" onClick={() => void addRepo()}>
+                  + Add a repository
+                </IconButton>
+              </>
+            ) : (
+              (error ?? 'Loading…')
+            )}
+          </div>
         )}
       </aside>
       <main className={styles.main}>
@@ -125,6 +148,7 @@ export function App() {
         )}
       </main>
       {menu && <Menu items={menu.items} at={menu.at} onClose={() => setMenu(null)} />}
+      {dialogs.element}
       {settingsOpen && (
         <SettingsPage
           theme={{ value: theme.theme, onChange: theme.setTheme, options: [['auto', 'Follow the system'], ['light', 'Light'], ['dark', 'Dark']] }}

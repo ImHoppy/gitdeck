@@ -49,6 +49,8 @@ pub enum ConfigError {
     Io(#[from] std::io::Error),
     #[error("parsing config: {0}")]
     Parse(#[from] toml::de::Error),
+    #[error("writing config: {0}")]
+    Write(#[from] toml::ser::Error),
 }
 
 impl Config {
@@ -62,6 +64,48 @@ impl Config {
 
     pub fn workspace(&self, name: &str) -> Option<&WorkspaceConfig> {
         self.workspaces.iter().find(|w| w.name == name)
+    }
+
+    pub fn save(&self, path: &Path) -> Result<(), ConfigError> {
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        std::fs::write(path, toml::to_string_pretty(self)?)?;
+        Ok(())
+    }
+
+    /// Adds `path` as a root of workspace `name`, creating the workspace when it is new.
+    pub fn add_root(&mut self, name: &str, path: PathBuf) {
+        let ws = match self.workspaces.iter().position(|w| w.name == name) {
+            Some(i) => &mut self.workspaces[i],
+            None => {
+                self.workspaces.push(WorkspaceConfig {
+                    name: name.to_string(),
+                    roots: Vec::new(),
+                    exclude: Exclude::default(),
+                    fetch_interval_minutes: default_fetch_minutes(),
+                });
+                self.workspaces.last_mut().unwrap()
+            }
+        };
+        if !ws.roots.iter().any(|r| same_path(&r.path, &path)) {
+            ws.roots.push(RootConfig { path, submodules: SubmoduleMode::default() });
+        }
+    }
+
+    pub fn remove_root(&mut self, name: &str, path: &Path) {
+        if let Some(ws) = self.workspaces.iter_mut().find(|w| w.name == name) {
+            ws.roots.retain(|r| !same_path(&r.path, path));
+        }
+    }
+
+    pub fn set_excluded(&mut self, name: &str, path: &Path, excluded: bool) {
+        if let Some(ws) = self.workspaces.iter_mut().find(|w| w.name == name) {
+            ws.exclude.paths.retain(|p| !same_path(p, path));
+            if excluded {
+                ws.exclude.paths.push(path.to_path_buf());
+            }
+        }
     }
 }
 
@@ -110,5 +154,17 @@ mod tests {
         assert_eq!(ws.roots[0].submodules, SubmoduleMode::Pinned);
         assert_eq!(ws.roots[1].submodules, SubmoduleMode::Branch);
         assert!(ws.is_excluded(Path::new("E:\\AvaServer\\x\\")));
+    }
+
+    #[test]
+    fn adds_roots_and_round_trips() {
+        let mut cfg = Config::default();
+        cfg.add_root("ava", "E:/AvaServer".into());
+        cfg.add_root("ava", r"E:\AvaServer".into());
+        cfg.set_excluded("ava", Path::new("E:/AvaServer/big"), true);
+        let back: Config = toml::from_str(&toml::to_string_pretty(&cfg).unwrap()).unwrap();
+        let ws = back.workspace("ava").unwrap();
+        assert_eq!(ws.roots.len(), 1);
+        assert!(ws.is_excluded(Path::new("E:/AvaServer/big")));
     }
 }

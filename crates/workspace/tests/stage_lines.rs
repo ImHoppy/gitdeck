@@ -1,5 +1,5 @@
 use gitcore::{
-    commands::diff::{ChangeKind, ChangedFile, DiffTarget},
+    commands::diff::{ChangeKind, ChangedFile, DiffTarget, PatchOptions},
     GitRunner, ProcessRunner,
 };
 use std::{
@@ -10,7 +10,7 @@ use std::{
 };
 use workspace::{
     changes,
-    stage_lines::{self, LineMode, StageError, CONTEXT},
+    stage_lines::{self, LineMode, StageError},
 };
 
 struct Repo(PathBuf);
@@ -46,7 +46,7 @@ fn modified(path: &str) -> ChangedFile {
 }
 
 async fn lines_of(r: &ProcessRunner, repo: &Path, target: DiffTarget, file: &ChangedFile, wanted: &[&str]) -> (String, HashSet<usize>) {
-    let p = changes::patch(r, repo, &target, file, CONTEXT).await.unwrap();
+    let p = changes::patch(r, repo, &target, file, PatchOptions::default()).await.unwrap();
     let picked = p.text.lines().enumerate().filter(|(_, l)| wanted.contains(&l.trim_end_matches('\r'))).map(|(i, _)| i).collect();
     (p.diff_id, picked)
 }

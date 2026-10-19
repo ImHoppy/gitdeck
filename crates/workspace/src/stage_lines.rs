@@ -1,14 +1,12 @@
 use crate::{changes, state::git_dir};
 use gitcore::{
-    commands::diff::{ChangedFile, DiffTarget},
+    commands::diff::{ChangedFile, DiffTarget, PatchOptions},
     GitRunner, RunError,
 };
 use patch::Direction;
 use serde::Deserialize;
 use std::{collections::HashSet, path::Path};
 
-/// Same context the client's diff was made with, so line indices line up.
-pub const CONTEXT: u32 = 3;
 
 const PATCH_FILE: &str = "gitdeck-lines.patch";
 
@@ -43,7 +41,7 @@ pub async fn apply<R: GitRunner>(
     lines: &HashSet<usize>,
 ) -> Result<(), StageError> {
     let target = if mode == LineMode::Unstage { DiffTarget::Index } else { DiffTarget::Worktree };
-    let fresh = changes::patch(runner, path, &target, file, CONTEXT).await?;
+    let fresh = changes::patch(runner, path, &target, file, PatchOptions::default()).await?;
     if fresh.diff_id != diff_id {
         return Err(StageError::Stale);
     }

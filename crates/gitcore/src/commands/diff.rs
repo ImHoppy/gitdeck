@@ -42,11 +42,25 @@ pub fn files_args(target: &DiffTarget) -> Vec<String> {
 
 pub const UNTRACKED_ARGS: &[&str] = &["ls-files", "--others", "--exclude-standard", "-z"];
 
-pub fn patch_args(target: &DiffTarget, file: &ChangedFile, context: u32) -> Vec<String> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PatchOptions {
+    pub context: u32,
+    pub ignore_whitespace: bool,
+}
+
+impl Default for PatchOptions {
+    fn default() -> Self {
+        Self { context: 3, ignore_whitespace: false }
+    }
+}
+
+pub fn patch_args(target: &DiffTarget, file: &ChangedFile, opts: PatchOptions) -> Vec<String> {
     let mut a: Vec<String> = vec!["-c".into(), "core.quotePath=false".into()];
-    let unified = format!("-U{context}");
+    let unified = format!("-U{}", opts.context);
+    let ws = if opts.ignore_whitespace { "-w" } else { "--no-ext-diff" };
     if file.kind == ChangeKind::Untracked {
-        a.extend(["diff", "--no-index", "--no-ext-diff", &unified, "--", "/dev/null", &file.path].map(String::from));
+        a.extend(["diff", "--no-index", "--no-ext-diff", ws, &unified, "--", "/dev/null", &file.path].map(String::from));
         return a;
     }
     match target {
@@ -57,7 +71,7 @@ pub fn patch_args(target: &DiffTarget, file: &ChangedFile, context: u32) -> Vec<
             a.extend(["diff-tree".into(), "--no-commit-id".into(), "-p".into(), "--root".into(), sha.clone()])
         }
     }
-    a.extend(["-M", "--no-ext-diff", "--no-color", &unified, "--"].map(String::from));
+    a.extend(["-M", "--no-ext-diff", "--no-color", ws, &unified, "--"].map(String::from));
     if let Some(old) = &file.old_path {
         a.push(old.clone());
     }
@@ -121,7 +135,7 @@ mod tests {
     #[test]
     fn untracked_patch_compares_against_dev_null() {
         let f = ChangedFile { path: "n.txt".into(), old_path: None, kind: ChangeKind::Untracked };
-        let args = patch_args(&DiffTarget::Worktree, &f, 3);
+        let args = patch_args(&DiffTarget::Worktree, &f, PatchOptions::default());
         assert!(args.ends_with(&["--".into(), "/dev/null".into(), "n.txt".into()]));
     }
 }

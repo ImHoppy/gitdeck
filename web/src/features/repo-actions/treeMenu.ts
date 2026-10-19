@@ -9,12 +9,22 @@ export type TreeMenuDeps = {
   submodule: (id: number, op: 'init' | 'update') => Promise<boolean>
   recordPointer: (parentId: number, path: string) => void
   refresh: () => void
+  removeRoot: (path: string) => void
+  setExcluded: (path: string, excluded: boolean) => void
 }
 
 export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
   const s = repo.state
   const sub = repo.parent !== null && repo.pathInParent !== null
   const items: MenuItem[] = []
+  const workspaceItems: MenuItem[] = [
+    'separator',
+    repo.excluded
+      ? { key: 'include', label: 'Include in auto fetch and live status', onSelect: () => d.setExcluded(repo.path, false) }
+      : { key: 'exclude', label: 'Exclude from auto fetch and live status', onSelect: () => d.setExcluded(repo.path, true) },
+    ...(repo.parent === null ? [{ key: 'remove', label: 'Remove from workspace', danger: true, onSelect: () => d.removeRoot(repo.path) }] : []),
+  ]
+  if (repo.excluded) return workspaceItems.slice(1)
   if (!repo.initialized) {
     if (sub) {
       items.push({
@@ -57,6 +67,7 @@ export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
     { key: 'explorer', label: 'Open in file explorer', onSelect: () => d.reveal(repo.id, 'explorer') },
     { key: 'terminal', label: 'Open terminal here', onSelect: () => d.reveal(repo.id, 'terminal') },
     { key: 'copy', label: 'Copy path', onSelect: () => void navigator.clipboard?.writeText(repo.path) },
+    ...workspaceItems,
   )
   return items
 }

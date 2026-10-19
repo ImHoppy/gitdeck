@@ -3,7 +3,7 @@ use anyhow::bail;
 use gitcore::{
     commands::{
         commit,
-        diff::{ChangedFile, DiffTarget},
+        diff::{ChangedFile, DiffTarget, PatchOptions},
     },
     model::Head,
     GitRunner,
@@ -15,8 +15,6 @@ use workspace::{
     changes, stage_lines::{self, LineMode},
     state, RepoId,
 };
-
-const DEFAULT_CONTEXT: u32 = 3;
 
 #[derive(Deserialize)]
 pub struct FilesParams {
@@ -36,14 +34,14 @@ pub struct FileParams {
     id: RepoId,
     target: DiffTarget,
     file: ChangedFile,
-    context: Option<u32>,
+    #[serde(default)]
+    options: PatchOptions,
 }
 
 pub async fn file(app: &AppState, p: FileParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let entry = hub.entry(p.id)?;
-    let context = p.context.unwrap_or(DEFAULT_CONTEXT);
-    Ok(serde_json::to_value(changes::patch(&hub.runner, &entry.path, &p.target, &p.file, context).await?)?)
+    Ok(serde_json::to_value(changes::patch(&hub.runner, &entry.path, &p.target, &p.file, p.options).await?)?)
 }
 
 #[derive(Deserialize)]

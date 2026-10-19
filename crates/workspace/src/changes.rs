@@ -1,5 +1,5 @@
 use gitcore::{
-    commands::diff::{self, ChangedFile, DiffTarget},
+    commands::diff::{self, ChangedFile, DiffTarget, PatchOptions},
     GitRunner, RunError,
 };
 use serde::Serialize;
@@ -30,9 +30,9 @@ pub async fn patch<R: GitRunner>(
     path: &Path,
     target: &DiffTarget,
     file: &ChangedFile,
-    context: u32,
+    opts: PatchOptions,
 ) -> Result<Patch, RunError> {
-    let args = diff::patch_args(target, file, context);
+    let args = diff::patch_args(target, file, opts);
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = runner.run(path, &args).await?;
     // `diff --no-index` exits 1 when the files differ

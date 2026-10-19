@@ -17,7 +17,8 @@ use gitcore::ProcessRunner;
 use workspace::Config;
 
 pub struct AppState {
-    pub config: Config,
+    pub config: std::sync::Mutex<Config>,
+    pub config_path: std::path::PathBuf,
     pub runner: ProcessRunner,
     pub token: String,
     pub events: broadcast::Sender<Event>,
@@ -58,7 +59,8 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let commands = Arc::new(CommandLog::new(events.clone()));
     let sink = commands.clone();
     let app = Arc::new(AppState {
-        config,
+        config: std::sync::Mutex::new(config),
+        config_path,
         token,
         runner: ProcessRunner::default().with_sink(Arc::new(move |rec| sink.push(rec))),
         events,

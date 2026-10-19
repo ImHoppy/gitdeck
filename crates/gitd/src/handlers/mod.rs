@@ -14,6 +14,9 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
     match method {
         "workspace.list" => workspace::list(app),
         "workspace.open" => workspace::open(app, serde_json::from_value(params)?).await,
+        "workspace.addRoot" => workspace::add_root(app, serde_json::from_value(params)?).await,
+        "workspace.removeRoot" => workspace::remove_root(app, serde_json::from_value(params)?),
+        "workspace.exclude" => workspace::exclude(app, serde_json::from_value(params)?),
         "workspace.fetchStale" => workspace::fetch_stale(app, serde_json::from_value(params)?).await,
         "repo.syncAll" => repo::sync_all(app, serde_json::from_value(params)?).await,
         "repo.updateSubmodules" => repo::update_submodules(app, serde_json::from_value(params)?).await,
