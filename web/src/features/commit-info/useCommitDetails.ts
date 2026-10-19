@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { gitd } from '../../protocol/client'
+import { immutableCall } from '../../lib/immutableCall'
 import type { CommitDetails } from '../../protocol/types'
 
 const cache = new Map<string, CommitDetails>()
@@ -10,7 +10,7 @@ export function useCommitDetails(repoId: number, sha: string) {
   useEffect(() => {
     if (cache.has(sha)) return
     let live = true
-    gitd.call<CommitDetails>('commit.body', { id: repoId, sha }).then(
+    immutableCall<CommitDetails>('commit.body', { id: repoId, sha }).then(
       (details) => {
         cache.set(sha, details)
         if (live) setLoaded({ sha, details, error: null })

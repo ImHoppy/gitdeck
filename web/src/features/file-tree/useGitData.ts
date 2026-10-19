@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
-import { gitd } from '../../protocol/client'
+import { immutableCall, immutableKey } from '../../lib/immutableCall'
 
 /** Calls `method` once per distinct params; results at a commit never change, so they are kept. */
 const cache = new Map<string, unknown>()
 
 export function useGitData<T>(method: string, params: object | null) {
-  const key = params && JSON.stringify([method, params])
+  const key = params && immutableKey(method, params)
   const [loaded, setLoaded] = useState<{ key: string; data: T | null; error: string | null } | null>(null)
 
   useEffect(() => {
     if (!key || cache.has(key)) return
     let live = true
-    gitd.call<T>(method, params).then(
+    immutableCall<T>(method, params!).then(
       (data) => {
         cache.set(key, data)
         if (live) setLoaded({ key, data, error: null })

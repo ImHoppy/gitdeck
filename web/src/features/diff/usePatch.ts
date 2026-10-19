@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { immutableCall } from '../../lib/immutableCall'
 import { gitd } from '../../protocol/client'
 import type { ChangedFile, DiffTarget, Patch, PatchOptions } from '../../protocol/types'
 
@@ -9,7 +10,9 @@ export function usePatch(repoId: number, target: DiffTarget, file: ChangedFile |
   useEffect(() => {
     if (!file) return
     let live = true
-    gitd.call<Patch>('diff.file', { id: repoId, target, file, options }).then(
+    const params = { id: repoId, target, file, options }
+    const call = target.kind === 'commit' ? immutableCall<Patch>('diff.file', params) : gitd.call<Patch>('diff.file', params)
+    call.then(
       (patch) => live && setLoaded({ key, patch, error: null }),
       (e: Error) => live && setLoaded({ key, patch: null, error: e.message }),
     )
