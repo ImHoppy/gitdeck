@@ -19,6 +19,10 @@
 }
 
 .header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
   background: none;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -85,14 +89,20 @@
 
 .picker {
   display: inline-flex;
+  align-items: stretch;
   gap: 2px;
 }
 
 .picker select {
+  height: 22px;
   max-width: 140px;
   font-weight: 600;
   background: var(--bg);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 4px;
+}
+
+.header :global(button) {
+  height: 22px;
 }

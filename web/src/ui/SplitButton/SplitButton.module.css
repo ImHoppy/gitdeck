@@ -15,6 +15,9 @@
 }
 
 .main {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border-radius: 4px 0 0 4px;
   padding: 0 5px;
 }

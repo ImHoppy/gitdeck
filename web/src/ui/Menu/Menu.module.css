@@ -11,6 +11,7 @@
 
 .item {
   display: flex;
+  align-items: center;
   gap: 6px;
   padding: 3px 12px 3px 6px;
   cursor: pointer;
@@ -37,6 +38,7 @@
 .check {
   width: 14px;
   display: inline-flex;
+  align-items: center;
   justify-content: center;
   text-align: center;
   color: var(--accent);
