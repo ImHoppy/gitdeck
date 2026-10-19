@@ -129,3 +129,9 @@ export type CommitDetails = {
 }
 
 export type PatchOptions = { context: number; ignoreWhitespace: boolean }
+
+export type TreeEntry = { name: string; kind: 'tree' | 'blob' | 'commit'; size: number | null }
+
+export type FileContent = { binary: boolean; text: string }
+
+export type BlameLine = { sha: string; author: string; time: number; summary: string; text: string }

@@ -3,6 +3,7 @@ import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
 import { CommitInfo } from '../features/commit-info'
 import { DiffPanel } from '../features/diff'
+import { FileTreePanel } from '../features/file-tree'
 import { OutputPanel, useCommandLog } from '../features/output'
 import { RefsPanel, type RefTarget, useStashes } from '../features/refs-panel'
 import { type Commands, commitMenu, refMenu, stashMenu, stashPush, useRepoCommands } from '../features/repo-actions'
@@ -36,7 +37,7 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
   const [selection, setSelection] = useState<GridSelection | null>(null)
   const [scrollTo, setScrollTo] = useState<number | null>(null)
   const [committing, setCommitting] = useState(false)
-  const [tab, setTab] = useState<'commit' | 'diff' | 'output'>('commit')
+  const [tab, setTab] = useState<'commit' | 'diff' | 'files' | 'output'>('commit')
   const commandLog = useCommandLog()
   const refsWidth = usePaneSize('refs', 200, 120, 500)
   const bottomHeight = usePaneSize('bottom', 300, 100, 2000)
@@ -130,6 +131,9 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
               <button className={tab === 'diff' ? styles.activeTab : ''} onClick={() => setTab('diff')}>
                 Diff
               </button>
+              <button className={tab === 'files' ? styles.activeTab : ''} onClick={() => setTab('files')}>
+                File tree
+              </button>
               <button className={tab === 'output' ? styles.activeTab : ''} onClick={() => setTab('output')}>
                 Output
               </button>
@@ -137,6 +141,12 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
             <div className={styles.tabBody}>
               {tab === 'output' ? (
                 <OutputPanel records={commandLog} cwd={repo.path} />
+              ) : tab === 'files' ? (
+                <FileTreePanel
+                  repoId={repo.id}
+                  sha={selection?.kind === 'commit' ? selection.sha : (history.info.head ?? 'HEAD')}
+                  onPick={(sha) => void pick(sha)}
+                />
               ) : tab === 'commit' && selection?.kind === 'commit' ? (
                 <CommitInfo repoId={repo.id} sha={selection.sha} refs={refs} onPick={(sha) => void pick(sha)} />
               ) : selection ? (

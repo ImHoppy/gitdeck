@@ -1,5 +1,6 @@
 pub mod action;
 pub mod ahead_behind;
+pub mod blame;
 pub mod commit;
 pub mod conflicts;
 pub mod diff;
@@ -12,5 +13,6 @@ pub mod refs;
 pub mod stash;
 pub mod status;
 pub mod tracked;
+pub mod tree;
 pub mod submodule;
 pub mod sync;

@@ -1,0 +1,87 @@
+.tree {
+  height: 100%;
+  overflow: auto;
+  user-select: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding-right: 6px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.selected,
+.selected:hover {
+  background: var(--selection);
+}
+
+.error {
+  padding: 8px;
+  color: var(--fg-muted);
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.viewBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+
+.path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code {
+  flex: 1;
+  min-height: 0;
+  font: 12px/18px ui-monospace, Consolas, monospace;
+}
+
+.line {
+  display: flex;
+  height: 100%;
+  white-space: pre;
+}
+
+.no {
+  flex: none;
+  width: 48px;
+  padding-right: 8px;
+  text-align: right;
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+.blame {
+  flex: none;
+  width: 300px;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.blameStart {
+  border-top: 1px solid var(--border);
+}

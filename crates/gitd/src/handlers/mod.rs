@@ -1,5 +1,6 @@
 mod changes;
 mod cmd;
+mod files;
 mod log;
 mod meta;
 pub mod repo;
@@ -41,6 +42,9 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "server.info" => meta::info(app),
         "server.keepRunning" => meta::keep_running(app, serde_json::from_value(params)?),
         "commands.recent" => meta::commands(app),
+        "tree.list" => files::list(app, serde_json::from_value(params)?).await,
+        "file.show" => files::show(app, serde_json::from_value(params)?).await,
+        "file.blame" => files::blame(app, serde_json::from_value(params)?).await,
         "repo.sync" => repo::sync(app, serde_json::from_value(params)?).await,
         _ => Err(anyhow!("unknown method {method}")),
     }
