@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Chevron } from '../../ui/Chevron/Chevron'
 import styles from './WorkspaceTree.module.css'
 
 type Props = {
@@ -34,7 +35,7 @@ export function TreeRow({ depth, expanded, selected, onToggle, onClick, onContex
           onToggle()
         }}
       >
-        {expanded === null ? '' : expanded ? '▾' : '▸'}
+        {expanded !== null && <Chevron open={expanded} />}
       </span>
       {children}
     </div>

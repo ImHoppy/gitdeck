@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
+import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
+import { CommitInfo } from '../features/commit-info'
 import { DiffPanel } from '../features/diff'
 import { OutputPanel, useCommandLog } from '../features/output'
 import { RefsPanel, type RefTarget, useStashes } from '../features/refs-panel'
@@ -24,14 +26,15 @@ function diffTitle(s: GridSelection): string {
 }
 
 export function RepoView({ repo }: { repo: RepoSnapshot }) {
-  const history = useHistory(repo.id)
+  const [filter, setFilter] = useState('')
+  const history = useHistory(repo.id, useDebounced(filter.trim(), 250))
   const stashes = useStashes(repo.id)
   const commands = useRepoCommands(repo.id)
   const dialogs = useDialogs()
   const [selection, setSelection] = useState<GridSelection | null>(null)
   const [scrollTo, setScrollTo] = useState<number | null>(null)
   const [committing, setCommitting] = useState(false)
-  const [tab, setTab] = useState<'diff' | 'output'>('diff')
+  const [tab, setTab] = useState<'commit' | 'diff' | 'output'>('commit')
   const commandLog = useCommandLog()
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
@@ -79,6 +82,13 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
         <IconButton title="Stash all changes" disabled={changes === 0 || commands.busy} onClick={() => void stashPush(ctx)}>
           Stash
         </IconButton>
+        <input
+          className={styles.filter}
+          placeholder="Filter: message, author, hash"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          onKeyDown={(e) => e.key === 'Escape' && setFilter('')}
+        />
         <CommandStatus busy={commands.busy} last={commands.last} onDismiss={commands.clear} />
       </div>
       <div className={styles.repoBody}>
@@ -103,10 +113,14 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
               onSelect={setSelection}
               onCommitMenu={onCommitMenu}
               scrollTo={scrollTo}
+              onScrollTo={setScrollTo}
             />
           </div>
           <div className={styles.bottomPane}>
             <div className={styles.tabs}>
+              <button className={tab === 'commit' ? styles.activeTab : ''} onClick={() => setTab('commit')}>
+                Commit
+              </button>
               <button className={tab === 'diff' ? styles.activeTab : ''} onClick={() => setTab('diff')}>
                 Diff
               </button>
@@ -117,6 +131,8 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
             <div className={styles.tabBody}>
               {tab === 'output' ? (
                 <OutputPanel records={commandLog} cwd={repo.path} />
+              ) : tab === 'commit' && selection?.kind === 'commit' ? (
+                <CommitInfo repoId={repo.id} sha={selection.sha} refs={refs} onPick={(sha) => void pick(sha)} />
               ) : selection ? (
                 <DiffPanel key={JSON.stringify(selection)} repoId={repo.id} target={diffTarget(selection)} title={diffTitle(selection)} />
               ) : (

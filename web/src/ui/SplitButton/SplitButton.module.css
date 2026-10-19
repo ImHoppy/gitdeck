@@ -20,6 +20,8 @@
 }
 
 .arrow {
+  display: inline-flex;
+  align-items: center;
   border-left: none;
   border-radius: 0 4px 4px 0;
   padding: 0 3px;

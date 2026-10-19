@@ -7,6 +7,9 @@
 }
 
 .section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 4px 6px;
   font-weight: 600;
   cursor: default;

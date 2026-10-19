@@ -53,7 +53,8 @@
 .twisty {
   width: 12px;
   flex: none;
-  text-align: center;
+  display: flex;
+  align-items: center;
   color: var(--fg-muted);
 }
 

@@ -8,12 +8,17 @@ use workspace::RepoId;
 #[derive(Deserialize)]
 pub struct OpenParams {
     id: RepoId,
+    #[serde(default)]
+    filter: String,
 }
 
 pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let entry = hub.entry(p.id)?;
-    let h = hub.histories.current(&hub.runner, p.id, &entry.path).await?;
+    let mut h = hub.histories.current(&hub.runner, p.id, &entry.path).await?;
+    if !p.filter.trim().is_empty() {
+        h = hub.histories.filtered(p.id, p.filter.trim()).await.context("log not open")?;
+    }
     Ok(json!({ "key": h.key.key, "head": h.key.head, "refs": h.key.refs, "count": h.commits.len() }))
 }
 
@@ -29,7 +34,11 @@ const MAX_WINDOW: usize = 2000;
 
 pub async fn rows(app: &AppState, p: RowsParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
-    let h = hub.histories.cached(p.id).await.context("log not open")?;
+    let h = match p.key.split_once(':') {
+        Some((_, query)) => hub.histories.filtered(p.id, query).await,
+        None => hub.histories.cached(p.id).await,
+    }
+    .context("log not open")?;
     if h.key.key != p.key {
         bail!("stale");
     }
@@ -40,11 +49,17 @@ pub async fn rows(app: &AppState, p: RowsParams) -> anyhow::Result<Value> {
 pub struct FindParams {
     id: RepoId,
     sha: String,
+    #[serde(default)]
+    filter: String,
 }
 
 pub async fn find(app: &AppState, p: FindParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
-    let h = hub.histories.cached(p.id).await.context("log not open")?;
+    let h = match p.filter.trim() {
+        "" => hub.histories.cached(p.id).await,
+        q => hub.histories.filtered(p.id, q).await,
+    }
+    .context("log not open")?;
     Ok(json!(h.index_of(&p.sha)))
 }
 
@@ -57,8 +72,8 @@ pub struct BodyParams {
 pub async fn body(app: &AppState, p: BodyParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let entry = hub.entry(p.id)?;
-    let args = log::body_args(&p.sha);
+    let args = log::details_args(&p.sha);
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = hub.runner.run_ok(&entry.path, &args).await?;
-    Ok(json!(String::from_utf8_lossy(&out).trim_end()))
+    Ok(serde_json::to_value(log::parse_details(&out).context("unreadable commit")?)?)
 }

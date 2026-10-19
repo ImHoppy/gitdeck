@@ -1,6 +1,7 @@
 import { type MouseEvent, type ReactNode, useMemo, useState } from 'react'
 import type { GitRef, Stash } from '../../protocol/types'
 import { type RefNode, refTree } from './refTree'
+import { Chevron } from '../../ui/Chevron/Chevron'
 import styles from './RefsPanel.module.css'
 
 export type RefTarget = { kind: 'ref'; ref: GitRef } | { kind: 'stash'; stash: Stash }
@@ -77,7 +78,7 @@ function Section({ title, closed, children }: { title: string; closed?: boolean;
   return (
     <>
       <div className={styles.section} onClick={() => setOpen(!open)}>
-        {open ? '▾' : '▸'} {title}
+        <Chevron open={open} /> {title}
       </div>
       {open && children}
     </>
@@ -89,7 +90,7 @@ function Folder({ name, depth, children }: { name: string; depth: number; childr
   return (
     <>
       <div className={`${styles.row} ${styles.folder}`} style={{ paddingLeft: depth * 12 - 4 }} onClick={() => setOpen(!open)}>
-        {open ? '▾' : '▸'} {name}/
+        <Chevron open={open} /> {name}/
       </div>
       {open && children}
     </>

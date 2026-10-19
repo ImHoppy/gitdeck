@@ -1,4 +1,5 @@
 import { type ReactNode, useRef, useState } from 'react'
+import { Chevron } from '../Chevron/Chevron'
 import { Menu, type MenuItem } from '../Menu/Menu'
 import styles from './SplitButton.module.css'
 
@@ -27,7 +28,7 @@ export function SplitButton({ title, disabled, onClick, menu, children }: Props)
         disabled={disabled}
         onClick={() => setAnchor((a) => (a ? null : (root.current?.getBoundingClientRect() ?? null)))}
       >
-        ▾
+        <Chevron open />
       </button>
       {anchor && <Menu items={menu} at={anchor} owner={root} onClose={() => setAnchor(null)} />}
     </span>

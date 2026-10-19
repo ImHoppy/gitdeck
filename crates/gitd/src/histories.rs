@@ -9,6 +9,7 @@ use workspace::{
 #[derive(Default)]
 pub struct Histories {
     cache: Mutex<HashMap<RepoId, Arc<History>>>,
+    views: Mutex<HashMap<RepoId, Arc<History>>>,
 }
 
 impl Histories {
@@ -26,5 +27,17 @@ impl Histories {
 
     pub async fn cached(&self, id: RepoId) -> Option<Arc<History>> {
         self.cache.lock().await.get(&id).cloned()
+    }
+
+    pub async fn filtered(&self, id: RepoId, query: &str) -> Option<Arc<History>> {
+        let full = self.cached(id).await?;
+        let key = format!("{}:{query}", full.key.key);
+        let mut views = self.views.lock().await;
+        if let Some(v) = views.get(&id).filter(|v| v.key.key == key) {
+            return Some(v.clone());
+        }
+        let view = Arc::new(full.filtered(query));
+        views.insert(id, view.clone());
+        Some(view)
     }
 }

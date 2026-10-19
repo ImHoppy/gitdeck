@@ -4,7 +4,7 @@ import type { HistoryInfo, HistoryRow, RepoSnapshot } from '../../protocol/types
 
 const PAGE = 200
 
-export function useHistory(repoId: number | null) {
+export function useHistory(repoId: number | null, filter = '') {
   const [info, setInfo] = useState<HistoryInfo | null>(null)
   const [rows, setRows] = useState<ReadonlyMap<number, HistoryRow>>(new Map())
   const [error, setError] = useState<string | null>(null)
@@ -13,7 +13,7 @@ export function useHistory(repoId: number | null) {
 
   const open = useCallback(() => {
     if (repoId === null) return
-    gitd.call<HistoryInfo>('log.open', { id: repoId }).then(
+    gitd.call<HistoryInfo>('log.open', { id: repoId, filter }).then(
       (next) => {
         setError(null)
         if (next.key === key.current) return
@@ -24,9 +24,8 @@ export function useHistory(repoId: number | null) {
       },
       (e: Error) => setError(e.message),
     )
-  }, [repoId])
+  }, [repoId, filter])
 
-  // callers remount per repo (key={repoId}), so this only runs once per repo
   useEffect(open, [open])
 
   useEffect(
@@ -64,8 +63,8 @@ export function useHistory(repoId: number | null) {
   )
 
   const locate = useCallback(
-    (sha: string) => (repoId === null ? Promise.resolve(null) : gitd.call<number | null>('log.find', { id: repoId, sha })),
-    [repoId],
+    (sha: string) => (repoId === null ? Promise.resolve(null) : gitd.call<number | null>('log.find', { id: repoId, sha, filter })),
+    [repoId, filter],
   )
 
   return { info, rows, ensure, error, locate }

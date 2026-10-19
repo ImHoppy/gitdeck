@@ -115,3 +115,15 @@ export type RepoAction =
 export type Stash = { index: number; sha: string; time: number; message: string }
 
 export type CommandRecord = { cwd: string; args: string[]; code: number; millis: number; at: number }
+
+export type CommitDetails = {
+  sha: string
+  author: string
+  authorEmail: string
+  authorTime: number
+  committer: string
+  committerEmail: string
+  commitTime: number
+  parents: string[]
+  message: string
+}

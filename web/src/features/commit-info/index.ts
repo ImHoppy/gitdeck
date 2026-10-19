@@ -1,0 +1,1 @@
+export { CommitInfo } from './CommitInfo'

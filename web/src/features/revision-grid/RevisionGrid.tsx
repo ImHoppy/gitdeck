@@ -21,9 +21,10 @@ type Props = {
   onSelect: (s: GridSelection) => void
   onCommitMenu: (row: HistoryRow, at: { x: number; y: number }) => void
   scrollTo: number | null
+  onScrollTo: (index: number) => void
 }
 
-export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, scrollTo }: Props) {
+export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, scrollTo, onScrollTo }: Props) {
   const head = repo.state?.head
   const pills = useMemo(() => pillsBySha(info.refs, head?.kind === 'branch' ? head.name : null), [info.refs, head])
   const [range, setRange] = useState<[number, number]>([0, 0])
@@ -95,8 +96,35 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
     )
   }
 
+  const selectedRow = (): number | null => {
+    if (selection?.kind === 'worktree') return 0
+    if (selection?.kind === 'index') return 1
+    if (selection?.kind !== 'commit') return null
+    for (const [i, r] of rows) if (r.sha === selection.sha) return i + ARTIFICIAL
+    return null
+  }
+
+  const selectAt = (i: number) => {
+    if (i === 0) onSelect({ kind: 'worktree' })
+    else if (i === 1) onSelect({ kind: 'index' })
+    else {
+      const row = rows.get(i - ARTIFICIAL)
+      if (!row) return
+      onSelect({ kind: 'commit', sha: row.sha, parents: row.parents, subject: row.subject })
+    }
+    onScrollTo(i - ARTIFICIAL)
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const step = { ArrowDown: 1, ArrowUp: -1, PageDown: 20, PageUp: -20 }[e.key]
+    if (step === undefined) return
+    e.preventDefault()
+    const last = info.count + ARTIFICIAL - 1
+    selectAt(Math.min(last, Math.max(0, (selectedRow() ?? -1) + step)))
+  }
+
   return (
-    <div className={styles.grid}>
+    <div className={styles.grid} tabIndex={0} onKeyDown={onKeyDown}>
       <VirtualList
         count={info.count + ARTIFICIAL}
         rowHeight={ROW_HEIGHT}

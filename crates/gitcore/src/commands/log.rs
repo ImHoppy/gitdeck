@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 pub const ARGS: &[&str] = &[
     "-c",
     "log.showSignature=false",
@@ -53,13 +55,61 @@ fn parse_record(rec: &[u8]) -> Option<LogCommit> {
     })
 }
 
-pub fn body_args(sha: &str) -> Vec<String> {
-    vec!["show".into(), "-s".into(), "--format=%B".into(), sha.into()]
+pub fn details_args(sha: &str) -> Vec<String> {
+    let format = "--format=%H%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ce%x1f%ct%x1f%P%x1f%B";
+    vec!["show".into(), "-s".into(), format.into(), sha.into()]
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitDetails {
+    pub sha: String,
+    pub author: String,
+    pub author_email: String,
+    pub author_time: i64,
+    pub committer: String,
+    pub committer_email: String,
+    pub commit_time: i64,
+    pub parents: Vec<String>,
+    pub message: String,
+}
+
+pub fn parse_details(out: &[u8]) -> Option<CommitDetails> {
+    let text = String::from_utf8_lossy(out);
+    let f: Vec<&str> = text.splitn(9, '').collect();
+    let [sha, author, author_email, at, committer, committer_email, ct, parents, message] = f.as_slice() else {
+        return None;
+    };
+    Some(CommitDetails {
+        sha: sha.trim().into(),
+        author: (*author).into(),
+        author_email: (*author_email).into(),
+        author_time: at.parse().ok()?,
+        committer: (*committer).into(),
+        committer_email: (*committer_email).into(),
+        commit_time: ct.parse().ok()?,
+        parents: parents.split(' ').filter(|p| !p.is_empty()).map(str::to_string).collect(),
+        message: message.trim_end().into(),
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_details() {
+        let d = parse_details(b"abcAnna@x10Bobb@x20p1 p2subject
+
+body
+
+").unwrap();
+        assert_eq!(d.parents, ["p1", "p2"]);
+        assert_eq!(d.message, "subject
+
+body");
+        assert_eq!(d.commit_time, 20);
+    }
 
     #[test]
     fn parses_records_with_body_and_merge_parents() {

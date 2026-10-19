@@ -1,0 +1,35 @@
+.info {
+  height: 100%;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0 0 10px;
+}
+
+.fields dt {
+  color: var(--fg-muted);
+}
+
+.fields dd {
+  margin: 0;
+}
+
+.fields a {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.mono {
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.message {
+  margin: 0;
+  white-space: pre-wrap;
+  font: 13px/1.5 ui-monospace, Consolas, monospace;
+}

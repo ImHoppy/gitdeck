@@ -58,6 +58,19 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path, key: HistoryKey) -> Res
 }
 
 impl History {
+    /// Commits whose subject, body, author, email or hash contain `query`, ignoring case.
+    pub fn filtered(&self, query: &str) -> History {
+        let q = query.to_lowercase();
+        let hit = |c: &LogCommit| {
+            [&c.subject, &c.body_hint, &c.author, &c.email].iter().any(|f| f.to_lowercase().contains(&q)) || c.sha.starts_with(&q)
+        };
+        let commits: Vec<LogCommit> = self.commits.iter().filter(|c| hit(c)).cloned().collect();
+        let rows = graph::layout(&parent_indices(&commits));
+        let mut key = self.key.clone();
+        key.key = format!("{}:{query}", key.key);
+        History { key, commits, rows }
+    }
+
     pub fn window(&self, start: usize, count: usize) -> Vec<HistoryRow<'_>> {
         let end = (start + count).min(self.commits.len());
         (start.min(end)..end)
@@ -89,4 +102,37 @@ fn parent_indices(commits: &[LogCommit]) -> Vec<Vec<u32>> {
         .iter()
         .map(|c| c.parents.iter().filter_map(|p| index.get(p.as_str()).copied()).collect())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn commit(sha: &str, subject: &str, author: &str) -> LogCommit {
+        LogCommit {
+            sha: sha.into(),
+            parents: vec![],
+            author_time: 0,
+            author: author.into(),
+            email: String::new(),
+            subject: subject.into(),
+            body_hint: String::new(),
+            multiline: false,
+        }
+    }
+
+    #[test]
+    fn filters_on_subject_author_and_hash_prefix() {
+        let commits = vec![commit("aa1", "Fix grid", "Ann"), commit("bb2", "add tree", "Bob"), commit("cc3", "docs", "ann")];
+        let h = History {
+            key: HistoryKey { key: "k".into(), head: None, refs: vec![] },
+            rows: graph::layout(&parent_indices(&commits)),
+            commits,
+        };
+        let shas = |q: &str| h.filtered(q).commits.into_iter().map(|c| c.sha).collect::<Vec<_>>();
+        assert_eq!(shas("ann"), ["aa1", "cc3"]);
+        assert_eq!(shas("TREE"), ["bb2"]);
+        assert_eq!(shas("cc"), ["cc3"]);
+        assert_eq!(h.filtered("x").key.key, "k:x");
+    }
 }

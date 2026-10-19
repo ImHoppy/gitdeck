@@ -1,6 +1,7 @@
 .grid {
   height: 100%;
   min-height: 0;
+  outline: none;
 }
 
 .row {
