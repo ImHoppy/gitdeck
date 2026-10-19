@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import {
+  ConflictPanel,
+  hasConflicts,
   RepoActions,
   SubmoduleChoiceSelect,
   SubmoduleUpdateDialog,
   SyncSummary,
   SyncToolbar,
+  useConflicts,
   useSync,
 } from '../features/sync'
 import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
@@ -14,6 +17,8 @@ export function App() {
   const { workspace, error, open } = useWorkspace()
   const sync = useSync()
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const selected = workspace?.repos.find((r) => r.id === selectedId)
+  const conflictFiles = useConflicts(selected)
 
   return (
     <div className={styles.layout}>
@@ -26,7 +31,12 @@ export function App() {
             onRefresh={() => open(workspace.name)}
             toolbar={
               <>
-                <SyncToolbar running={sync.bulk} onRunAll={sync.syncAll} />
+                <SyncToolbar
+                  running={sync.bulk}
+                  pullAction={sync.pullAction}
+                  onSetPullAction={sync.setPullAction}
+                  onRunAll={sync.syncAll}
+                />
                 <SubmoduleChoiceSelect value={sync.choice} onChange={sync.setChoice} />
               </>
             }
@@ -34,6 +44,8 @@ export function App() {
               <RepoActions
                 repo={repo}
                 busy={sync.busy.has(repo.id) || sync.bulk !== null}
+                pullAction={sync.pullAction}
+                onSetPullAction={sync.setPullAction}
                 onSync={(kind) => sync.sync(repo.id, kind)}
                 onRebase={(action) => sync.rebase(repo.id, action)}
               />
@@ -44,6 +56,14 @@ export function App() {
         )}
       </aside>
       <main className={styles.main}>
+        {selected && hasConflicts(selected) && (
+          <ConflictPanel
+            repo={selected}
+            files={conflictFiles}
+            busy={sync.busy.has(selected.id)}
+            onRebase={(action) => sync.rebase(selected.id, action)}
+          />
+        )}
         {workspace && sync.summary && (
           <SyncSummary
             summary={sync.summary}

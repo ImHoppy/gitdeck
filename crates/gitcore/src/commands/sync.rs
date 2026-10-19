@@ -29,7 +29,9 @@ pub fn classify(code: i32, stdout: &[u8], stderr: &[u8]) -> SyncOutcome {
     let out = String::from_utf8_lossy(stdout);
     let err = String::from_utf8_lossy(stderr);
     let all = format!("{out}\n{err}");
-    if all.contains("Applying autostash resulted in conflicts") {
+    // rebase says "Applying autostash resulted in conflicts"; a fast-forward wraps
+    // "Your local changes are stashed, however applying them resulted in conflicts" over two lines
+    if all.contains("resulted in conflicts") {
         return SyncOutcome::AutostashConflict;
     }
     if code == 0 {
@@ -66,6 +68,17 @@ mod tests {
         );
         assert_eq!(
             classify(0, b"", b"Applying autostash resulted in conflicts.\n"),
+            SyncOutcome::AutostashConflict
+        );
+        assert_eq!(
+            classify(
+                0,
+                b"Fast-forward
+",
+                b"Your local changes are stashed, however applying them
+resulted in conflicts.  You can either resolve
+"
+            ),
             SyncOutcome::AutostashConflict
         );
         assert_eq!(

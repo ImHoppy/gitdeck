@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { gitd } from '../../protocol/client'
 import type { RebaseAction, RepoResult, SyncKind, SyncOutcome } from '../../protocol/types'
+import { loadPullAction, type PullAction, savePullAction } from './pullAction'
 import { loadChoice, saveChoice, type SubmoduleChoice } from './submoduleChoice'
 
 export type Summary = { title: string; results: RepoResult[] }
@@ -17,6 +18,7 @@ export function useSync() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [choice, setChoiceState] = useState<SubmoduleChoice>(loadChoice)
   const [moved, setMoved] = useState<RepoResult[]>([])
+  const [pullAction, setPullActionState] = useState<PullAction>(loadPullAction)
 
   const setBusyFor = useCallback((id: number, on: boolean) => {
     setBusy((b) => {
@@ -107,6 +109,11 @@ export function useSync() {
     setChoiceState(c)
   }, [])
 
+  const setPullAction = useCallback((a: PullAction) => {
+    savePullAction(a)
+    setPullActionState(a)
+  }, [])
+
   const answerMoved = useCallback(
     (update: boolean, remember: boolean) => {
       if (remember) setChoice(update ? 'always' : 'never')
@@ -125,5 +132,19 @@ export function useSync() {
 
   const dismiss = useCallback(() => setSummary(null), [])
 
-  return { busy, bulk, summary, sync, rebase, syncAll, dismiss, choice, setChoice, moved, answerMoved }
+  return {
+    busy,
+    bulk,
+    summary,
+    sync,
+    rebase,
+    syncAll,
+    dismiss,
+    choice,
+    setChoice,
+    moved,
+    answerMoved,
+    pullAction,
+    setPullAction,
+  }
 }

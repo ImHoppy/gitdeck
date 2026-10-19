@@ -1,6 +1,8 @@
+export { ConflictPanel } from './ConflictPanel'
 export { RepoActions } from './RepoActions'
 export { SubmoduleChoiceSelect } from './SubmoduleChoiceSelect'
 export { SubmoduleUpdateDialog } from './SubmoduleUpdateDialog'
 export { SyncSummary } from './SyncSummary'
 export { SyncToolbar } from './SyncToolbar'
+export { hasConflicts, useConflicts } from './useConflicts'
 export { useSync } from './useSync'

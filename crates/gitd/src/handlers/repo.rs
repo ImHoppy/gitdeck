@@ -46,6 +46,10 @@ pub struct RepoParams {
     id: RepoId,
 }
 
+pub async fn conflicts(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {
+    Ok(serde_json::to_value(hub(app).await?.conflicts(p.id).await?)?)
+}
+
 pub async fn update_submodules(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {
     Ok(serde_json::to_value(hub(app).await?.update_submodules(p.id).await)?)
 }

@@ -1,6 +1,6 @@
 use crate::state::{self, git_dir};
 use gitcore::{
-    commands::{gitlinks, head, operation, rebase, submodule, sync},
+    commands::{conflicts, gitlinks, head, operation, rebase, submodule, sync},
     GitRunner, RunError,
 };
 use serde::Deserialize;
@@ -25,7 +25,7 @@ pub async fn run<R: GitRunner>(runner: &R, path: &Path, kind: SyncKind) -> SyncO
         Ok(None) => {}
         Err(e) => return failed(e),
     }
-    if matches!(kind, SyncKind::Fetch | SyncKind::Sync) {
+    if !matches!(kind, SyncKind::Push) {
         let fetched = git(runner, path, sync::FETCH_ARGS).await;
         if matches!(kind, SyncKind::Fetch) || !succeeded(&fetched) {
             return fetched;
@@ -60,6 +60,10 @@ pub async fn gitlinks<R: GitRunner>(runner: &R, path: &Path) -> Vec<gitlinks::Gi
 
 pub async fn update_submodules<R: GitRunner>(runner: &R, path: &Path) -> SyncOutcome {
     git(runner, path, submodule::UPDATE_ARGS).await
+}
+
+pub async fn conflicts<R: GitRunner>(runner: &R, path: &Path) -> Result<Vec<String>, RunError> {
+    Ok(conflicts::parse(&runner.run_ok(path, conflicts::ARGS).await?))
 }
 
 pub async fn rebase<R: GitRunner>(runner: &R, path: &Path, action: RebaseAction) -> SyncOutcome {
@@ -156,17 +160,17 @@ mod tests {
     async fn pull_and_push_run_alone() {
         let git = Fake::new(BEHIND_AND_AHEAD, (0, ""));
         assert_eq!(run(&git, Path::new("."), SyncKind::Pull).await, SyncOutcome::Done);
-        assert_eq!(git.commands(), ["pull"]);
+        assert_eq!(git.commands(), ["fetch", "pull"]);
         let git = Fake::new(BEHIND_AND_AHEAD, (0, ""));
         run(&git, Path::new("."), SyncKind::Push).await;
         assert_eq!(git.commands(), ["push"]);
     }
 
     #[tokio::test]
-    async fn pull_leaves_a_repo_that_is_not_behind_untouched() {
+    async fn pull_fetches_but_leaves_a_repo_that_is_not_behind_untouched() {
         let git = Fake::new("::ahead 1::refs/remotes/origin/main", (0, ""));
         assert_eq!(run(&git, Path::new("."), SyncKind::Pull).await, SyncOutcome::UpToDate);
-        assert!(git.commands().is_empty());
+        assert_eq!(git.commands(), ["fetch"]);
     }
 
     #[tokio::test]

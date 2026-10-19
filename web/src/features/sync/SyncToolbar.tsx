@@ -1,23 +1,28 @@
 import type { SyncKind } from '../../protocol/types'
 import { IconButton } from '../../ui/IconButton/IconButton'
+import { PullButton } from './PullButton'
+import type { PullAction } from './pullAction'
 
-type Props = { running: SyncKind | null; onRunAll: (kind: SyncKind) => void }
+type Props = {
+  running: SyncKind | null
+  pullAction: PullAction
+  onSetPullAction: (a: PullAction) => void
+  onRunAll: (kind: SyncKind) => void
+}
 
-const BUTTONS: [SyncKind, string, string][] = [
-  ['fetch', '⤓', 'Fetch every repo'],
-  ['pull', '⇣', 'Pull (rebase) every repo that is behind'],
-  ['push', '⇡', 'Push every repo that is ahead'],
-  ['sync', '⟳', 'Sync every repo: fetch, rebase if behind, push if ahead'],
-]
-
-export function SyncToolbar({ running, onRunAll }: Props) {
+export function SyncToolbar({ running, pullAction, onSetPullAction, onRunAll }: Props) {
   return (
     <>
-      {BUTTONS.map(([kind, icon, title]) => (
-        <IconButton key={kind} title={title} disabled={running !== null} onClick={() => onRunAll(kind)}>
-          {running === kind ? '…' : icon} {kind} all
-        </IconButton>
-      ))}
+      <PullButton
+        defaultAction={pullAction}
+        disabled={running !== null}
+        suffix={running && running !== 'push' ? ' … all' : ' all'}
+        onRun={onRunAll}
+        onSetDefault={onSetPullAction}
+      />
+      <IconButton title="Push every repo that is ahead" disabled={running !== null} onClick={() => onRunAll('push')}>
+        {running === 'push' ? '…' : '⇡'} all
+      </IconButton>
     </>
   )
 }

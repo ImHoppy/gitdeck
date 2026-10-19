@@ -100,6 +100,11 @@ impl Hub {
         outcome
     }
 
+    pub async fn conflicts(&self, id: RepoId) -> anyhow::Result<Vec<String>> {
+        let entry = self.entries.get(&id).ok_or_else(|| anyhow::anyhow!("no repo {id}"))?;
+        Ok(sync::conflicts(&self.runner, &entry.path).await?)
+    }
+
     pub async fn rebase(&self, id: RepoId, action: RebaseAction) -> SyncOutcome {
         let Some(entry) = self.entries.get(&id) else {
             return SyncOutcome::Failed { message: format!("no repo {id}") };
