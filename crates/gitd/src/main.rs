@@ -1,8 +1,11 @@
 mod auth;
 mod cli;
+mod events;
 mod handlers;
+mod live;
 mod protocol;
 mod server;
+mod snapshot;
 mod static_files;
 
 use clap::Parser;

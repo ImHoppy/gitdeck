@@ -1,4 +1,4 @@
-use crate::{auth, cli, handlers, static_files, protocol::{Request, Response}};
+use crate::{auth, cli, events::Event, handlers, live::LiveWorkspace, static_files, protocol::{Request, Response}};
 use axum::{
     extract::{ws::{Message, WebSocket}, Query, State, WebSocketUpgrade},
     http::{header, HeaderMap, StatusCode, Uri},
@@ -8,7 +8,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use std::{collections::HashMap, sync::Arc};
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc, Mutex};
 use gitcore::ProcessRunner;
 use workspace::Config;
 
@@ -16,7 +16,11 @@ pub struct AppState {
     pub config: Config,
     pub runner: ProcessRunner,
     pub token: String,
+    pub events: broadcast::Sender<Event>,
+    pub live: Mutex<Option<LiveWorkspace>>,
 }
+
+const EVENT_BUFFER: usize = 256;
 
 type Shared = Arc<AppState>;
 
@@ -25,7 +29,13 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let config_path = args.config.unwrap_or_else(|| dir.join("config.toml"));
     let config = Config::load(&config_path)?;
     let token = auth::load_or_create(&dir)?;
-    let app = Arc::new(AppState { config, token, runner: ProcessRunner::default() });
+    let app = Arc::new(AppState {
+        config,
+        token,
+        runner: ProcessRunner::default(),
+        events: broadcast::channel(EVENT_BUFFER).0,
+        live: Mutex::new(None),
+    });
 
     let router = Router::new()
         .route("/login", get(login))
@@ -76,6 +86,7 @@ async fn client(app: Shared, socket: WebSocket) {
             }
         }
     });
+    let forwarder = tokio::spawn(forward_events(app.events.subscribe(), tx.clone()));
     while let Some(Ok(msg)) = stream.next().await {
         let Message::Text(text) = msg else { continue };
         let Ok(req) = serde_json::from_str::<Request>(&text) else { continue };
@@ -86,6 +97,21 @@ async fn client(app: Shared, socket: WebSocket) {
             let _ = tx.send(serde_json::to_string(&resp).unwrap_or_default());
         });
     }
+    forwarder.abort();
     drop(tx);
     let _ = writer.await;
+}
+
+async fn forward_events(mut events: broadcast::Receiver<Event>, tx: mpsc::UnboundedSender<String>) {
+    loop {
+        match events.recv().await {
+            Ok(event) => {
+                if tx.send(serde_json::to_string(&event).unwrap_or_default()).is_err() {
+                    return;
+                }
+            }
+            Err(broadcast::error::RecvError::Lagged(_)) => continue,
+            Err(broadcast::error::RecvError::Closed) => return,
+        }
+    }
 }
