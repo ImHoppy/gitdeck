@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Icon } from '../../ui/Icon/Icon'
 import { type MenuItem, SplitButton } from '../../ui/SplitButton/SplitButton'
 import { PULL_ACTIONS, type PullAction, pullActionInfo } from './pullAction'
 
@@ -13,7 +14,7 @@ type Props = {
 export function PullButton({ defaultAction, disabled, suffix, onRun, onSetDefault }: Props) {
   const current = pullActionInfo(defaultAction)
   const menu: MenuItem[] = [
-    ...PULL_ACTIONS.map((a) => ({ key: a.kind, label: `${a.icon} ${a.label}`, onSelect: () => onRun(a.kind) })),
+    ...PULL_ACTIONS.map((a) => ({ key: a.kind, label: a.label, icon: a.icon, onSelect: () => onRun(a.kind) })),
     'separator',
     ...PULL_ACTIONS.map((a) => ({
       key: `default-${a.kind}`,
@@ -24,7 +25,7 @@ export function PullButton({ defaultAction, disabled, suffix, onRun, onSetDefaul
   ]
   return (
     <SplitButton title={current.title} disabled={disabled} onClick={() => onRun(defaultAction)} menu={menu}>
-      {current.icon}
+      <Icon name={current.icon} />
       {suffix}
     </SplitButton>
   )

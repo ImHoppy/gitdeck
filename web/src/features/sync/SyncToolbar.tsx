@@ -1,4 +1,5 @@
 import type { SyncKind } from '../../protocol/types'
+import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { PullButton } from './PullButton'
 import type { PullAction } from './pullAction'
@@ -21,7 +22,7 @@ export function SyncToolbar({ running, pullAction, onSetPullAction, onRunAll }: 
         onSetDefault={onSetPullAction}
       />
       <IconButton title="Push every repo that is ahead" disabled={running !== null} onClick={() => onRunAll('push')}>
-        {running === 'push' ? '…' : '⇡'} all
+        {running === 'push' ? '…' : <Icon name="push" />} all
       </IconButton>
     </>
   )

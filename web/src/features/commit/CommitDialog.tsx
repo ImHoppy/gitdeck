@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
+import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { FileList, PatchView, useDiffFiles, usePatch } from '../diff'
 import styles from './CommitDialog.module.css'
@@ -45,7 +46,9 @@ export function CommitDialog({ repoId, onClose }: { repoId: number; onClose: () 
       <div className={styles.dialog} role="dialog" aria-label="Commit">
         <header className={styles.header}>
           <strong>Commit</strong>
-          <IconButton title="Close" onClick={onClose}>✕</IconButton>
+          <IconButton title="Close" onClick={onClose}>
+            <Icon name="close" size={12} />
+          </IconButton>
         </header>
         <div className={styles.body}>
           <div className={styles.lists}>
@@ -60,7 +63,7 @@ export function CommitDialog({ repoId, onClose }: { repoId: number; onClose: () 
                 files={unstaged.files ?? []}
                 selected={picked?.side === 'worktree' ? picked.path : null}
                 onSelect={(f) => setPicked({ side: 'worktree', path: f.path })}
-                action={{ label: '⇣', title: 'Stage', run: (f) => actions.stage([f.path]) }}
+                action={{ label: <Icon name="pull" size={12} />, title: 'Stage', run: (f) => actions.stage([f.path]) }}
               />
             </div>
             <div className={styles.listHeader}>
@@ -74,7 +77,7 @@ export function CommitDialog({ repoId, onClose }: { repoId: number; onClose: () 
                 files={staged.files ?? []}
                 selected={picked?.side === 'index' ? picked.path : null}
                 onSelect={(f) => setPicked({ side: 'index', path: f.path })}
-                action={{ label: '⇡', title: 'Unstage', run: (f) => actions.unstage([f.path]) }}
+                action={{ label: <Icon name="push" size={12} />, title: 'Unstage', run: (f) => actions.unstage([f.path]) }}
               />
             </div>
           </div>

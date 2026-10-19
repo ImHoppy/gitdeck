@@ -18,6 +18,7 @@ import { Resizer } from '../ui/Resizer/Resizer'
 import { usePaneSize } from '../lib/usePaneSize'
 import { useNarrow } from '../lib/useNarrow'
 import type { RepoSnapshot } from '../protocol/types'
+import { Icon } from '../ui/Icon/Icon'
 import { IconButton } from '../ui/IconButton/IconButton'
 import { Menu, type MenuItem } from '../ui/Menu/Menu'
 import styles from './App.module.css'
@@ -91,10 +92,11 @@ export function App() {
                   disabled={!server.info}
                   onClick={() => server.setKeepRunning(!server.info?.keepRunning)}
                 >
-                  {server.info?.keepRunning ? '📌 kept' : '📌'}
+                  <Icon name="pin" />
+                  {server.info?.keepRunning ? ' kept' : ''}
                 </IconButton>
                 <IconButton title="Settings" onClick={() => setSettingsOpen(true)}>
-                  ⚙
+                  <Icon name="settings" />
                 </IconButton>
               </>
             }
@@ -130,7 +132,7 @@ export function App() {
           <div className={styles.banner}>
             {tree.error}
             <IconButton title="Dismiss" onClick={tree.clearError}>
-              ✕
+              <Icon name="close" />
             </IconButton>
           </div>
         )}

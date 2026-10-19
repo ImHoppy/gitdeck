@@ -22,7 +22,7 @@ export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
     repo.excluded
       ? { key: 'include', label: 'Include in auto fetch and live status', onSelect: () => d.setExcluded(repo.path, false) }
       : { key: 'exclude', label: 'Exclude from auto fetch and live status', onSelect: () => d.setExcluded(repo.path, true) },
-    ...(repo.parent === null ? [{ key: 'remove', label: 'Remove from workspace', danger: true, onSelect: () => d.removeRoot(repo.path) }] : []),
+    ...(repo.parent === null ? [{ key: 'remove', label: 'Remove from workspace', icon: 'trash' as const, danger: true, onSelect: () => d.removeRoot(repo.path) }] : []),
   ]
   if (repo.excluded) return workspaceItems.slice(1)
   if (!repo.initialized) {
@@ -40,15 +40,15 @@ export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
   const busy = !!s?.operation
   const onBranch = s?.head.kind === 'branch'
   items.push(
-    { key: 'open', label: 'Open', onSelect: () => d.open(repo.id) },
+    { key: 'open', label: 'Open', icon: 'history', onSelect: () => d.open(repo.id) },
     'separator',
-    { key: 'fetch', label: '⤓ Fetch', disabled: busy, onSelect: () => d.sync(repo.id, 'fetch') },
-    { key: 'pull', label: '⇣ Pull (rebase)', disabled: busy || !onBranch, onSelect: () => d.sync(repo.id, 'pull') },
-    { key: 'push', label: '⇡ Push', disabled: busy || !onBranch, onSelect: () => d.sync(repo.id, 'push') },
-    { key: 'sync', label: '⟳ Sync', disabled: busy || !onBranch, onSelect: () => d.sync(repo.id, 'sync') },
+    { key: 'fetch', label: 'Fetch', icon: 'fetch', disabled: busy, onSelect: () => d.sync(repo.id, 'fetch') },
+    { key: 'pull', label: 'Pull (rebase)', icon: 'pull', disabled: busy || !onBranch, onSelect: () => d.sync(repo.id, 'pull') },
+    { key: 'push', label: 'Push', icon: 'push', disabled: busy || !onBranch, onSelect: () => d.sync(repo.id, 'push') },
+    { key: 'sync', label: 'Sync', icon: 'sync', disabled: busy || !onBranch, onSelect: () => d.sync(repo.id, 'sync') },
   )
   if (s?.head.kind === 'detached') {
-    items.push('separator', { key: 'tracked', label: 'Checkout tracked branch', onSelect: () => d.checkoutTracked(repo.id) })
+    items.push('separator', { key: 'tracked', label: 'Checkout tracked branch', icon: 'branch', onSelect: () => d.checkoutTracked(repo.id) })
   }
   if (sub) {
     items.push(
@@ -64,9 +64,9 @@ export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
   }
   items.push(
     'separator',
-    { key: 'explorer', label: 'Open in file explorer', onSelect: () => d.reveal(repo.id, 'explorer') },
-    { key: 'terminal', label: 'Open terminal here', onSelect: () => d.reveal(repo.id, 'terminal') },
-    { key: 'copy', label: 'Copy path', onSelect: () => void navigator.clipboard?.writeText(repo.path) },
+    { key: 'explorer', label: 'Open in file explorer', icon: 'folder', onSelect: () => d.reveal(repo.id, 'explorer') },
+    { key: 'terminal', label: 'Open terminal here', icon: 'terminal', onSelect: () => d.reveal(repo.id, 'terminal') },
+    { key: 'copy', label: 'Copy path', icon: 'copy', onSelect: () => void navigator.clipboard?.writeText(repo.path) },
     ...workspaceItems,
   )
   return items

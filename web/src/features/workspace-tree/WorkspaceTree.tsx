@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo, useState } from 'react'
 import type { RepoSnapshot, WorkspaceSnapshot } from '../../protocol/types'
+import { Icon } from '../../ui/Icon/Icon'
 import { buildTree, filterAttention, needsAttention } from './model'
 import { TreeNodeView } from './TreeNodeView'
 import styles from './WorkspaceTree.module.css'
@@ -25,7 +26,9 @@ export function WorkspaceTree({ workspace, selectedId, onSelect, onRefresh, pick
     <div className={styles.tree}>
       <div className={styles.header}>
         {picker}
-        <button onClick={onRefresh} title="Refresh">↻</button>
+        <button onClick={onRefresh} title="Refresh">
+          <Icon name="refresh" size={12} />
+        </button>
         {toolbar}
         <label className={styles.attention}>
           <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} />●{' '}

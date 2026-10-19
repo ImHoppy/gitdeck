@@ -1,4 +1,5 @@
 import type { CommandResult } from '../features/repo-actions'
+import { Icon } from '../ui/Icon/Icon'
 import { IconButton } from '../ui/IconButton/IconButton'
 import styles from './App.module.css'
 
@@ -21,7 +22,7 @@ export function CommandStatus({ busy, last, onDismiss }: Props) {
     <span className={`${styles.status} ${bad ? styles.statusBad : ''}`} title={text}>
       {text}
       <IconButton title="Dismiss" onClick={onDismiss}>
-        ✕
+        <Icon name="close" size={11} />
       </IconButton>
     </span>
   )

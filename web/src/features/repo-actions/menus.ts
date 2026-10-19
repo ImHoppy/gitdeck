@@ -37,17 +37,17 @@ async function reset({ cmd, currentBranch }: Ctx, sha: string, mode: ResetMode) 
 function onto(ctx: Ctx, rev: string, label: string): MenuItem[] {
   const cur = ctx.currentBranch ?? 'HEAD'
   return [
-    item('merge', `Merge ${label} into ${cur}`, () => void ctx.cmd.run(`merge ${label}`, { kind: 'merge', rev })),
-    item('rebase', `Rebase ${cur} onto ${label}`, () => void ctx.cmd.run(`rebase onto ${label}`, { kind: 'rebase', onto: rev })),
+    item('merge', `Merge ${label} into ${cur}`, () => void ctx.cmd.run(`merge ${label}`, { kind: 'merge', rev }), { icon: 'merge' }),
+    item('rebase', `Rebase ${cur} onto ${label}`, () => void ctx.cmd.run(`rebase onto ${label}`, { kind: 'rebase', onto: rev }), { icon: 'branch' }),
   ]
 }
 
 export function commitMenu(ctx: Ctx, sha: string, branchesHere: string[]): MenuItem[] {
   return [
-    ...branchesHere.map((b) => item(`co-${b}`, `Checkout branch ${b}`, () => void ctx.cmd.run(`checkout ${b}`, { kind: 'checkout', branch: b }))),
-    item('detach', 'Checkout this commit (detached)', () => void ctx.cmd.run('checkout', { kind: 'checkoutDetached', sha })),
-    item('branch', 'Create branch here…', () => void createBranch(ctx, sha)),
-    item('tag', 'Create tag here…', () => void createTag(ctx, sha)),
+    ...branchesHere.map((b) => item(`co-${b}`, `Checkout branch ${b}`, () => void ctx.cmd.run(`checkout ${b}`, { kind: 'checkout', branch: b }), { icon: 'checkout' })),
+    item('detach', 'Checkout this commit (detached)', () => void ctx.cmd.run('checkout', { kind: 'checkoutDetached', sha }), { icon: 'checkout' }),
+    item('branch', 'Create branch here…', () => void createBranch(ctx, sha), { icon: 'branch' }),
+    item('tag', 'Create tag here…', () => void createTag(ctx, sha), { icon: 'tag' }),
     'separator',
     ...onto(ctx, sha, sha.slice(0, 7)),
     item('pick', 'Cherry-pick this commit', () => void ctx.cmd.run('cherry-pick', { kind: 'cherryPick', sha })),
@@ -57,7 +57,7 @@ export function commitMenu(ctx: Ctx, sha: string, branchesHere: string[]): MenuI
     item('mixed', 'Reset current branch here (mixed)', () => void reset(ctx, sha, 'mixed')),
     item('hard', 'Reset current branch here (hard)…', () => void reset(ctx, sha, 'hard'), { danger: true }),
     'separator',
-    item('copy', 'Copy commit hash', () => void navigator.clipboard?.writeText(sha)),
+    item('copy', 'Copy commit hash', () => void navigator.clipboard?.writeText(sha), { icon: 'copy' }),
   ]
 }
 

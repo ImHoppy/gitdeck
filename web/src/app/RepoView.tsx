@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
 import { CommitInfo } from '../features/commit-info'
@@ -10,6 +10,7 @@ import { type Commands, commitMenu, refMenu, stashMenu, stashPush, useRepoComman
 import { type GridSelection, RevisionGrid, useHistory } from '../features/revision-grid'
 import type { DiffTarget, GitRef, HistoryRow, RepoSnapshot } from '../protocol/types'
 import { useDialogs } from '../ui/Dialog/useDialogs'
+import { Icon } from '../ui/Icon/Icon'
 import { IconButton } from '../ui/IconButton/IconButton'
 import { Resizer } from '../ui/Resizer/Resizer'
 import { usePaneSize } from '../lib/usePaneSize'
@@ -30,6 +31,7 @@ function diffTitle(s: GridSelection): string {
 
 export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => void }) {
   const [filter, setFilter] = useState('')
+  const filterBox = useRef<HTMLInputElement>(null)
   const history = useHistory(repo.id, useDebounced(filter.trim(), 250))
   const stashes = useStashes(repo.id)
   const commands = useRepoCommands(repo.id)
@@ -37,6 +39,7 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
   const [selection, setSelection] = useState<GridSelection | null>(null)
   const [scrollTo, setScrollTo] = useState<number | null>(null)
   const [ancestry, setAncestry] = useState(false)
+  const [committing, setCommitting] = useState(false)
   const [lineage, setLineage] = useState<{ sha: string; rows: ReadonlySet<number> } | null>(null)
   const selectedSha = selection?.kind === 'commit' ? selection.sha : null
   const { ancestors } = history
@@ -48,8 +51,23 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
       live = false
     }
   }, [ancestry, selectedSha, ancestors])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'F5') {
+        e.preventDefault()
+        history.reload()
+      } else if (e.ctrlKey && e.key === ' ') {
+        e.preventDefault()
+        setCommitting(true)
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault()
+        filterBox.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [history])
   const highlighted = ancestry && lineage && lineage.sha === selectedSha ? lineage.rows : null
-  const [committing, setCommitting] = useState(false)
   const [tab, setTab] = useState<'commit' | 'diff' | 'files' | 'output'>('commit')
   const commandLog = useCommandLog()
   const refsWidth = usePaneSize('refs', 200, 120, 500)
@@ -95,22 +113,23 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
       <div className={styles.toolbar}>
         {onBack && (
           <IconButton title="Back to the repositories" onClick={onBack}>
-            ‹ Repos
+            <Icon name="folder" /> Repos
           </IconButton>
         )}
         <strong>{repo.pathInParent ?? repo.name}</strong>
-        <IconButton title="Open the commit dialog" onClick={() => setCommitting(true)}>
-          ✓ Commit ({changes})
+        <IconButton title="Open the commit dialog (Ctrl+Space)" onClick={() => setCommitting(true)}>
+          <Icon name="commit" /> Commit ({changes})
         </IconButton>
         <IconButton title="Stash all changes" disabled={changes === 0 || commands.busy} onClick={() => void stashPush(ctx)}>
-          Stash
+          <Icon name="stash" /> Stash
         </IconButton>
         <IconButton title="Dim commits that are not ancestors of the selected one" onClick={() => setAncestry(!ancestry)}>
-          {ancestry ? '◉ ancestry' : '○ ancestry'}
+          <Icon name="history" /> {ancestry ? 'ancestry on' : 'ancestry'}
         </IconButton>
         <input
+          ref={filterBox}
           className={styles.filter}
-          placeholder="Filter: message, author, hash"
+          placeholder="Filter: message, author, hash (Ctrl+F)"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Escape' && setFilter('')}

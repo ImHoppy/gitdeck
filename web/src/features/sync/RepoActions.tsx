@@ -1,4 +1,5 @@
 import type { RebaseAction, RepoSnapshot, SyncKind } from '../../protocol/types'
+import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { PullButton } from './PullButton'
 import type { PullAction } from './pullAction'
@@ -29,7 +30,7 @@ export function RepoActions({ repo, busy, pullAction, onSetPullAction, onSync, o
   if (s.head.kind !== 'branch') {
     return (
       <IconButton title="Fetch" disabled={busy} onClick={() => onSync('fetch')}>
-        ⤓
+        <Icon name="fetch" />
       </IconButton>
     )
   }
@@ -44,7 +45,7 @@ export function RepoActions({ repo, busy, pullAction, onSetPullAction, onSync, o
         onSetDefault={onSetPullAction}
       />
       <IconButton title="Push" disabled={busy || !ahead} onClick={() => onSync('push')}>
-        ⇡
+        <Icon name="push" />
       </IconButton>
     </>
   )

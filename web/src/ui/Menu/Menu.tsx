@@ -1,8 +1,9 @@
 import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Icon, type IconName } from '../Icon/Icon'
 import styles from './Menu.module.css'
 
 export type MenuItem =
-  | { key: string; label: ReactNode; checked?: boolean; danger?: boolean; disabled?: boolean; onSelect: () => void }
+  | { key: string; label: ReactNode; icon?: IconName; checked?: boolean; danger?: boolean; disabled?: boolean; onSelect: () => void }
   | 'separator'
 
 type Props = {
@@ -71,7 +72,7 @@ export function Menu({ items, at, onClose, owner }: Props) {
               item.onSelect()
             }}
           >
-            <span className={styles.check}>{item.checked ? '✓' : ''}</span>
+            <span className={styles.check}>{item.checked ? '✓' : item.icon ? <Icon name={item.icon} size={13} /> : ''}</span>
             {item.label}
           </div>
         ),

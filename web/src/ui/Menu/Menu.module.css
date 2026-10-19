@@ -35,7 +35,9 @@
 }
 
 .check {
-  width: 12px;
+  width: 14px;
+  display: inline-flex;
+  justify-content: center;
   text-align: center;
   color: var(--accent);
 }

@@ -1,3 +1,4 @@
+import { Icon } from '../../ui/Icon/Icon'
 import type { ReactNode } from 'react'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import styles from './SettingsPage.module.css'
@@ -21,7 +22,7 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
         <header className={styles.header}>
           <strong>Settings</strong>
           <IconButton title="Close" onClick={onClose}>
-            ✕
+            <Icon name="close" size={12} />
           </IconButton>
         </header>
         <Section title="Appearance">

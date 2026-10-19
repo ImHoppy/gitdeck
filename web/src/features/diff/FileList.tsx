@@ -16,7 +16,7 @@ type Props = {
   files: ChangedFile[]
   selected: string | null
   onSelect: (f: ChangedFile) => void
-  action?: { label: string; title: string; run: (f: ChangedFile) => void }
+  action?: { label: React.ReactNode; title: string; run: (f: ChangedFile) => void }
 }
 
 export function FileList({ files, selected, onSelect, action }: Props) {

@@ -1,3 +1,4 @@
+import { Icon } from '../../ui/Icon/Icon'
 import type { RepoSnapshot } from '../../protocol/types'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { describe, GROUP_LABEL, groupResults } from './outcome'
@@ -17,7 +18,7 @@ export function SyncSummary({ summary, repos, onSelect, onDismiss }: Props) {
     <section className={styles.summary}>
       <header className={styles.header}>
         <strong>{summary.title}</strong>
-        <IconButton title="Dismiss" onClick={onDismiss}>✕</IconButton>
+        <IconButton title="Dismiss" onClick={onDismiss}><Icon name="close" size={12} /></IconButton>
       </header>
       {groupResults(summary.results).map(([group, results]) => (
         <div key={group} className={styles[group]}>

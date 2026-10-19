@@ -72,5 +72,5 @@ export function useHistory(repoId: number | null, filter = '') {
     [repoId, filter],
   )
 
-  return { info, rows, ensure, error, locate, ancestors }
+  return { info, rows, ensure, error, locate, ancestors, reload: open }
 }
