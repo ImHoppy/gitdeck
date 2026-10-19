@@ -7,17 +7,25 @@ type Props = {
   selected?: boolean
   onToggle: () => void
   onClick?: () => void
+  onContextMenu?: (at: { x: number; y: number }) => void
   children: ReactNode
 }
 
 const INDENT_PX = 14
 
-export function TreeRow({ depth, expanded, selected, onToggle, onClick, children }: Props) {
+export function TreeRow({ depth, expanded, selected, onToggle, onClick, onContextMenu, children }: Props) {
   return (
     <div
       className={`${styles.row} ${selected ? styles.selected : ''}`}
       style={{ paddingLeft: depth * INDENT_PX }}
       onClick={onClick ?? onToggle}
+      onContextMenu={
+        onContextMenu &&
+        ((e) => {
+          e.preventDefault()
+          onContextMenu({ x: e.clientX, y: e.clientY })
+        })
+      }
     >
       <span
         className={styles.twisty}

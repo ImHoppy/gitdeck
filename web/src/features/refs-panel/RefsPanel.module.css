@@ -1,0 +1,43 @@
+.panel {
+  height: 100%;
+  overflow: auto;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+
+.section {
+  padding: 4px 6px;
+  font-weight: 600;
+  cursor: default;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  height: 20px;
+  align-items: center;
+  padding-right: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.current {
+  font-weight: 700;
+}
+
+.folder {
+  color: var(--fg-muted);
+}
+
+.meta {
+  margin-left: auto;
+  color: var(--fg-muted);
+  font-size: 11px;
+}

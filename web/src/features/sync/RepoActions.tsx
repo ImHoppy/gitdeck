@@ -15,16 +15,17 @@ type Props = {
 export function RepoActions({ repo, busy, pullAction, onSetPullAction, onSync, onRebase }: Props) {
   const s = repo.state
   if (!s || repo.excluded) return null
-  if (s.operation === 'rebase') {
+  if (s.operation) {
     return (
       <>
-        <IconButton title="Continue rebase" disabled={busy} onClick={() => onRebase('continue')}>continue</IconButton>
-        <IconButton title="Skip this commit" disabled={busy} onClick={() => onRebase('skip')}>skip</IconButton>
-        <IconButton title="Abort rebase" disabled={busy} onClick={() => onRebase('abort')}>abort</IconButton>
+        <IconButton title="Continue" disabled={busy} onClick={() => onRebase('continue')}>continue</IconButton>
+        {s.operation !== 'merge' && (
+          <IconButton title="Skip this commit" disabled={busy} onClick={() => onRebase('skip')}>skip</IconButton>
+        )}
+        <IconButton title="Abort" disabled={busy} onClick={() => onRebase('abort')}>abort</IconButton>
       </>
     )
   }
-  if (s.operation) return null
   if (s.head.kind !== 'branch') {
     return (
       <IconButton title="Fetch" disabled={busy} onClick={() => onSync('fetch')}>

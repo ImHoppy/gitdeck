@@ -63,5 +63,10 @@ export function useHistory(repoId: number | null) {
     [repoId, info, rows, open],
   )
 
-  return { info, rows, ensure, error }
+  const locate = useCallback(
+    (sha: string) => (repoId === null ? Promise.resolve(null) : gitd.call<number | null>('log.find', { id: repoId, sha })),
+    [repoId],
+  )
+
+  return { info, rows, ensure, error, locate }
 }

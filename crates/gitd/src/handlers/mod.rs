@@ -1,6 +1,8 @@
 mod changes;
+mod cmd;
 mod log;
 pub mod repo;
+mod tree;
 mod workspace;
 
 use crate::server::AppState;
@@ -27,6 +29,11 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "stage.lines" => changes::lines(app, serde_json::from_value(params)?).await,
         "commit.create" => changes::create(app, serde_json::from_value(params)?).await,
         "commit.lastMessage" => changes::last_message(app, serde_json::from_value(params)?).await,
+        "cmd.run" => cmd::run(app, serde_json::from_value(params)?).await,
+        "stash.list" => cmd::stashes(app, serde_json::from_value(params)?).await,
+        "repo.checkoutTracked" => tree::checkout_tracked(app, serde_json::from_value(params)?).await,
+        "repo.submodule" => tree::submodule(app, serde_json::from_value(params)?).await,
+        "repo.reveal" => tree::reveal(app, serde_json::from_value(params)?).await,
         "repo.sync" => repo::sync(app, serde_json::from_value(params)?).await,
         _ => Err(anyhow!("unknown method {method}")),
     }

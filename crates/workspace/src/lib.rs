@@ -10,6 +10,7 @@ pub mod scheduler;
 pub mod stage_lines;
 pub mod state;
 pub mod sync;
+pub mod tracked;
 pub mod watch;
 
 pub use config::{Config, RootConfig, SubmoduleMode, WorkspaceConfig};

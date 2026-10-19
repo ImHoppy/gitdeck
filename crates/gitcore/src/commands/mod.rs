@@ -1,3 +1,4 @@
+pub mod action;
 pub mod ahead_behind;
 pub mod commit;
 pub mod conflicts;
@@ -8,6 +9,8 @@ pub mod log;
 pub mod operation;
 pub mod rebase;
 pub mod refs;
+pub mod stash;
 pub mod status;
+pub mod tracked;
 pub mod submodule;
 pub mod sync;

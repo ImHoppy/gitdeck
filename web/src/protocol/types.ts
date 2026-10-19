@@ -88,3 +88,28 @@ export type ChangeKind =
 export type ChangedFile = { path: string; oldPath: string | null; kind: ChangeKind }
 
 export type Patch = { text: string; diffId: string }
+
+export type ResetMode = 'soft' | 'mixed' | 'hard'
+
+export type RepoAction =
+  | { kind: 'checkout'; branch: string }
+  | { kind: 'checkoutRemote'; remoteBranch: string; local: string }
+  | { kind: 'checkoutDetached'; sha: string }
+  | { kind: 'createBranch'; name: string; at: string; checkout: boolean }
+  | { kind: 'renameBranch'; from: string; to: string }
+  | { kind: 'deleteBranch'; name: string; force: boolean }
+  | { kind: 'deleteRemoteBranch'; remote: string; name: string }
+  | { kind: 'merge'; rev: string }
+  | { kind: 'rebase'; onto: string }
+  | { kind: 'cherryPick'; sha: string }
+  | { kind: 'revert'; sha: string }
+  | { kind: 'reset'; sha: string; mode: ResetMode }
+  | { kind: 'createTag'; name: string; at: string }
+  | { kind: 'deleteTag'; name: string }
+  | { kind: 'stashPush'; message: string; untracked: boolean }
+  | { kind: 'stashApply'; index: number }
+  | { kind: 'stashPop'; index: number }
+  | { kind: 'stashDrop'; index: number }
+  | { kind: 'recordPointers'; paths: string[] }
+
+export type Stash = { index: number; sha: string; time: number; message: string }

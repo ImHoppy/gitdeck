@@ -10,7 +10,11 @@ import {
   useConflicts,
   useSync,
 } from '../features/sync'
+import { treeMenu, useTreeCommands } from '../features/repo-actions'
 import { useWorkspace, WorkspaceTree } from '../features/workspace-tree'
+import type { RepoSnapshot } from '../protocol/types'
+import { IconButton } from '../ui/IconButton/IconButton'
+import { Menu, type MenuItem } from '../ui/Menu/Menu'
 import styles from './App.module.css'
 import { RepoView } from './RepoView'
 
@@ -20,6 +24,22 @@ export function App() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const selected = workspace?.repos.find((r) => r.id === selectedId)
   const conflictFiles = useConflicts(selected)
+  const tree = useTreeCommands()
+  const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
+
+  const onRepoMenu = (repo: RepoSnapshot, at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      items: treeMenu(repo, {
+        open: setSelectedId,
+        sync: (id, kind) => void sync.sync(id, kind),
+        reveal: (id, what) => void tree.reveal(id, what),
+        checkoutTracked: (id) => void tree.checkoutTracked(id),
+        submodule: tree.submodule,
+        recordPointer: (parentId, path) => void tree.recordPointer(parentId, path),
+        refresh: () => workspace && open(workspace.name),
+      }),
+    })
 
   return (
     <div className={styles.layout}>
@@ -30,6 +50,7 @@ export function App() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onRefresh={() => open(workspace.name)}
+            onRepoMenu={onRepoMenu}
             toolbar={
               <>
                 <SyncToolbar
@@ -57,6 +78,14 @@ export function App() {
         )}
       </aside>
       <main className={styles.main}>
+        {tree.error && (
+          <div className={styles.banner}>
+            {tree.error}
+            <IconButton title="Dismiss" onClick={tree.clearError}>
+              ✕
+            </IconButton>
+          </div>
+        )}
         {selected && hasConflicts(selected) && (
           <ConflictPanel
             repo={selected}
@@ -82,6 +111,7 @@ export function App() {
           <div className={styles.message}>Select a repo in the tree.</div>
         )}
       </main>
+      {menu && <Menu items={menu.items} at={menu.at} onClose={() => setMenu(null)} />}
     </div>
   )
 }

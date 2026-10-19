@@ -10,28 +10,31 @@ type Props = {
 }
 
 export function ConflictPanel({ repo, files, busy, onRebase }: Props) {
-  const rebasing = repo.state?.operation === 'rebase'
+  const op = repo.state?.operation ?? null
+  const opName = op === 'cherryPick' ? 'cherry-pick' : op
   return (
     <section className={styles.summary}>
       <header className={styles.header}>
         <strong>
-          {repo.pathInParent ?? repo.name}: {rebasing ? 'rebase stopped on a conflict' : 'conflicts in the working tree'}
+          {repo.pathInParent ?? repo.name}: {op ? `${opName} stopped on a conflict` : 'conflicts in the working tree'}
         </strong>
-        {rebasing && (
+        {op && (
           <span>
             <IconButton title="Continue once the files are resolved and staged" disabled={busy} onClick={() => onRebase('continue')}>
               continue
             </IconButton>{' '}
-            <IconButton title="Drop this commit and go on" disabled={busy} onClick={() => onRebase('skip')}>
-              skip
-            </IconButton>{' '}
-            <IconButton title="Go back to before the pull" disabled={busy} onClick={() => onRebase('abort')}>
+            {op !== 'merge' && (
+              <IconButton title="Drop this commit and go on" disabled={busy} onClick={() => onRebase('skip')}>
+                skip
+              </IconButton>
+            )}{' '}
+            <IconButton title={`Undo the ${opName}`} disabled={busy} onClick={() => onRebase('abort')}>
               abort
             </IconButton>
           </span>
         )}
       </header>
-      {!rebasing && (
+      {!op && (
         <div className={styles.row}>
           The autostash could not be applied cleanly; its stash entry is kept. Resolve the files, then drop it.
         </div>

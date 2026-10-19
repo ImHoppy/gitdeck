@@ -1,11 +1,12 @@
 use crate::state::{self, git_dir};
 use gitcore::{
-    commands::{conflicts, gitlinks, head, operation, rebase, submodule, sync},
+    commands::{action, conflicts, gitlinks, head, operation, rebase, submodule, sync},
     GitRunner, RunError,
 };
 use serde::Deserialize;
 use std::path::Path;
 
+pub use action::Action;
 pub use rebase::RebaseAction;
 pub use sync::SyncOutcome;
 
@@ -66,7 +67,30 @@ pub async fn conflicts<R: GitRunner>(runner: &R, path: &Path) -> Result<Vec<Stri
 }
 
 pub async fn rebase<R: GitRunner>(runner: &R, path: &Path, action: RebaseAction) -> SyncOutcome {
-    git(runner, path, rebase::args(action)).await
+    let op = match git_dir(runner, path).await {
+        Ok(dir) => operation::detect(&dir),
+        Err(e) => return failed(e),
+    };
+    let Some(op) = op else {
+        return SyncOutcome::Skipped { reason: "nothing in progress".into() };
+    };
+    let args = rebase::args(op, action);
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    git(runner, path, &args).await
+}
+
+pub async fn action<R: GitRunner>(runner: &R, path: &Path, action: &Action) -> SyncOutcome {
+    match git_dir(runner, path).await {
+        Ok(dir) => {
+            if let Some(op) = operation::detect(&dir) {
+                return SyncOutcome::Skipped { reason: format!("{op:?} in progress") };
+            }
+        }
+        Err(e) => return failed(e),
+    }
+    let args = action.args();
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    git(runner, path, &args).await
 }
 
 async fn git<R: GitRunner>(runner: &R, path: &Path, args: &[&str]) -> SyncOutcome {

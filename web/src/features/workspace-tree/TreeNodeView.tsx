@@ -12,9 +12,10 @@ type Props = {
   selectedId: number | null
   onSelect: (repoId: number) => void
   actions?: (repo: RepoSnapshot) => ReactNode
+  onRepoMenu?: (repo: RepoSnapshot, at: { x: number; y: number }) => void
 }
 
-export function TreeNodeView({ node, depth, selectedId, onSelect, actions }: Props) {
+export function TreeNodeView({ node, depth, selectedId, onSelect, actions, onRepoMenu }: Props) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children.length > 0
   const toggle = () => setExpanded((e) => !e)
@@ -41,13 +42,14 @@ export function TreeNodeView({ node, depth, selectedId, onSelect, actions }: Pro
         selected={node.kind === 'repo' && node.repo.id === selectedId}
         onToggle={toggle}
         onClick={node.kind === 'repo' ? () => onSelect(node.repo.id) : undefined}
+        onContextMenu={node.kind === 'repo' && onRepoMenu ? (at) => onRepoMenu(node.repo, at) : undefined}
       >
         {label}
         {hasChildren && !expanded && <CollapsedRollup node={node} />}
       </TreeRow>
       {expanded &&
         node.children.map((child) => (
-          <TreeNodeView key={child.key} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} actions={actions} />
+          <TreeNodeView key={child.key} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} actions={actions} onRepoMenu={onRepoMenu} />
         ))}
     </>
   )

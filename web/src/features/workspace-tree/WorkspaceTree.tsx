@@ -11,9 +11,10 @@ type Props = {
   onRefresh: () => void
   toolbar?: ReactNode
   actions?: (repo: RepoSnapshot) => ReactNode
+  onRepoMenu?: (repo: RepoSnapshot, at: { x: number; y: number }) => void
 }
 
-export function WorkspaceTree({ workspace, selectedId, onSelect, onRefresh, toolbar, actions }: Props) {
+export function WorkspaceTree({ workspace, selectedId, onSelect, onRefresh, toolbar, actions, onRepoMenu }: Props) {
   const [attentionOnly, setAttentionOnly] = useState(false)
   const tree = useMemo(() => buildTree(workspace.repos), [workspace])
   const visible = attentionOnly ? filterAttention(tree) : tree
@@ -31,7 +32,7 @@ export function WorkspaceTree({ workspace, selectedId, onSelect, onRefresh, tool
         </label>
       </div>
       {visible.map((node) => (
-        <TreeNodeView key={node.key} node={node} depth={0} selectedId={selectedId} onSelect={onSelect} actions={actions} />
+        <TreeNodeView key={node.key} node={node} depth={0} selectedId={selectedId} onSelect={onSelect} actions={actions} onRepoMenu={onRepoMenu} />
       ))}
     </div>
   )

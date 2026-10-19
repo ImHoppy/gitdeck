@@ -46,3 +46,48 @@
   min-height: 120px;
   border-top: 1px solid var(--border);
 }
+
+.repoBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+}
+
+.refsPane {
+  min-height: 0;
+}
+
+.historyPane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 50%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+}
+
+.statusBad {
+  color: var(--danger);
+}
+
+.banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  color: var(--danger);
+  border-bottom: 1px solid var(--border);
+  white-space: pre-wrap;
+}

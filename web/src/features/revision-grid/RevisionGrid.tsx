@@ -19,9 +19,11 @@ type Props = {
   ensure: (start: number, end: number) => void
   selection: GridSelection | null
   onSelect: (s: GridSelection) => void
+  onCommitMenu: (row: HistoryRow, at: { x: number; y: number }) => void
+  scrollTo: number | null
 }
 
-export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect }: Props) {
+export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, scrollTo }: Props) {
   const head = repo.state?.head
   const pills = useMemo(() => pillsBySha(info.refs, head?.kind === 'branch' ? head.name : null), [info.refs, head])
   const [range, setRange] = useState<[number, number]>([0, 0])
@@ -88,13 +90,20 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect }: 
         graphWidth={graphWidth}
         height={ROW_HEIGHT}
         onSelect={() => onSelect({ kind: 'commit', sha: row.sha, parents: row.parents, subject: row.subject })}
+        onContextMenu={(at) => onCommitMenu(row, at)}
       />
     )
   }
 
   return (
     <div className={styles.grid}>
-      <VirtualList count={info.count + ARTIFICIAL} rowHeight={ROW_HEIGHT} renderRow={renderRow} onRangeChange={onRange} />
+      <VirtualList
+        count={info.count + ARTIFICIAL}
+        rowHeight={ROW_HEIGHT}
+        renderRow={renderRow}
+        onRangeChange={onRange}
+        scrollTo={scrollTo === null ? null : scrollTo + ARTIFICIAL}
+      />
     </div>
   )
 }

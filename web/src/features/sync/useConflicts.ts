@@ -4,7 +4,7 @@ import type { RepoSnapshot } from '../../protocol/types'
 
 export function hasConflicts(repo: RepoSnapshot | undefined): boolean {
   const s = repo?.state
-  return !!s && (s.operation === 'rebase' || s.status.conflicts > 0)
+  return !!s && (s.operation !== null || s.status.conflicts > 0)
 }
 
 export function useConflicts(repo: RepoSnapshot | undefined): string[] {

@@ -13,13 +13,19 @@ type Props = {
   graphWidth: number
   height: number
   onSelect: () => void
+  onContextMenu: (at: { x: number; y: number }) => void
 }
 
-export function CommitRow({ row, pills, isHead, selected, graphWidth, height, onSelect }: Props) {
+export function CommitRow({ row, pills, isHead, selected, graphWidth, height, onSelect, onContextMenu }: Props) {
   return (
     <div
       className={`${styles.row} ${selected ? styles.selected : ''}`}
       onClick={onSelect}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        onSelect()
+        onContextMenu({ x: e.clientX, y: e.clientY })
+      }}
       title={row.multiline ? `${row.subject}\n\n${row.bodyHint}…` : row.subject}
     >
       <GraphCell row={row.graph} height={height} width={graphWidth} square={pills.length > 0} head={isHead} />
