@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { parseDiff } from '../../lib/diffLines'
+import { useHighlight } from '../../lib/useHighlight'
 import { VirtualList } from '../VirtualList/VirtualList'
 import styles from './DiffViewer.module.css'
 
@@ -7,12 +8,15 @@ const LINE_HEIGHT = 18
 
 type Props = {
   patch: string
+  path?: string
   selected?: ReadonlySet<number>
   onSelect?: (lines: Set<number>) => void
 }
 
-export function DiffViewer({ patch, selected, onSelect }: Props) {
+export function DiffViewer({ patch, path, selected, onSelect }: Props) {
   const lines = useMemo(() => parseDiff(patch), [patch])
+  const texts = useMemo(() => lines.map((l) => (l.kind === 'meta' || l.kind === 'hunk' ? '' : l.text)), [lines])
+  const html = useHighlight(path, texts)
   const anchor = useRef<number | null>(null)
   const dragging = useRef(false)
 
@@ -66,7 +70,11 @@ export function DiffViewer({ patch, selected, onSelect }: Props) {
               <span className={styles.no}>{l.oldNo ?? ''}</span>
               <span className={styles.no}>{l.newNo ?? ''}</span>
               <span className={styles.sign}>{l.kind === 'add' ? '+' : l.kind === 'del' ? '-' : ' '}</span>
-              <span className={styles.text}>{l.text}</span>
+              {html ? (
+                <span className={styles.text} dangerouslySetInnerHTML={{ __html: html[i] }} />
+              ) : (
+                <span className={styles.text}>{l.text}</span>
+              )}
             </div>
           )
         }}

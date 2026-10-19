@@ -68,7 +68,7 @@ export function PatchView({ repoId, file, patch, side }: Props) {
         </div>
       )}
       <div className={styles.patchBody}>
-        <DiffViewer patch={patch.text} selected={side ? selected : undefined} onSelect={side ? setSelected : undefined} />
+        <DiffViewer patch={patch.text} path={file.path} selected={side ? selected : undefined} onSelect={side ? setSelected : undefined} />
       </div>
       {confirmReset && (
         <Dialog

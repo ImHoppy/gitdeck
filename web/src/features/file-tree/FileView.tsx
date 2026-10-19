@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { relativeTime } from '../../lib/relativeTime'
+import { useHighlight } from '../../lib/useHighlight'
 import type { BlameLine, FileContent } from '../../protocol/types'
 import { VirtualList } from '../../ui/VirtualList/VirtualList'
 import styles from './FileTree.module.css'
@@ -13,6 +14,11 @@ export function FileView({ repoId, sha, path, onPick }: Props) {
   const [blame, setBlame] = useState(false)
   const content = useGitData<FileContent>('file.show', { id: repoId, sha, path })
   const blamed = useGitData<BlameLine[]>('file.blame', blame ? { id: repoId, sha, path } : null)
+  const texts = useMemo(
+    () => (blame ? (blamed.data ?? []).map((l) => l.text) : (content.data?.text.split('\n') ?? [])),
+    [blame, blamed.data, content.data],
+  )
+  const html = useHighlight(path, texts)
 
   const header = (
     <div className={styles.viewBar}>
@@ -42,7 +48,7 @@ export function FileView({ repoId, sha, path, onPick }: Props) {
               return (
                 <div className={styles.line}>
                   <span className={styles.no}>{i + 1}</span>
-                  <span>{l}</span>
+                  <Code html={html?.[i]} text={l} />
                 </div>
               )
             }
@@ -53,7 +59,7 @@ export function FileView({ repoId, sha, path, onPick }: Props) {
                   {first ? `${l.sha.slice(0, 7)} ${l.author} ${relativeTime(l.time)}` : ''}
                 </span>
                 <span className={styles.no}>{i + 1}</span>
-                <span>{l.text}</span>
+                <Code html={html?.[i]} text={l.text} />
               </div>
             )
           }}
@@ -61,4 +67,8 @@ export function FileView({ repoId, sha, path, onPick }: Props) {
       </div>
     </div>
   )
+}
+
+function Code({ html, text }: { html: string | undefined; text: string }) {
+  return html === undefined ? <span>{text}</span> : <span dangerouslySetInnerHTML={{ __html: html }} />
 }
