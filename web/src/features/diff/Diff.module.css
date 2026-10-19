@@ -1,11 +1,11 @@
 .panel {
-  display: grid;
-  grid-template-columns: minmax(220px, 32%) 1fr;
+  display: flex;
   height: 100%;
   min-height: 0;
 }
 
 .left {
+  flex: none;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -14,6 +14,7 @@
 }
 
 .right {
+  flex: 1;
   min-width: 0;
   min-height: 0;
 }
@@ -137,4 +138,28 @@
 .patchBody {
   flex: 1;
   min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.toolbar select,
+.fileFilter {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.fileFilter {
+  margin: 4px 6px;
+  padding: 2px 6px;
 }

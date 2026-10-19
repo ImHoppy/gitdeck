@@ -14,6 +14,8 @@ import { SettingsPage, useServerInfo, useTheme } from '../features/settings'
 import { treeMenu, useTreeCommands } from '../features/repo-actions'
 import { useWorkspace, WorkspacePicker, WorkspaceTree } from '../features/workspace-tree'
 import { useDialogs } from '../ui/Dialog/useDialogs'
+import { Resizer } from '../ui/Resizer/Resizer'
+import { usePaneSize } from '../lib/usePaneSize'
 import type { RepoSnapshot } from '../protocol/types'
 import { IconButton } from '../ui/IconButton/IconButton'
 import { Menu, type MenuItem } from '../ui/Menu/Menu'
@@ -23,6 +25,7 @@ import { RepoView } from './RepoView'
 export function App() {
   const { names, workspace, error, open, addRoot, removeRoot, setExcluded } = useWorkspace()
   const dialogs = useDialogs()
+  const treeWidth = usePaneSize('tree', 340, 200, 700)
 
   const addRepo = async () => {
     const path = await dialogs.prompt('Add a repository', 'Folder of a git repository (its submodules come along)', '')
@@ -58,7 +61,7 @@ export function App() {
 
   return (
     <div className={styles.layout}>
-      <aside className={styles.left}>
+      <aside className={styles.left} style={{ width: treeWidth.size }}>
         {workspace ? (
           <WorkspaceTree
             workspace={workspace}
@@ -113,6 +116,7 @@ export function App() {
           </div>
         )}
       </aside>
+      <Resizer axis="x" onDrag={treeWidth.drag} onDone={treeWidth.save} />
       <main className={styles.main}>
         {tree.error && (
           <div className={styles.banner}>

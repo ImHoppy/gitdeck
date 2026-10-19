@@ -127,3 +127,5 @@ export type CommitDetails = {
   parents: string[]
   message: string
 }
+
+export type PatchOptions = { context: number; ignoreWhitespace: boolean }

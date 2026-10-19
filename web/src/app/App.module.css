@@ -1,14 +1,15 @@
 .layout {
-  display: grid;
-  grid-template-columns: minmax(280px, 380px) 1fr;
+  display: flex;
   height: 100%;
 }
 
 .left {
+  flex: none;
   min-width: 0;
 }
 
 .main {
+  flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -42,8 +43,7 @@
 }
 
 .bottomPane {
-  height: 42%;
-  min-height: 120px;
+  flex: none;
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--border);
@@ -77,15 +77,16 @@
 .repoBody {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(160px, 220px) 1fr;
+  display: flex;
 }
 
 .refsPane {
+  flex: none;
   min-height: 0;
 }
 
 .historyPane {
+  flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;

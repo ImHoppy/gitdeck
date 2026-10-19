@@ -14,3 +14,12 @@ export function saveSetting(key: string, value: string) {
     // storage blocked: the value lasts for this page only
   }
 }
+
+export function loadNumber(key: string, fallback: number): number {
+  try {
+    const v = Number(localStorage.getItem(key))
+    return localStorage.getItem(key) !== null && Number.isFinite(v) ? v : fallback
+  } catch {
+    return fallback
+  }
+}

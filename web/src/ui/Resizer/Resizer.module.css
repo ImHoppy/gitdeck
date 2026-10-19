@@ -1,0 +1,23 @@
+.handle {
+  flex: none;
+  z-index: 2;
+  background: transparent;
+  transition: background 0.1s;
+}
+
+.handle:hover,
+.handle:active {
+  background: var(--accent);
+}
+
+.x {
+  width: 4px;
+  margin: 0 -2px;
+  cursor: col-resize;
+}
+
+.y {
+  height: 4px;
+  margin: -2px 0;
+  cursor: row-resize;
+}

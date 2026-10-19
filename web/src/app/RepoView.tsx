@@ -10,6 +10,8 @@ import { type GridSelection, RevisionGrid, useHistory } from '../features/revisi
 import type { DiffTarget, GitRef, HistoryRow, RepoSnapshot } from '../protocol/types'
 import { useDialogs } from '../ui/Dialog/useDialogs'
 import { IconButton } from '../ui/IconButton/IconButton'
+import { Resizer } from '../ui/Resizer/Resizer'
+import { usePaneSize } from '../lib/usePaneSize'
 import { Menu, type MenuItem } from '../ui/Menu/Menu'
 import styles from './App.module.css'
 import { CommandStatus } from './CommandStatus'
@@ -36,6 +38,8 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
   const [committing, setCommitting] = useState(false)
   const [tab, setTab] = useState<'commit' | 'diff' | 'output'>('commit')
   const commandLog = useCommandLog()
+  const refsWidth = usePaneSize('refs', 200, 120, 500)
+  const bottomHeight = usePaneSize('bottom', 300, 100, 2000)
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
   const head = repo.state?.head
@@ -92,7 +96,7 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
         <CommandStatus busy={commands.busy} last={commands.last} onDismiss={commands.clear} />
       </div>
       <div className={styles.repoBody}>
-        <div className={styles.refsPane}>
+        <div className={styles.refsPane} style={{ width: refsWidth.size }}>
           <RefsPanel
             refs={refs}
             stashes={stashes}
@@ -102,6 +106,7 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
             onContext={onRefMenu}
           />
         </div>
+        <Resizer axis="x" onDrag={refsWidth.drag} onDone={refsWidth.save} />
         <div className={styles.historyPane}>
           <div className={styles.gridPane}>
             <RevisionGrid
@@ -116,7 +121,8 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
               onScrollTo={setScrollTo}
             />
           </div>
-          <div className={styles.bottomPane}>
+          <Resizer axis="y" onDrag={(d) => bottomHeight.drag(-d)} onDone={bottomHeight.save} />
+          <div className={styles.bottomPane} style={{ height: bottomHeight.size }}>
             <div className={styles.tabs}>
               <button className={tab === 'commit' ? styles.activeTab : ''} onClick={() => setTab('commit')}>
                 Commit
