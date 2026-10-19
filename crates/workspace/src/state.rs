@@ -7,8 +7,10 @@ use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RepoState {
     pub head: Head,
+    pub head_sha: Option<String>,
     pub tracking: Tracking,
     pub status: StatusCounts,
     pub operation: Option<Operation>,
@@ -22,10 +24,9 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path) -> Result<RepoState, Ru
     let (gitdir, symbolic, sha, status_out) =
         futures::try_join!(gitdir_fut, symbolic_fut, sha_fut, status_fut)?;
 
-    let head = head::parse(
-        symbolic.ok().then_some(&symbolic.stdout[..]),
-        sha.ok().then_some(&sha.stdout[..]),
-    );
+    let sha_out = sha.ok().then_some(&sha.stdout[..]);
+    let head = head::parse(symbolic.ok().then_some(&symbolic.stdout[..]), sha_out);
+    let head_sha = sha_out.map(|s| String::from_utf8_lossy(s).trim().to_string());
     let tracking = match &head {
         Head::Branch { name } => {
             let args = ahead_behind::args(name);
@@ -36,6 +37,7 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path) -> Result<RepoState, Ru
     };
     Ok(RepoState {
         head,
+        head_sha,
         tracking,
         status: status::parse(&status_out),
         operation: operation::detect(&gitdir),

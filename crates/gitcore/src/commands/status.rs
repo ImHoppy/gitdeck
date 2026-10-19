@@ -5,7 +5,8 @@ pub const ARGS: &[&str] = &[
     "status",
     "--porcelain=2",
     "-z",
-    "--untracked-files=all",
+    "--untracked-files=normal",
+    "--ignore-submodules=all",
 ];
 
 pub fn parse(out: &[u8]) -> StatusCounts {

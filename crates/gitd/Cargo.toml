@@ -1,0 +1,16 @@
+[package]
+name = "gitd"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+gitcore = { path = "../gitcore" }
+workspace = { path = "../workspace" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+axum = { version = "0.8", features = ["ws"] }
+futures = "0.3"
+clap = { version = "4", features = ["derive"] }
+rand = "0.9"
