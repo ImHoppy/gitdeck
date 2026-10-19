@@ -9,7 +9,6 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 
 const format = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 
-/** "13 minutes ago" from unix seconds. */
 export function relativeTime(unixSecs: number, nowMs = Date.now()): string {
   const diff = unixSecs - Math.floor(nowMs / 1000)
   for (const [unit, secs] of UNITS) {

@@ -1,13 +1,7 @@
-//! Commit graph lanes (SPEC §4.3–§4.4): rows come in log order, children before parents, and
-//! every row lists the line pieces that cross it. Pure: no I/O, builds for wasm32 too.
-
 use serde::Serialize;
 
-/// Lanes past this are not drawn, like upstream's `MaxLanes`.
 pub const MAX_LANES: usize = 40;
 
-/// A line piece inside one row. `None` is the node itself; `Some(lane)` is that lane at the
-/// row's top (`from`) or bottom (`to`) edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Segment {
     pub from: Option<u8>,
@@ -28,7 +22,6 @@ struct Lane {
     color: u16,
 }
 
-/// `parents[i]` holds the row indices of commit `i`'s parents (parents outside the log are left out).
 pub fn layout(parents: &[Vec<u32>]) -> Vec<Row> {
     let mut lanes: Vec<Option<Lane>> = Vec::new();
     let mut next_color: u16 = 0;
@@ -129,9 +122,7 @@ mod tests {
         let rows = layout(&[vec![1, 2], vec![3], vec![3], vec![]]);
         assert_eq!(lanes(&rows), [0, 0, 1, 0]);
         assert_eq!(rows[0].segments.len(), 2);
-        // row 2 ends lane 1 into lane 0's target
         assert!(rows[2].segments.contains(&Segment { from: None, to: Some(0), color: rows[0].color }));
-        // root closes both incoming lanes
         assert_eq!(rows[3].segments.iter().filter(|s| s.to.is_none()).count(), 1);
     }
 

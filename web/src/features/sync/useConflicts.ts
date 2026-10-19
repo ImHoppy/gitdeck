@@ -7,7 +7,6 @@ export function hasConflicts(repo: RepoSnapshot | undefined): boolean {
   return !!s && (s.operation === 'rebase' || s.status.conflicts > 0)
 }
 
-/** Conflicted paths of a repo, reloaded whenever its pushed state changes. */
 export function useConflicts(repo: RepoSnapshot | undefined): string[] {
   const [loaded, setLoaded] = useState<{ id: number; files: string[] } | null>(null)
   const active = hasConflicts(repo)

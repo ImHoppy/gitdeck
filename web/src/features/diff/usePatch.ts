@@ -16,7 +16,6 @@ export function usePatch(repoId: number, target: DiffTarget, file: ChangedFile |
     return () => {
       live = false
     }
-    // key covers repoId, target and file; version forces a reload when the files list refreshes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, version])
 

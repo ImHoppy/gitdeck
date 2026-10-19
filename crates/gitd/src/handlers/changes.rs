@@ -10,7 +10,11 @@ use gitcore::{
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
-use workspace::{changes, state, RepoId};
+use std::collections::HashSet;
+use workspace::{
+    changes, stage_lines::{self, LineMode},
+    state, RepoId,
+};
 
 const DEFAULT_CONTEXT: u32 = 3;
 
@@ -59,6 +63,24 @@ pub async fn unstage(app: &AppState, p: PathsParams) -> anyhow::Result<Value> {
     let entry = hub.entry(p.id)?;
     let unborn = matches!(state::load(&hub.runner, &entry.path).await?.head, Head::Unborn { .. });
     hub.write_git(p.id, commit::unstage_args(&p.paths, unborn)).await?;
+    Ok(Value::Null)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinesParams {
+    id: RepoId,
+    file: ChangedFile,
+    mode: LineMode,
+    diff_id: String,
+    lines: HashSet<usize>,
+}
+
+pub async fn lines(app: &AppState, p: LinesParams) -> anyhow::Result<Value> {
+    let hub = hub(app).await?;
+    let entry = hub.entry(p.id)?;
+    let job = stage_lines::apply(&hub.runner, &entry.path, &p.file, p.mode, &p.diff_id, &p.lines);
+    hub.queued(p.id, job).await?;
     Ok(Value::Null)
 }
 

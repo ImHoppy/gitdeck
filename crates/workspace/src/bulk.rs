@@ -1,7 +1,6 @@
 use crate::{RepoEntry, RepoId};
 use std::collections::HashMap;
 
-/// Groups repos into waves, deepest submodules first, so a superproject runs after its submodules.
 pub fn waves(entries: &[RepoEntry]) -> Vec<Vec<RepoId>> {
     let parents: HashMap<RepoId, Option<RepoId>> = entries.iter().map(|e| (e.id, e.parent)).collect();
     let depth = |mut id: RepoId| {

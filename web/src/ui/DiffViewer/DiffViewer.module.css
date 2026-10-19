@@ -52,3 +52,13 @@
   color: var(--fg-muted);
   padding-left: 6px;
 }
+
+.selectable .line {
+  user-select: none;
+  cursor: default;
+}
+
+.picked {
+  box-shadow: inset 3px 0 var(--accent);
+  filter: brightness(0.9);
+}

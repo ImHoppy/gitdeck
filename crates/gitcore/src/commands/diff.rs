@@ -1,16 +1,10 @@
-//! Changed files and patches between two states (SPEC §9).
-
 use serde::{Deserialize, Serialize};
 
-/// The two sides being compared, as the grid selection names them.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum DiffTarget {
-    /// Working tree against the index (unstaged changes).
     Worktree,
-    /// Index against HEAD (staged changes).
     Index,
-    /// A commit against its first parent, or against the empty tree for a root commit.
     Commit { sha: String, parent: Option<String> },
 }
 
@@ -52,7 +46,6 @@ pub fn patch_args(target: &DiffTarget, file: &ChangedFile, context: u32) -> Vec<
     let mut a: Vec<String> = vec!["-c".into(), "core.quotePath=false".into()];
     let unified = format!("-U{context}");
     if file.kind == ChangeKind::Untracked {
-        // exits 1 whenever there is a difference, which there always is
         a.extend(["diff", "--no-index", "--no-ext-diff", &unified, "--", "/dev/null", &file.path].map(String::from));
         return a;
     }
@@ -72,7 +65,6 @@ pub fn patch_args(target: &DiffTarget, file: &ChangedFile, context: u32) -> Vec<
     a
 }
 
-/// Parses `--name-status -z`: `X\0path\0`, or `R100\0old\0new\0` for renames and copies.
 pub fn parse_name_status(out: &[u8]) -> Vec<ChangedFile> {
     let mut fields = out.split(|&b| b == 0).map(|f| String::from_utf8_lossy(f).into_owned());
     let mut files = Vec::new();
@@ -122,7 +114,6 @@ mod tests {
 
     #[test]
     fn diff_tree_output_skips_the_commit_line() {
-        // diff-tree --root prints the commit sha first
         let out = b"abc123\0A\0README\0";
         assert_eq!(parse_name_status(out), vec![ChangedFile { path: "README".into(), old_path: None, kind: ChangeKind::Added }]);
     }

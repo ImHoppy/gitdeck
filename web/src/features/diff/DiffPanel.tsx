@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
-import { DiffViewer } from '../../ui/DiffViewer/DiffViewer'
 import styles from './Diff.module.css'
 import { FileList } from './FileList'
+import { PatchView } from './PatchView'
 import { useDiffFiles } from './useDiffFiles'
 import { usePatch } from './usePatch'
 
 type Props = { repoId: number; target: DiffTarget; title: string }
 
-/** The Diff tab: changed files on the left, the selected file's patch on the right. */
 export function DiffPanel({ repoId, target, title }: Props) {
   const { files, error } = useDiffFiles(repoId, target)
   const [picked, setPicked] = useState<string | null>(null)
@@ -27,7 +26,14 @@ export function DiffPanel({ repoId, target, title }: Props) {
       </div>
       <div className={styles.right}>
         {patch?.error && <div className={styles.empty}>{patch.error}</div>}
-        {patch?.patch && <DiffViewer patch={patch.patch.text} />}
+        {patch?.patch && file && (
+          <PatchView
+            repoId={repoId}
+            file={file}
+            patch={patch.patch}
+            side={target.kind === 'commit' ? null : target.kind}
+          />
+        )}
       </div>
     </div>
   )

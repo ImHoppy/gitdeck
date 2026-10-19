@@ -1,6 +1,3 @@
-//! Real-git fixtures: an origin, a clone that sync runs in, and a second clone that pushes
-//! upstream changes, so pull --rebase and its autostash hit the same conflicts as in daily use.
-
 use gitcore::{model::Operation, GitRunner, ProcessRunner};
 use std::{
     path::{Path, PathBuf},
@@ -44,7 +41,6 @@ fn commit(repo: &Path, file: &str, text: &str) {
     git(repo, &["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", file]);
 }
 
-/// Both clones start from one shared commit of `a.txt`.
 fn fixture() -> Fixture {
     static N: AtomicU32 = AtomicU32::new(0);
     let n = N.fetch_add(1, Ordering::Relaxed);

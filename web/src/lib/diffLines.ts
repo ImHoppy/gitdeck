@@ -5,7 +5,6 @@ export type DiffLine =
 
 const HUNK = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/
 
-/** Splits a unified diff into display lines with old/new line numbers. */
 export function parseDiff(patch: string): DiffLine[] {
   const out: DiffLine[] = []
   let oldNo = 0

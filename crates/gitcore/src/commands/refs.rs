@@ -22,7 +22,6 @@ pub enum RefKind {
 pub struct GitRef {
     pub sha: String,
     pub kind: RefKind,
-    /// Short name: `main`, `origin/main`, `v1.0`.
     pub name: String,
     pub upstream: Option<String>,
 }

@@ -22,7 +22,6 @@ pub fn parse(out: &[u8]) -> Vec<Gitlink> {
         .collect()
 }
 
-/// Paths whose recorded submodule commit changed or appeared between two listings.
 pub fn moved(before: &[Gitlink], after: &[Gitlink]) -> Vec<String> {
     after.iter().filter(|a| !before.contains(a)).map(|a| a.path.clone()).collect()
 }

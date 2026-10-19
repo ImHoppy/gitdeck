@@ -12,7 +12,6 @@ use std::{
 pub use log::LogCommit;
 pub use refs::GitRef;
 
-/// What a repo's history depends on: when HEAD and every ref are unchanged, the log is too.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoryKey {
@@ -21,7 +20,6 @@ pub struct HistoryKey {
     pub refs: Vec<GitRef>,
 }
 
-/// The whole log with its graph layout, kept on the server and served to clients by window.
 pub struct History {
     pub key: HistoryKey,
     pub commits: Vec<LogCommit>,

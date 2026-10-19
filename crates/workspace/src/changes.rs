@@ -12,7 +12,6 @@ use std::{
 #[serde(rename_all = "camelCase")]
 pub struct Patch {
     pub text: String,
-    /// Identifies the exact diff the client saw, so line staging can refuse a stale one.
     pub diff_id: String,
 }
 

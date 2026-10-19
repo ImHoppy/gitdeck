@@ -7,6 +7,7 @@ pub mod fetch_log;
 pub mod history;
 pub mod registry;
 pub mod scheduler;
+pub mod stage_lines;
 pub mod state;
 pub mod sync;
 pub mod watch;

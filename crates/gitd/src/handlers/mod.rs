@@ -24,6 +24,7 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "diff.file" => changes::file(app, serde_json::from_value(params)?).await,
         "stage.files" => changes::stage(app, serde_json::from_value(params)?).await,
         "unstage.files" => changes::unstage(app, serde_json::from_value(params)?).await,
+        "stage.lines" => changes::lines(app, serde_json::from_value(params)?).await,
         "commit.create" => changes::create(app, serde_json::from_value(params)?).await,
         "commit.lastMessage" => changes::last_message(app, serde_json::from_value(params)?).await,
         "repo.sync" => repo::sync(app, serde_json::from_value(params)?).await,

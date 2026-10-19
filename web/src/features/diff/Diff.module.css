@@ -104,3 +104,37 @@
   padding: 12px;
   color: var(--fg-muted);
 }
+
+.patchView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.lineBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.hint {
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patchBody {
+  flex: 1;
+  min-height: 0;
+}

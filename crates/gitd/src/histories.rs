@@ -6,7 +6,6 @@ use workspace::{
     RepoId,
 };
 
-/// One cached history per repo, reloaded only when its HEAD or refs change.
 #[derive(Default)]
 pub struct Histories {
     cache: Mutex<HashMap<RepoId, Arc<History>>>,

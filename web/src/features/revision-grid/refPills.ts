@@ -5,7 +5,6 @@ export type Pill =
   | { kind: 'remote'; name: string }
   | { kind: 'tag'; name: string }
 
-/** Pills per commit sha; a local branch and its upstream on the same commit join into one pill (SPEC §5). */
 export function pillsBySha(refs: GitRef[], headBranch: string | null): Map<string, Pill[]> {
   const remotes = new Map(refs.filter((r) => r.kind === 'remote').map((r) => [r.name, r]))
   const joined = new Set<string>()

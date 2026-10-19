@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { gitd } from '../../protocol/client'
 import type { ChangedFile, DiffTarget, RepoSnapshot } from '../../protocol/types'
 
-/** Files changed in `target`; live targets (worktree, index) reload on every repo-state push. */
 export function useDiffFiles(repoId: number, target: DiffTarget) {
   const [files, setFiles] = useState<ChangedFile[] | null>(null)
   const [error, setError] = useState<string | null>(null)

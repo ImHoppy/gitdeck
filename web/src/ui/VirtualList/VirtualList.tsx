@@ -6,7 +6,6 @@ type Props = {
   rowHeight: number
   renderRow: (index: number) => ReactNode
   onRangeChange?: (start: number, end: number) => void
-  /** Scrolls this row into view whenever it changes. */
   scrollTo?: number | null
   overscan?: number
 }

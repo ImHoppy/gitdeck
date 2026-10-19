@@ -1,5 +1,3 @@
-//! Whole-file staging and committing (the commit dialog, SPEC §7).
-
 pub fn stage_args(paths: &[String]) -> Vec<String> {
     // -A also records deletions of the given paths
     let mut a: Vec<String> = ["add", "-A", "--"].map(String::from).to_vec();

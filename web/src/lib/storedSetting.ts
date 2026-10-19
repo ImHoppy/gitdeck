@@ -1,4 +1,3 @@
-/** A per-browser setting; storage can be blocked, so reads fall back and writes may be lost. */
 export function loadSetting<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
     const v = localStorage.getItem(key)

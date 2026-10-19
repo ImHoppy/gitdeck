@@ -4,7 +4,6 @@ import type { HistoryInfo, HistoryRow, RepoSnapshot } from '../../protocol/types
 
 const PAGE = 200
 
-/** The repo's log (mount once per repo), opened on the server and fetched by page as rows scroll into view. */
 export function useHistory(repoId: number | null) {
   const [info, setInfo] = useState<HistoryInfo | null>(null)
   const [rows, setRows] = useState<ReadonlyMap<number, HistoryRow>>(new Map())

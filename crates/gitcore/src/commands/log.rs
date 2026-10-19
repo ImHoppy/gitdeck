@@ -1,5 +1,3 @@
-//! `git log` for the grid (SPEC §2): NUL-separated records, fields split by 0x1f.
-
 pub const ARGS: &[&str] = &[
     "-c",
     "log.showSignature=false",
@@ -13,7 +11,6 @@ pub const ARGS: &[&str] = &[
     "HEAD",
 ];
 
-/// The grey text after the subject only needs the start of the body.
 const BODY_HINT_CHARS: usize = 200;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

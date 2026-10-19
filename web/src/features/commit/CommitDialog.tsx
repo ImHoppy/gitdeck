@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
-import { DiffViewer } from '../../ui/DiffViewer/DiffViewer'
 import { IconButton } from '../../ui/IconButton/IconButton'
-import { FileList, useDiffFiles, usePatch } from '../diff'
+import { FileList, PatchView, useDiffFiles, usePatch } from '../diff'
 import styles from './CommitDialog.module.css'
 import { useCommitActions } from './useCommitActions'
 
@@ -80,7 +79,9 @@ export function CommitDialog({ repoId, onClose }: { repoId: number; onClose: () 
             </div>
           </div>
           <div className={styles.right}>
-            <div className={styles.diff}>{patch?.patch ? <DiffViewer patch={patch.patch.text} /> : null}</div>
+            <div className={styles.diff}>
+              {patch?.patch && file && <PatchView repoId={repoId} file={file} patch={patch.patch} side={picked?.side ?? null} />}
+            </div>
             <textarea
               className={styles.message}
               placeholder="Commit message"

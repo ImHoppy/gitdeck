@@ -17,7 +17,7 @@ export function SplitButton({ title, disabled, onClick, menu, children }: Props)
   const menuRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
 
-  // fixed position, kept inside the viewport, so neither the window edge nor a scrolling panel cuts it
+  // fixed and clamped to the viewport so scrolling panels and the window edge never clip it
   useLayoutEffect(() => {
     if (!open || !root.current || !menuRef.current) return
     const anchor = root.current.getBoundingClientRect()

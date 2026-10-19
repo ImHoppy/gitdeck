@@ -11,7 +11,6 @@ use workspace::{
     RepoEntry, RepoId, Scheduler,
 };
 
-/// Everything an open workspace needs to run git on its repos and tell clients about it.
 pub struct Hub {
     pub runner: ProcessRunner,
     pub entries: HashMap<RepoId, RepoEntry>,
@@ -26,7 +25,6 @@ pub struct Hub {
 pub struct RepoResult {
     pub id: RepoId,
     pub outcome: SyncOutcome,
-    /// Submodule pointers the pull moved; the client asks whether to run `submodule update`.
     pub submodules_moved: Vec<String>,
 }
 
@@ -96,7 +94,12 @@ impl Hub {
         result
     }
 
-    /// Runs a user write (stage, commit…) in the repo's queue, then pushes the new state.
+    pub async fn queued<T>(&self, id: RepoId, job: impl std::future::Future<Output = T>) -> T {
+        let out = self.scheduler.write(id, job).await;
+        self.publish(id).await;
+        out
+    }
+
     pub async fn write_git(&self, id: RepoId, args: Vec<String>) -> anyhow::Result<GitOutput> {
         let entry = self.entry(id)?;
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
@@ -137,7 +140,6 @@ impl Hub {
         join_all(ids.into_iter().map(|id| self.sync(id, SyncKind::Fetch))).await
     }
 
-    /// Submodules run before their superproject; one repo's failure never stops the others.
     pub async fn sync_all(&self, kind: SyncKind) -> Vec<RepoResult> {
         let mut results: Vec<RepoResult> = self
             .entries
