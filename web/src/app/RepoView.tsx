@@ -28,7 +28,7 @@ function diffTitle(s: GridSelection): string {
   return `${s.sha.slice(0, 8)}: ${s.subject}`
 }
 
-export function RepoView({ repo }: { repo: RepoSnapshot }) {
+export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => void }) {
   const [filter, setFilter] = useState('')
   const history = useHistory(repo.id, useDebounced(filter.trim(), 250))
   const stashes = useStashes(repo.id)
@@ -93,6 +93,11 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
   return (
     <div className={styles.repoView}>
       <div className={styles.toolbar}>
+        {onBack && (
+          <IconButton title="Back to the repositories" onClick={onBack}>
+            ‹ Repos
+          </IconButton>
+        )}
         <strong>{repo.pathInParent ?? repo.name}</strong>
         <IconButton title="Open the commit dialog" onClick={() => setCommitting(true)}>
           ✓ Commit ({changes})
@@ -113,7 +118,7 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
         <CommandStatus busy={commands.busy} last={commands.last} onDismiss={commands.clear} />
       </div>
       <div className={styles.repoBody}>
-        <div className={styles.refsPane} style={{ width: refsWidth.size }}>
+        <div className={`${styles.refsPane} ${styles.wideOnly}`} style={{ width: refsWidth.size }}>
           <RefsPanel
             refs={refs}
             stashes={stashes}
@@ -123,7 +128,9 @@ export function RepoView({ repo }: { repo: RepoSnapshot }) {
             onContext={onRefMenu}
           />
         </div>
-        <Resizer axis="x" onDrag={refsWidth.drag} onDone={refsWidth.save} />
+        <span className={styles.wideOnly}>
+          <Resizer axis="x" onDrag={refsWidth.drag} onDone={refsWidth.save} />
+        </span>
         <div className={styles.historyPane}>
           <div className={styles.gridPane}>
             <RevisionGrid

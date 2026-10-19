@@ -16,6 +16,7 @@ import { useWorkspace, WorkspacePicker, WorkspaceTree } from '../features/worksp
 import { useDialogs } from '../ui/Dialog/useDialogs'
 import { Resizer } from '../ui/Resizer/Resizer'
 import { usePaneSize } from '../lib/usePaneSize'
+import { useNarrow } from '../lib/useNarrow'
 import type { RepoSnapshot } from '../protocol/types'
 import { IconButton } from '../ui/IconButton/IconButton'
 import { Menu, type MenuItem } from '../ui/Menu/Menu'
@@ -26,6 +27,14 @@ export function App() {
   const { names, workspace, error, open, addRoot, removeRoot, setExcluded } = useWorkspace()
   const dialogs = useDialogs()
   const treeWidth = usePaneSize('tree', 340, 200, 700)
+  const narrow = useNarrow()
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [showRepo, setShowRepo] = useState(false)
+  const pickRepo = (id: number) => {
+    setSelectedId(id)
+    setShowRepo(true)
+  }
+  const repoOpen = narrow && showRepo && selectedId !== null
 
   const addRepo = async () => {
     const path = await dialogs.prompt('Add a repository', 'Folder of a git repository (its submodules come along)', '')
@@ -34,7 +43,6 @@ export function App() {
     if (name) await addRoot(name, path)
   }
   const sync = useSync()
-  const [selectedId, setSelectedId] = useState<number | null>(null)
   const selected = workspace?.repos.find((r) => r.id === selectedId)
   const conflictFiles = useConflicts(selected)
   const tree = useTreeCommands()
@@ -60,13 +68,13 @@ export function App() {
     })
 
   return (
-    <div className={styles.layout}>
-      <aside className={styles.left} style={{ width: treeWidth.size }}>
+    <div className={`${styles.layout} ${narrow ? styles.narrow : ''} ${repoOpen ? styles.repoOpen : ''}`}>
+      <aside className={styles.left} style={narrow ? undefined : { width: treeWidth.size }}>
         {workspace ? (
           <WorkspaceTree
             workspace={workspace}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={pickRepo}
             onRefresh={() => open(workspace.name)}
             picker={<WorkspacePicker names={names ?? []} current={workspace.name} onOpen={(n) => void open(n)} onAdd={() => void addRepo()} />}
             onRepoMenu={onRepoMenu}
@@ -116,7 +124,7 @@ export function App() {
           </div>
         )}
       </aside>
-      <Resizer axis="x" onDrag={treeWidth.drag} onDone={treeWidth.save} />
+      {!narrow && <Resizer axis="x" onDrag={treeWidth.drag} onDone={treeWidth.save} />}
       <main className={styles.main}>
         {tree.error && (
           <div className={styles.banner}>
@@ -146,7 +154,7 @@ export function App() {
           <SubmoduleUpdateDialog moved={sync.moved} repos={workspace.repos} onAnswer={sync.answerMoved} />
         )}
         {selected?.initialized && !selected.excluded ? (
-          <RepoView key={selected.id} repo={selected} />
+          <RepoView key={selected.id} repo={selected} onBack={narrow ? () => setShowRepo(false) : undefined} />
         ) : (
           <div className={styles.message}>Select a repo in the tree.</div>
         )}

@@ -144,3 +144,16 @@
 .dim {
   opacity: 0.35;
 }
+
+@media (max-width: 800px) {
+  .date,
+  .sha,
+  .body,
+  .authorName {
+    display: none;
+  }
+
+  .author {
+    width: auto;
+  }
+}
