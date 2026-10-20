@@ -48,13 +48,19 @@ pub async fn submodule(app: &AppState, p: SubmoduleParams) -> anyhow::Result<Val
 pub struct RevealParams {
     id: RepoId,
     with: String,
+    /// A file of the repo to select in the file explorer.
+    #[serde(default)]
+    path: Option<String>,
 }
 
 pub async fn reveal(app: &AppState, p: RevealParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let path = hub.entry(p.id)?.path.clone();
     match p.with.as_str() {
-        "explorer" => explorer(&path)?,
+        "explorer" => match &p.path {
+            Some(file) => select_in_explorer(&path.join(file))?,
+            None => explorer(&path)?,
+        },
         "terminal" => terminal(&path)?,
         other => bail!("unknown target {other}"),
     }
@@ -64,6 +70,18 @@ pub async fn reveal(app: &AppState, p: RevealParams) -> anyhow::Result<Value> {
 fn explorer(path: &Path) -> std::io::Result<()> {
     let program = if cfg!(windows) { "explorer" } else { "xdg-open" };
     Command::new(program).arg(path).spawn().map(drop)
+}
+
+#[cfg(windows)]
+fn select_in_explorer(file: &Path) -> std::io::Result<()> {
+    use std::os::windows::process::CommandExt;
+    // explorer parses its own command line: `/select,"path"` must reach it unescaped
+    Command::new("explorer").raw_arg(format!("/select,\"{}\"", file.display().to_string().replace('/', "\\"))).spawn().map(drop)
+}
+
+#[cfg(not(windows))]
+fn select_in_explorer(file: &Path) -> std::io::Result<()> {
+    explorer(file.parent().unwrap_or(file))
 }
 
 fn terminal(path: &Path) -> std::io::Result<()> {

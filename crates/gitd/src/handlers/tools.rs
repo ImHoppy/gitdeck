@@ -34,12 +34,25 @@ pub async fn reflog(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {
 pub struct IgnoreParams {
     id: RepoId,
     pattern: String,
+    /// `.git/info/exclude` (this clone only) instead of the shared `.gitignore`.
+    #[serde(default)]
+    exclude: bool,
 }
 
-/// Appends a pattern to the repository's top `.gitignore`, creating it when missing.
+/// Appends a pattern to the repository's top `.gitignore` or its `.git/info/exclude`, creating it when missing.
 pub async fn ignore(app: &AppState, p: IgnoreParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
-    let file = hub.entry(p.id)?.path.join(".gitignore");
+    let dir = hub.entry(p.id)?.path.clone();
+    let file = if p.exclude {
+        let out = hub.runner.run_ok(&dir, &["rev-parse", "--git-path", "info/exclude"]).await?;
+        let file = dir.join(String::from_utf8_lossy(&out).trim());
+        if let Some(parent) = file.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        file
+    } else {
+        dir.join(".gitignore")
+    };
     let pattern = p.pattern.trim();
     if pattern.is_empty() || pattern.contains('\n') {
         bail!("one pattern, on one line");

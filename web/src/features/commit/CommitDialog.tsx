@@ -6,6 +6,7 @@ import type { ChangedFile, DiffTarget } from '../../protocol/types'
 import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { useDialogs } from '../../ui/Dialog/useDialogs'
+import { Menu, type MenuItem } from '../../ui/Menu/Menu'
 import { type FileListMode, PatchView, useDiffFiles, usePatch } from '../diff'
 import { ChangeList } from './ChangeList'
 import styles from './CommitDialog.module.css'
@@ -16,6 +17,7 @@ const INDEX: DiffTarget = { kind: 'index' }
 const MODES = ['tree', 'list'] as const
 
 type Picked = { side: 'worktree' | 'index'; path: string }
+type FileMenu = { side: Picked['side']; files: ChangedFile[]; at: { x: number; y: number } }
 
 type Props = {
   repoId: number
@@ -32,6 +34,7 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
   const actions = useCommitActions(repoId)
   const dialogs = useDialogs()
   const [picked, setPicked] = useState<Picked | null>(null)
+  const [fileMenu, setFileMenu] = useState<FileMenu | null>(null)
   const [message, setMessage] = useState('')
   const [amend, setAmend] = useState(false)
   const [signOff, setSignOff] = useState(() => loadSetting('signOff', ['1', '0'] as const, '0') === '1')
@@ -79,12 +82,41 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
     if (await dialogs.confirm('Discard changes?', body, 'Discard')) await actions.discard(files)
   }
 
-  const ignore = async (files: ChangedFile[]) => {
+  const ignore = async (files: ChangedFile[], exclude: boolean) => {
     if (files.length === 0) return
     // one file: its path; a folder's files: the folder they share
     const common = files.length === 1 ? files[0].path : commonFolder(files.map((f) => f.path))
-    const pattern = await dialogs.prompt('Ignore', 'Pattern to add to .gitignore (/ at the start: from the repository root)', `/${common}`)
-    if (pattern) await tools.ignore(pattern)
+    const where = exclude ? '.git/info/exclude (this clone only)' : '.gitignore'
+    const pattern = await dialogs.prompt('Ignore', `Pattern to add to ${where} (/ at the start: from the repository root)`, `/${common}`)
+    if (pattern) await tools.ignore(pattern, exclude)
+  }
+
+  const menuItems = ({ side, files }: FileMenu): MenuItem[] => {
+    const one = files.length === 1 ? files[0] : null
+    const staged = side === 'index'
+    const items: MenuItem[] = [
+      staged
+        ? { key: 'unstage', label: 'Unstage', icon: 'push', onSelect: () => actions.unstage(paths(files)) }
+        : { key: 'stage', label: 'Stage', icon: 'pull', onSelect: () => actions.stage(paths(files)) },
+      { key: 'difftool', label: 'Open in the diff tool', icon: 'file', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged })) },
+    ]
+    if (!staged) items.push({ key: 'discard', label: 'Discard changes…', icon: 'trash', danger: true, onSelect: () => void discard(files) })
+    items.push('separator')
+    if (one) {
+      items.push(
+        { key: 'editor', label: 'Open in editor', icon: 'file', disabled: one.kind === 'deleted', onSelect: () => void tools.openInEditor(one.path) },
+        { key: 'explorer', label: 'Show in file explorer', icon: 'folder', disabled: one.kind === 'deleted', onSelect: () => void tools.reveal(one.path) },
+        { key: 'copy', label: 'Copy path', onSelect: () => void navigator.clipboard.writeText(one.path) },
+      )
+    }
+    if (!staged) {
+      if (one) items.push('separator')
+      items.push(
+        { key: 'ignore', label: 'Ignore… (.gitignore)', onSelect: () => void ignore(files, false) },
+        { key: 'exclude', label: 'Exclude… (.git/info/exclude)', onSelect: () => void ignore(files, true) },
+      )
+    }
+    return items
   }
 
   const toggleAmend = async (on: boolean) => {
@@ -136,10 +168,9 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               ]}
               actions={[
                 { label: <Icon name="trash" size={12} />, title: 'Discard changes…', run: (fs) => void discard(fs) },
-                { label: <Icon name="close" size={12} />, title: 'Ignore… (add to .gitignore)', run: (fs) => void ignore(fs) },
-                { label: <Icon name="file" size={12} />, title: 'Open in the diff tool', run: (fs) => fs.forEach((f) => void tools.diffTool(f.path, {})) },
                 { label: <Icon name="pull" size={12} />, title: 'Stage', run: (fs) => actions.stage(paths(fs)) },
               ]}
+              onContextMenu={(files, at) => setFileMenu({ side: 'worktree', files, at })}
             />
             <ChangeList
               title="Staged"
@@ -149,9 +180,9 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               mode={mode}
               all={[{ label: '⇈ unstage all', title: 'Unstage all', disabled: actions.busy, run: () => actions.unstage(paths(staged.files)) }]}
               actions={[
-                { label: <Icon name="file" size={12} />, title: 'Open in the diff tool', run: (fs) => fs.forEach((f) => void tools.diffTool(f.path, { staged: true })) },
                 { label: <Icon name="push" size={12} />, title: 'Unstage', run: (fs) => actions.unstage(paths(fs)) },
               ]}
+              onContextMenu={(files, at) => setFileMenu({ side: 'index', files, at })}
             />
           </div>
           <div className={styles.right}>
@@ -193,6 +224,7 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
             </div>
             {actions.error && <div className={styles.error}>{actions.error}</div>}
             {dialogs.element}
+            {fileMenu && <Menu items={menuItems(fileMenu)} at={fileMenu.at} onClose={() => setFileMenu(null)} />}
             {tools.result && <Toast tone={tools.result.ok ? 'ok' : 'bad'} title={tools.result.text} onDismiss={tools.clear} autoHide={tools.result.ok ? 4000 : undefined} />}
           </div>
         </div>
