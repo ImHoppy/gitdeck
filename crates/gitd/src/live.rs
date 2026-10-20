@@ -42,7 +42,7 @@ async fn refresh_loop(mut changed: mpsc::UnboundedReceiver<Vec<RepoId>>, hub: Ar
     while let Some(ids) = changed.recv().await {
         for id in ids {
             let hub = hub.clone();
-            tokio::spawn(async move { hub.publish(id).await });
+            tokio::spawn(async move { hub.publish_if_changed(id).await });
         }
     }
 }

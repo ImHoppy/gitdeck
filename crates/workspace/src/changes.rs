@@ -18,10 +18,13 @@ pub struct Patch {
 pub async fn files<R: GitRunner>(runner: &R, path: &Path, target: &DiffTarget) -> Result<Vec<ChangedFile>, RunError> {
     let args = diff::files_args(target);
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    let mut files = diff::parse_name_status(&runner.run_ok(path, &args).await?);
-    if *target == DiffTarget::Worktree {
-        files.extend(diff::parse_untracked(&runner.run_ok(path, diff::UNTRACKED_ARGS).await?));
+    if *target != DiffTarget::Worktree {
+        return Ok(diff::parse_name_status(&runner.run_ok(path, &args).await?));
     }
+    // the untracked scan is the slow half on big trees: run it alongside the diff
+    let (tracked, untracked) = futures::try_join!(runner.run_ok(path, &args), runner.run_ok(path, diff::UNTRACKED_ARGS))?;
+    let mut files = diff::parse_name_status(&tracked);
+    files.extend(diff::parse_untracked(&untracked));
     Ok(files)
 }
 

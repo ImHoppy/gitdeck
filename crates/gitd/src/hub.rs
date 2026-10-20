@@ -19,7 +19,11 @@ pub struct Hub {
     scheduler: Scheduler,
     fetch_log: FetchLog,
     latest: std::sync::Mutex<HashMap<RepoId, RepoSnapshot>>,
+    written: std::sync::Mutex<HashMap<RepoId, std::time::Instant>>,
 }
+
+/// How long after a write the watcher's echo of it (the index file changing) is expected.
+const WRITE_ECHO: std::time::Duration = std::time::Duration::from_secs(2);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -45,6 +49,7 @@ impl Hub {
             scheduler: Scheduler::default(),
             fetch_log: FetchLog::default(),
             latest: Default::default(),
+            written: Default::default(),
         }
     }
 
@@ -79,6 +84,24 @@ impl Hub {
         if let Some(entry) = self.entries.get(&id) {
             let _ = self.events.send(Event::RepoState(self.snapshot(entry.clone()).await));
         }
+    }
+
+    /// For the watcher: skips the echo of our own write, which would make every client reload again.
+    pub async fn publish_if_changed(&self, id: RepoId) {
+        let Some(entry) = self.entries.get(&id) else { return };
+        let recent = self.written.lock().unwrap_or_else(|e| e.into_inner()).get(&id).is_some_and(|t| t.elapsed() < WRITE_ECHO);
+        let before = recent.then(|| self.latest.lock().unwrap_or_else(|e| e.into_inner()).get(&id).map(serde_json::to_value));
+        let snapshot = self.snapshot(entry.clone()).await;
+        if let Some(Some(Ok(before))) = before {
+            if serde_json::to_value(&snapshot).is_ok_and(|now| now == before) {
+                return;
+            }
+        }
+        let _ = self.events.send(Event::RepoState(snapshot));
+    }
+
+    fn mark_written(&self, id: RepoId) {
+        self.written.lock().unwrap_or_else(|e| e.into_inner()).insert(id, std::time::Instant::now());
     }
 
     /// Every repo in discovery order (ids are handed out in that order).
@@ -122,6 +145,7 @@ impl Hub {
 
     pub async fn queued<T>(&self, id: RepoId, job: impl std::future::Future<Output = T>) -> T {
         let out = self.scheduler.write(id, job).await;
+        self.mark_written(id);
         self.publish(id).await;
         out
     }
@@ -130,6 +154,7 @@ impl Hub {
         let entry = self.entry(id)?;
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
         let out = self.scheduler.write(id, self.runner.run(&entry.path, &args)).await;
+        self.mark_written(id);
         self.publish(id).await;
         let out = out?;
         if !out.ok() {
