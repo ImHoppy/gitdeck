@@ -266,6 +266,7 @@ pub async fn bisect(app: &AppState, p: BisectParams) -> anyhow::Result<Value> {
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 pub struct PickFileParams {
     #[serde(default)]
     title: Option<String>,
@@ -277,9 +278,9 @@ pub struct PickFileParams {
 }
 
 /// The native open/save file dialog on the machine gitd runs on; null when cancelled.
-#[cfg_attr(not(windows), allow(unused_variables))]
+#[cfg_attr(target_os = "macos", allow(unused_variables))]
 pub async fn pick_file(p: PickFileParams) -> anyhow::Result<Value> {
-    #[cfg(windows)]
+    #[cfg(not(target_os = "macos"))]
     {
         let picked = tokio::task::spawn_blocking(move || {
             let mut d = rfd::FileDialog::new().set_title(p.title.unwrap_or_else(|| "Choose a file".into()));
@@ -294,6 +295,6 @@ pub async fn pick_file(p: PickFileParams) -> anyhow::Result<Value> {
         .await?;
         Ok(json!(picked.map(|fs| fs.iter().map(|f| f.to_string_lossy().replace('\\', "/")).collect::<Vec<_>>())))
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
     bail!("no file dialog on this system")
 }

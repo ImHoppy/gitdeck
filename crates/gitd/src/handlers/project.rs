@@ -92,7 +92,7 @@ pub fn clone_dir_name(p: DirNameParams) -> anyhow::Result<Value> {
 }
 
 #[derive(Deserialize)]
-#[cfg_attr(not(windows), allow(dead_code))]
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 pub struct PickParams {
     #[serde(default)]
     title: Option<String>,
@@ -102,7 +102,7 @@ pub struct PickParams {
 
 /// The native folder dialog, on the machine gitd runs on; `null` when cancelled.
 pub async fn pick_folder(p: PickParams) -> anyhow::Result<Value> {
-    #[cfg(windows)]
+    #[cfg(not(target_os = "macos"))]
     {
         let picked = tokio::task::spawn_blocking(move || {
             let mut dialog = rfd::FileDialog::new().set_title(p.title.unwrap_or_else(|| "Choose a folder".into()));
@@ -114,7 +114,7 @@ pub async fn pick_folder(p: PickParams) -> anyhow::Result<Value> {
         .await?;
         Ok(json!(picked.map(|p| p.to_string_lossy().replace('\\', "/"))))
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
     {
         let _ = p;
         bail!("no folder dialog on this system: type the path")

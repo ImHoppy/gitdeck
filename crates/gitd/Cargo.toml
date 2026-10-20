@@ -25,6 +25,11 @@ wry = "0.57.0"
 version = "0.17.2"
 default-features = false
 
+[target.'cfg(target_os = "linux")'.dependencies.rfd]
+version = "0.17.2"
+default-features = false
+features = ["gtk3"]
+
 [target.'cfg(target_os = "macos")'.dependencies]
 muda = "0.17"
 
