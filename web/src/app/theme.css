@@ -14,6 +14,7 @@
   --border-input: #c4ccd5;
   --hover: #eaeef2;
   --selection: #ddf4ff;
+  --picked: rgb(9 105 218 / 0.18);
   --scrollbar: rgb(100 100 100 / 0.35);
   --scrollbar-hover: rgb(100 100 100 / 0.6);
   --diff-add: #dafbe1;
@@ -46,6 +47,7 @@
     --border-input: #3c3c3c;
     --hover: #2a2d2e;
     --selection: #04395e;
+  --picked: rgb(0 120 212 / 0.35);
     --scrollbar: rgb(121 121 121 / 0.4);
     --scrollbar-hover: rgb(100 100 100 / 0.7);
     --diff-add: #1b2f23;
@@ -76,6 +78,7 @@
   --border-input: #3c3c3c;
   --hover: #2a2d2e;
   --selection: #04395e;
+  --picked: rgb(0 120 212 / 0.35);
   --scrollbar: rgb(121 121 121 / 0.4);
   --scrollbar-hover: rgb(100 100 100 / 0.7);
   --diff-add: #1b2f23;
@@ -190,4 +193,9 @@ body,
 .hljs-tag,
 .hljs-name {
   color: var(--syn-meta);
+}
+
+/* WebKitGTK takes the highlight from the GTK theme, which can match the page background */
+::selection {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
 }
