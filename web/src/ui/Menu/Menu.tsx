@@ -42,14 +42,18 @@ export function Menu({ items, at, onClose, owner }: Props) {
       e.stopPropagation()
       onClose()
     }
+    // scrolling the page moves what the menu points at; scrolling the menu's own list doesn't
+    const scroll = (e: Event) => {
+      if (!ref.current?.contains(e.target as Node)) onClose()
+    }
     document.addEventListener('mousedown', outside)
     document.addEventListener('keydown', key)
-    window.addEventListener('scroll', onClose, true)
+    window.addEventListener('scroll', scroll, true)
     window.addEventListener('resize', onClose)
     return () => {
       document.removeEventListener('mousedown', outside)
       document.removeEventListener('keydown', key)
-      window.removeEventListener('scroll', onClose, true)
+      window.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', onClose)
     }
   }, [onClose, owner])

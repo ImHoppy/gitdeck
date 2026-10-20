@@ -5,6 +5,8 @@
   /* scrolls only when the window is too short for it (Menu keeps it inside the viewport) */
   max-height: calc(100vh - 8px);
   overflow-y: auto;
+  /* the wheel at the end of the list doesn't go on to scroll the page behind */
+  overscroll-behavior: contain;
   padding: 4px 0;
   background: var(--bg);
   border: 1px solid var(--border);
