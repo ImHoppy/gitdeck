@@ -17,17 +17,21 @@ pub const ARGS: &[&str] = &[
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogOptions {
-    /// Only what HEAD reaches, no other branches, remotes or tags.
+    /// Only what HEAD reaches, plus the remote branches of the same name; no other branches or tags.
     #[serde(default)]
     pub current_branch: bool,
     #[serde(default)]
     pub first_parent: bool,
 }
 
-pub fn args(opts: LogOptions) -> Vec<String> {
+/// `branch`: the checked-out branch, whose remote counterparts (`origin/<branch>`) stay shown.
+pub fn args(opts: LogOptions, branch: Option<&str>) -> Vec<String> {
     let mut a: Vec<String> = ARGS.iter().map(|s| s.to_string()).collect();
     if opts.current_branch {
         a.retain(|s| !matches!(s.as_str(), "--branches" | "--remotes" | "--tags"));
+        if let Some(b) = branch {
+            a.insert(a.len() - 1, format!("--remotes=*/{b}"));
+        }
     }
     if opts.first_parent {
         let at = a.iter().position(|s| s == "--date-order").map_or(a.len(), |i| i + 1);
@@ -218,10 +222,12 @@ old.rs\0";
 
     #[test]
     fn options_narrow_the_log() {
-        let a = args(LogOptions { current_branch: true, first_parent: true });
+        let a = args(LogOptions { current_branch: true, first_parent: true }, None);
         assert!(!a.iter().any(|s| s == "--branches" || s == "--remotes" || s == "--tags"));
         assert!(a.iter().any(|s| s == "--first-parent"));
         assert_eq!(a.last().map(String::as_str), Some("HEAD"));
-        assert_eq!(args(LogOptions::default()), ARGS);
+        assert_eq!(args(LogOptions::default(), Some("main")), ARGS);
+        let a = args(LogOptions { current_branch: true, first_parent: false }, Some("main"));
+        assert_eq!(a[a.len() - 2..], ["--remotes=*/main", "HEAD"]);
     }
 }

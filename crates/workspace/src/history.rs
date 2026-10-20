@@ -50,7 +50,13 @@ pub async fn key<R: GitRunner>(runner: &R, path: &Path) -> Result<HistoryKey, Ru
 }
 
 pub async fn load<R: GitRunner>(runner: &R, path: &Path, key: HistoryKey, opts: log::LogOptions) -> Result<History, RunError> {
-    let args = log::args(opts);
+    let branch = if opts.current_branch {
+        let out = runner.run(path, &["symbolic-ref", "--short", "-q", "HEAD"]).await?;
+        out.ok().then(|| String::from_utf8_lossy(&out.stdout).trim().to_string()).filter(|b| !b.is_empty())
+    } else {
+        None
+    };
+    let args = log::args(opts, branch.as_deref());
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = runner.run(path, &args).await?;
     // an unborn HEAD makes git log fail: that repo simply has no history yet
