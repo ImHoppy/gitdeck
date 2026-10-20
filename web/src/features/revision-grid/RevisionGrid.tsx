@@ -6,11 +6,12 @@ import { CommitRow } from './CommitRow'
 import { LANE_WIDTH } from './GraphCell'
 import { pillsBySha } from './refPills'
 import styles from './RevisionGrid.module.css'
+import { type Marks, NO_MARKS, nextMarks } from './multiSelect'
 import type { GridSelection } from './selection'
 
 const ROW_HEIGHT = 22
 const ARTIFICIAL = 2
-const MIN_LANES = 2
+const MIN_LANES = 1
 
 type Props = {
   repo: RepoSnapshot
@@ -20,15 +21,23 @@ type Props = {
   selection: GridSelection | null
   onSelect: (s: GridSelection) => void
   onCommitMenu: (row: HistoryRow, at: { x: number; y: number }) => void
+  /** Double click or Enter: the commit in a window of its own. */
+  onOpenCommit?: (row: HistoryRow) => void
+  /** Enter on several picked commits (Ctrl/Shift click), newest first. */
+  onOpenCommits?: (rows: HistoryRow[]) => void
   scrollTo: number | null
   onScrollTo: (index: number) => void
   highlighted: ReadonlySet<number> | null
 }
 
-export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, scrollTo, onScrollTo, highlighted }: Props) {
+export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, onOpenCommit, onOpenCommits, scrollTo, onScrollTo, highlighted }: Props) {
   const head = repo.state?.head
   const pills = useMemo(() => pillsBySha(info.refs, head?.kind === 'branch' ? head.name : null), [info.refs, head])
   const [range, setRange] = useState<[number, number]>([0, 0])
+  // picked commit indices, tied to the history they were picked in
+  const [picked, setPicked] = useState<{ key: string; marks: Marks }>({ key: info.key, marks: NO_MARKS })
+  const marks = picked.key === info.key ? picked.marks : NO_MARKS
+  const multi = marks.set.size > 1
   // sized from the visible rows only, so one wide stretch of history doesn't widen the whole grid
   const lanes = useMemo(() => {
     let max = MIN_LANES
@@ -66,7 +75,10 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
           selected={selection?.kind === 'worktree'}
           graphWidth={graphWidth}
           height={ROW_HEIGHT}
-          onSelect={() => onSelect({ kind: 'worktree' })}
+          onSelect={() => {
+            setPicked({ key: info.key, marks: NO_MARKS })
+            onSelect({ kind: 'worktree' })
+          }}
         />
       )
     }
@@ -79,7 +91,10 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
           selected={selection?.kind === 'index'}
           graphWidth={graphWidth}
           height={ROW_HEIGHT}
-          onSelect={() => onSelect({ kind: 'index' })}
+          onSelect={() => {
+            setPicked({ key: info.key, marks: NO_MARKS })
+            onSelect({ kind: 'index' })
+          }}
         />
       )
     }
@@ -92,11 +107,15 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
         tracking={trackingText}
         dim={highlighted !== null && !highlighted.has(i - ARTIFICIAL)}
         isHead={row.sha === info.head}
-        selected={selection?.kind === 'commit' && selection.sha === row.sha}
+        selected={multi ? marks.set.has(i - ARTIFICIAL) : selection?.kind === 'commit' && selection.sha === row.sha}
         graphWidth={graphWidth}
         height={ROW_HEIGHT}
-        onSelect={() => onSelect({ kind: 'commit', sha: row.sha, parents: row.parents, subject: row.subject })}
+        onSelect={(mods) => {
+          setPicked({ key: info.key, marks: nextMarks(marks, i - ARTIFICIAL, mods ?? { ctrl: false, shift: false }) })
+          onSelect({ kind: 'commit', sha: row.sha, parents: row.parents, subject: row.subject })
+        }}
         onContextMenu={(at) => onCommitMenu(row, at)}
+        onOpen={onOpenCommit && (() => onOpenCommit(row))}
       />
     )
   }
@@ -120,12 +139,36 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
     onScrollTo(i - ARTIFICIAL)
   }
 
+  const openPicked = () => {
+    if (multi) {
+      const picks = [...marks.set].sort((a, b) => a - b).map((i) => rows.get(i))
+      if (picks.every((r) => r !== undefined)) onOpenCommits?.(picks)
+    } else if (selection?.kind === 'commit') {
+      const i = selectedRow()
+      const row = i === null ? undefined : rows.get(i - ARTIFICIAL)
+      if (row) onOpenCommit?.(row)
+    }
+  }
+
   const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      openPicked()
+      return
+    }
     const step = { ArrowDown: 1, ArrowUp: -1, PageDown: 20, PageUp: -20 }[e.key]
     if (step === undefined) return
     e.preventDefault()
     const last = info.count + ARTIFICIAL - 1
-    selectAt(Math.min(last, Math.max(0, (selectedRow() ?? -1) + step)))
+    const target = Math.min(last, Math.max(0, (selectedRow() ?? -1) + step))
+    // shift extends the pick over commits, arrows alone start over
+    if (target >= ARTIFICIAL) {
+      const base = marks.anchor === null && selection?.kind === 'commit' ? { set: marks.set, anchor: (selectedRow() ?? target) - ARTIFICIAL } : marks
+      setPicked({ key: info.key, marks: nextMarks(base, target - ARTIFICIAL, { ctrl: false, shift: e.shiftKey }) })
+    } else {
+      setPicked({ key: info.key, marks: NO_MARKS })
+    }
+    selectAt(target)
   }
 
   return (

@@ -1,3 +1,4 @@
+export { HistorySearch, type SearchMode } from './HistorySearch'
 export { RevisionGrid } from './RevisionGrid'
 export type { GridSelection } from './selection'
-export { useHistory } from './useHistory'
+export { type HistoryOptions, useHistory } from './useHistory'

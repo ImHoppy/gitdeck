@@ -4,17 +4,27 @@ import type { HistoryInfo, HistoryRow, RepoSnapshot } from '../../protocol/types
 
 const PAGE = 200
 
-export function useHistory(repoId: number | null, filter = '') {
+export type HistoryOptions = { currentBranch: boolean; firstParent: boolean }
+
+const ALL: HistoryOptions = { currentBranch: false, firstParent: false }
+
+export function useHistory(repoId: number | null, filter = '', content = false, options: HistoryOptions = ALL) {
+  const { currentBranch, firstParent } = options
   const [info, setInfo] = useState<HistoryInfo | null>(null)
   const [rows, setRows] = useState<ReadonlyMap<number, HistoryRow>>(new Map())
   const [error, setError] = useState<string | null>(null)
+  // the search last answered: a different one is still running
+  const [answered, setAnswered] = useState('')
+  const asked = `${content}:${filter}`
+  const searching = filter !== '' && answered !== asked
   const pending = useRef(new Set<number>())
   const key = useRef<string | null>(null)
 
   const open = useCallback(() => {
     if (repoId === null) return
-    gitd.call<HistoryInfo>('log.open', { id: repoId, filter }).then(
+    gitd.call<HistoryInfo>('log.open', { id: repoId, filter, content, options: { currentBranch, firstParent } }).then(
       (next) => {
+        setAnswered(`${content}:${filter}`)
         setError(null)
         if (next.key === key.current) return
         key.current = next.key
@@ -22,9 +32,12 @@ export function useHistory(repoId: number | null, filter = '') {
         setRows(new Map())
         setInfo(next)
       },
-      (e: Error) => setError(e.message),
+      (e: Error) => {
+        setAnswered(`${content}:${filter}`)
+        setError(e.message)
+      },
     )
-  }, [repoId, filter])
+  }, [repoId, filter, content, currentBranch, firstParent])
 
   useEffect(open, [open])
 
@@ -63,14 +76,14 @@ export function useHistory(repoId: number | null, filter = '') {
   )
 
   const locate = useCallback(
-    (sha: string) => (repoId === null ? Promise.resolve(null) : gitd.call<number | null>('log.find', { id: repoId, sha, filter })),
-    [repoId, filter],
+    (sha: string) => (repoId === null ? Promise.resolve(null) : gitd.call<number | null>('log.find', { id: repoId, sha, filter, content })),
+    [repoId, filter, content],
   )
 
   const ancestors = useCallback(
-    (sha: string) => gitd.call<number[]>('log.ancestors', { id: repoId, sha, filter }),
-    [repoId, filter],
+    (sha: string) => gitd.call<number[]>('log.ancestors', { id: repoId, sha, filter, content }),
+    [repoId, filter, content],
   )
 
-  return { info, rows, ensure, error, locate, ancestors, reload: open }
+  return { info, rows, ensure, error, searching, locate, ancestors, reload: open }
 }

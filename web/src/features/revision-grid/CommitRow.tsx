@@ -1,4 +1,5 @@
 import { longPress } from '../../lib/longPress'
+import type { Mods } from './multiSelect'
 import { relativeTime } from '../../lib/relativeTime'
 import { Avatar } from '../../ui/Avatar/Avatar'
 import type { HistoryRow } from '../../protocol/types'
@@ -16,15 +17,17 @@ type Props = {
   dim?: boolean
   graphWidth: number
   height: number
-  onSelect: () => void
+  onSelect: (mods?: Mods) => void
   onContextMenu: (at: { x: number; y: number }) => void
+  onOpen?: () => void
 }
 
-export function CommitRow({ row, pills, tracking, isHead, selected, dim, graphWidth, height, onSelect, onContextMenu }: Props) {
+export function CommitRow({ row, pills, tracking, isHead, selected, dim, graphWidth, height, onSelect, onContextMenu, onOpen }: Props) {
   return (
     <div
       className={`${styles.row} ${selected ? styles.selected : ''} ${dim ? styles.dim : ''}`}
-      onClick={onSelect}
+      onClick={(e) => onSelect({ ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey })}
+      onDoubleClick={onOpen}
       {...longPress((at) => {
         onSelect()
         onContextMenu(at)

@@ -41,16 +41,39 @@
   padding: 4px 0;
 }
 
-.row select {
-  background: var(--bg);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 4px;
-}
-
 .note {
   color: var(--fg-muted);
   font-size: 11px;
   margin: 14px 0 0;
+}
+
+.gitPath {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.gitPathInput {
+  display: flex;
+  gap: 6px;
+}
+
+.gitPathInput input {
+  flex: 1;
+  min-width: 0;
+}
+
+.hint {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.configInput {
+  width: min(280px, 50vw);
 }
