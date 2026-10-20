@@ -74,7 +74,13 @@ pub async fn reveal(app: &AppState, p: RevealParams) -> anyhow::Result<Value> {
 }
 
 fn explorer(path: &Path) -> std::io::Result<()> {
-    let program = if cfg!(windows) { "explorer" } else { "xdg-open" };
+    let program = if cfg!(windows) {
+        "explorer"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
     Command::new(program).arg(path).spawn().map(drop)
 }
 
@@ -85,7 +91,12 @@ fn select_in_explorer(file: &Path) -> std::io::Result<()> {
     Command::new("explorer").raw_arg(format!("/select,\"{}\"", file.display().to_string().replace('/', "\\"))).spawn().map(drop)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn select_in_explorer(file: &Path) -> std::io::Result<()> {
+    Command::new("open").arg("-R").arg(file).spawn().map(drop)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn select_in_explorer(file: &Path) -> std::io::Result<()> {
     explorer(file.parent().unwrap_or(file))
 }
@@ -99,6 +110,8 @@ fn terminal(path: &Path) -> std::io::Result<()> {
             .spawn()
             .or_else(|_| Command::new("cmd").args(["/c", "start", "cmd"]).current_dir(path).spawn())
             .map(drop)
+    } else if cfg!(target_os = "macos") {
+        Command::new("open").args(["-a", "Terminal"]).arg(path).spawn().map(drop)
     } else {
         Command::new("x-terminal-emulator").current_dir(path).spawn().map(drop)
     }

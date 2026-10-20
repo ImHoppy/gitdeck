@@ -9,6 +9,8 @@ pub fn set(on: bool) -> anyhow::Result<()> {
     let exe = exe.to_string_lossy();
     if cfg!(windows) {
         windows(on, &exe)
+    } else if cfg!(target_os = "macos") {
+        launchd(on, &exe)
     } else {
         systemd(on, &exe)
     }
@@ -39,6 +41,33 @@ fn systemd(on: bool, exe: &str) -> anyhow::Result<()> {
     } else {
         run(Command::new("systemctl").args(["--user", "disable", "--now", NAME]))?;
         std::fs::remove_file(&unit).or_else(|e| if e.kind() == std::io::ErrorKind::NotFound { Ok(()) } else { Err(e) })?;
+        Ok(())
+    }
+}
+
+fn launchd(on: bool, exe: &str) -> anyhow::Result<()> {
+    let home = std::env::var_os("HOME").context("HOME not set")?;
+    let dir = std::path::Path::new(&home).join("Library/LaunchAgents");
+    let plist = dir.join(format!("com.{NAME}.gitd.plist"));
+    let _ = Command::new("launchctl").arg("unload").arg(&plist).output();
+    if on {
+        std::fs::create_dir_all(&dir)?;
+        std::fs::write(
+            &plist,
+            format!(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\"><dict>
+<key>Label</key><string>com.{NAME}.gitd</string>
+<key>ProgramArguments</key><array><string>{exe}</string><string>--keep</string><string>--no-open</string></array>
+<key>RunAtLoad</key><true/>
+</dict></plist>
+"
+            ),
+        )?;
+        run(Command::new("launchctl").arg("load").arg(&plist))
+    } else {
+        std::fs::remove_file(&plist).or_else(|e| if e.kind() == std::io::ErrorKind::NotFound { Ok(()) } else { Err(e) })?;
         Ok(())
     }
 }

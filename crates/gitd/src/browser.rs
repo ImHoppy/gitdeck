@@ -11,7 +11,10 @@ pub fn open(url: &str) {
         Command::new("cmd").args(["/c", "start", "", "msedge", &app]).status().is_ok_and(|s| s.success())
             || Command::new("cmd").args(["/c", "start", "", &url]).spawn().is_ok()
     } else if cfg!(target_os = "macos") {
-        Command::new("open").arg(url).spawn().is_ok()
+        ["Google Chrome", "Microsoft Edge", "Chromium"]
+            .iter()
+            .any(|b| Command::new("open").args(["-na", b, "--args", &app]).status().is_ok_and(|s| s.success()))
+            || Command::new("open").arg(url).spawn().is_ok()
     } else {
         ["chromium", "google-chrome", "microsoft-edge"]
             .iter()
