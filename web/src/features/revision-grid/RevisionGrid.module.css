@@ -17,6 +17,11 @@
   background: var(--hover);
 }
 
+/* a faint tint, like Git Extensions marks the selected commit's author */
+.sameAuthor {
+  background: color-mix(in srgb, var(--selection) 35%, transparent);
+}
+
 .selected,
 .selected:hover {
   background: var(--selection);

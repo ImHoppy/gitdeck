@@ -15,6 +15,8 @@ type Props = {
   isHead: boolean
   selected: boolean
   dim?: boolean
+  /** By the author of the selected commit. */
+  sameAuthor?: boolean
   graphWidth: number
   height: number
   onSelect: (mods?: Mods) => void
@@ -22,10 +24,10 @@ type Props = {
   onOpen?: () => void
 }
 
-export function CommitRow({ row, pills, tracking, isHead, selected, dim, graphWidth, height, onSelect, onContextMenu, onOpen }: Props) {
+export function CommitRow({ row, pills, tracking, isHead, selected, dim, sameAuthor, graphWidth, height, onSelect, onContextMenu, onOpen }: Props) {
   return (
     <div
-      className={`${styles.row} ${selected ? styles.selected : ''} ${dim ? styles.dim : ''}`}
+      className={`${styles.row} ${selected ? styles.selected : ''} ${dim ? styles.dim : ''} ${sameAuthor ? styles.sameAuthor : ''}`}
       onClick={(e) => onSelect({ ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey })}
       onDoubleClick={onOpen}
       {...longPress((at) => {

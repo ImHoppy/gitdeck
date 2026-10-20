@@ -49,6 +49,12 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
     return Math.min(max, 40)
   }, [rows, range])
   const graphWidth = lanes * LANE_WIDTH
+  const selectedSha = selection?.kind === 'commit' ? selection.sha : null
+  const author = useMemo(() => {
+    if (!selectedSha) return null
+    for (const r of rows.values()) if (r.sha === selectedSha) return r.email.toLowerCase()
+    return null
+  }, [rows, selectedSha])
 
   const onRange = useCallback(
     (start: number, end: number) => {
@@ -106,6 +112,7 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
         pills={pills.get(row.sha) ?? []}
         tracking={trackingText}
         dim={highlighted !== null && !highlighted.has(i - ARTIFICIAL)}
+        sameAuthor={author !== null && row.email.toLowerCase() === author}
         isHead={row.sha === info.head}
         selected={multi ? marks.set.has(i - ARTIFICIAL) : selection?.kind === 'commit' && selection.sha === row.sha}
         graphWidth={graphWidth}
