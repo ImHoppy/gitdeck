@@ -33,6 +33,7 @@ import { ReflogWindow } from './ReflogWindow'
 import { StatsWindow } from './StatsWindow'
 import { RepoView } from './RepoView'
 import { StartPage } from '../features/start'
+import { Opening } from './Opening'
 import { useOpenParam } from './useOpenParam'
 
 export function App() {
@@ -65,7 +66,7 @@ export function App() {
 }
 
 function Browse() {
-  const { names, workspace, error, open, close, addRoot, removeRoot, setExcluded, setNested } = useWorkspace()
+  const { names, workspace, error, opening, open, close, addRoot, removeRoot, setExcluded, setNested } = useWorkspace()
   const dialogs = useDialogs()
   const treeWidth = usePaneSize('tree', 340, 200, 700)
   const narrow = useNarrow()
@@ -140,6 +141,10 @@ function Browse() {
       }),
     })
 
+  // `?open=` is resolved to a project first: the start page would only flash by meanwhile
+  if (!workspace && (opening || (new URLSearchParams(location.search).has('open') && !openError && !error))) {
+    return <Opening name={opening} />
+  }
   if (!workspace) {
     return (
       <>

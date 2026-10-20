@@ -1,0 +1,9 @@
+.opening {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100vh;
+  color: var(--fg-muted);
+  background: var(--bg);
+}

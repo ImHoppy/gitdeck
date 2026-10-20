@@ -7,8 +7,10 @@ export function useWorkspace() {
   const [names, setNames] = useState<string[] | null>(null)
   const [workspace, setWorkspace] = useState<WorkspaceSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [opening, setOpening] = useState<string | null>(null)
 
   const open = useCallback(async (name: string, reload = false): Promise<WorkspaceSnapshot | null> => {
+    setOpening(name)
     try {
       const ws = await gitd.call<WorkspaceSnapshot>('workspace.open', { name, reload })
       setWorkspace(ws)
@@ -18,6 +20,8 @@ export function useWorkspace() {
     } catch (e) {
       setError((e as Error).message)
       return null
+    } finally {
+      setOpening(null)
     }
   }, [])
 
@@ -76,5 +80,5 @@ export function useWorkspace() {
     [open],
   )
 
-  return { names, workspace, error, open, close, addRoot, removeRoot, setExcluded, setNested }
+  return { names, workspace, error, opening, open, close, addRoot, removeRoot, setExcluded, setNested }
 }
