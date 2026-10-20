@@ -18,6 +18,7 @@ pub struct Hub {
     events: broadcast::Sender<Event>,
     scheduler: Scheduler,
     fetch_log: FetchLog,
+    latest: std::sync::Mutex<HashMap<RepoId, RepoSnapshot>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -43,6 +44,7 @@ impl Hub {
             histories: Histories::default(),
             scheduler: Scheduler::default(),
             fetch_log: FetchLog::default(),
+            latest: Default::default(),
         }
     }
 
@@ -57,13 +59,33 @@ impl Hub {
     pub async fn snapshot(&self, entry: RepoEntry) -> RepoSnapshot {
         let mut snapshot = RepoSnapshot::load(&self.runner, entry).await;
         snapshot.last_fetch = self.fetch_log.get(snapshot.entry.id);
+        self.latest.lock().unwrap_or_else(|e| e.into_inner()).insert(snapshot.entry.id, snapshot.clone());
         snapshot
+    }
+
+    /// Every repo's last published snapshot (kept fresh by the watcher), loading any still missing.
+    pub async fn snapshots(&self) -> Vec<RepoSnapshot> {
+        let known = self.latest.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        join_all(self.entries().into_iter().map(|entry| async {
+            match known.get(&entry.id) {
+                Some(s) => s.clone(),
+                None => self.snapshot(entry).await,
+            }
+        }))
+        .await
     }
 
     pub async fn publish(&self, id: RepoId) {
         if let Some(entry) = self.entries.get(&id) {
             let _ = self.events.send(Event::RepoState(self.snapshot(entry.clone()).await));
         }
+    }
+
+    /// Every repo in discovery order (ids are handed out in that order).
+    pub fn entries(&self) -> Vec<RepoEntry> {
+        let mut all: Vec<RepoEntry> = self.entries.values().cloned().collect();
+        all.sort_by_key(|e| e.id);
+        all
     }
 
     pub fn active(&self) -> impl Iterator<Item = &RepoEntry> {

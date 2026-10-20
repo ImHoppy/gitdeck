@@ -42,13 +42,16 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let dir = cli::config_dir();
     let config_path = args.config.unwrap_or_else(|| dir.join("config.toml"));
     let config = Config::load(&config_path)?;
+    let git = config.git.clone();
     let token = auth::load_or_create(&dir)?;
+    let open = args.open.as_deref().map(|p| std::path::absolute(p).unwrap_or_else(|_| p.to_path_buf()));
+    let url = browser::login_url(&args.bind, &token, open.as_deref());
     let listener = match tokio::net::TcpListener::bind(args.bind).await {
         Ok(l) => l,
         Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
-            let url = format!("http://{}/login?token={token}", args.bind);
-            println!("gitd already running, opening {url}");
-            if !args.no_open {
+            // one server for every window: a second launch only opens another window
+            println!("gitd already running");
+            if !args.no_open && (args.browser || !crate::launcher::ask_running(&args.bind, &token, open.as_deref())) {
                 browser::open(&url);
             }
             return Ok(());
@@ -62,7 +65,11 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         config: std::sync::Mutex::new(config),
         config_path,
         token,
-        runner: ProcessRunner::default().with_sink(Arc::new(move |rec| sink.push(rec))),
+        runner: {
+            let runner = ProcessRunner::default().with_sink(Arc::new(move |rec| sink.push(rec)));
+            runner.set_git(git);
+            runner
+        },
         events,
         live: Mutex::new(None),
         lifecycle: Lifecycle::new(Duration::from_secs(args.grace), args.keep),
@@ -72,16 +79,22 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let router = Router::new()
         .route("/login", get(login))
         .route("/ws", get(ws_upgrade))
+        .route("/window", get(window))
+        .route("/avatar", get(avatar))
         .fallback(get(web))
         .with_state(app.clone());
 
-    let url = format!("http://{}/login?token={}", args.bind, app.token);
     println!("gitd listening on {url}");
+    #[cfg(windows)]
+    if !args.browser {
+        crate::window::start(dir.join("webview"));
+    }
+    let app_browser = args.browser;
     if !args.no_open {
-        browser::open(&url);
+        crate::launcher::show(&url, app_browser);
     }
     #[cfg(windows)]
-    crate::tray::spawn(app.clone(), url.clone());
+    crate::tray::spawn(app.clone(), browser::login_url(&args.bind, &app.token, None));
     let shutdown = app.clone();
     axum::serve(listener, router)
         .with_graceful_shutdown(async move { shutdown.lifecycle.shutdown.notified().await })
@@ -99,7 +112,42 @@ async fn login(State(app): State<Shared>, Query(q): Query<HashMap<String, String
         return StatusCode::UNAUTHORIZED.into_response();
     }
     let cookie = format!("{}={}; HttpOnly; SameSite=Strict; Path=/", auth::COOKIE, app.token);
-    ([(header::SET_COOKIE, cookie)], Redirect::to("/")).into_response()
+    let to = q.get("open").map_or("/".to_string(), |p| format!("/?open={}", browser::encode(p)));
+    ([(header::SET_COOKIE, cookie)], Redirect::to(&to)).into_response()
+}
+
+/// A second `gitd` launch asks for a window here instead of starting another server.
+async fn window(State(app): State<Shared>, Query(q): Query<HashMap<String, String>>, headers: HeaderMap) -> HttpResponse {
+    if q.get("token") != Some(&app.token) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let Some(host) = headers.get(header::HOST).and_then(|h| h.to_str().ok()) else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    let mut url = format!("http://{host}/login?token={}", app.token);
+    if let Some(p) = q.get("open") {
+        url.push_str(&format!("&open={}", browser::encode(p)));
+    }
+    crate::launcher::show(&url, false);
+    StatusCode::NO_CONTENT.into_response()
+}
+
+async fn avatar(State(app): State<Shared>, headers: HeaderMap, Query(q): Query<HashMap<String, String>>) -> HttpResponse {
+    if !authorized(&app, &headers) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let on = app.config.lock().unwrap().github_avatars;
+    let Some(email) = q.get("email").filter(|_| on) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    match crate::avatars::get(&crate::avatars::cache_dir(), email).await {
+        Some(bytes) => (
+            [(header::CONTENT_TYPE, crate::avatars::content_type(&bytes)), (header::CACHE_CONTROL, "private, max-age=604800")],
+            bytes,
+        )
+            .into_response(),
+        None => StatusCode::NOT_FOUND.into_response(),
+    }
 }
 
 async fn web(State(app): State<Shared>, headers: HeaderMap, uri: Uri) -> HttpResponse {
@@ -133,7 +181,8 @@ async fn client(app: Shared, socket: WebSocket) {
         let Ok(req) = serde_json::from_str::<Request>(&text) else { continue };
         let (app, tx) = (app.clone(), tx.clone());
         tokio::spawn(async move {
-            let result = handlers::dispatch(&app, &req.method, req.params).await;
+            let call = handlers::dispatch(&app, &req.method, req.params);
+            let result = if handlers::is_read(&req.method) { gitcore::runner::interactive(call).await } else { call.await };
             let resp = Response::from_result(req.id, result);
             let _ = tx.send(serde_json::to_string(&resp).unwrap_or_default());
         });

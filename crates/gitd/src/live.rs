@@ -2,11 +2,12 @@ use crate::{autofetch, hub::Hub};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::mpsc, task::JoinHandle};
 use workspace::{
-    watch::{RepoWatcher, WatchTarget},
+    watch::{IgnoreList, RepoWatcher, WatchTarget},
     RepoId,
 };
 
 pub struct LiveWorkspace {
+    pub name: String,
     pub hub: Arc<Hub>,
     _watcher: RepoWatcher,
     refresher: JoinHandle<()>,
@@ -21,12 +22,16 @@ impl Drop for LiveWorkspace {
 }
 
 impl LiveWorkspace {
-    pub fn start(hub: Arc<Hub>, targets: Vec<WatchTarget>, fetch_interval: Duration) -> notify::Result<Self> {
+    pub fn ignore_list(&self) -> IgnoreList {
+        self._watcher.ignore_list()
+    }
+
+    pub fn start(name: String, hub: Arc<Hub>, targets: Vec<WatchTarget>, fetch_interval: Duration) -> notify::Result<Self> {
         let (tx, rx) = mpsc::unbounded_channel();
         let watcher = RepoWatcher::start(targets, tx)?;
         let refresher = tokio::spawn(refresh_loop(rx, hub.clone()));
         let fetcher = tokio::spawn(autofetch::run(hub.clone(), fetch_interval));
-        Ok(Self { hub, _watcher: watcher, refresher, fetcher })
+        Ok(Self { name, hub, _watcher: watcher, refresher, fetcher })
     }
 }
 

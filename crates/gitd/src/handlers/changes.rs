@@ -2,7 +2,7 @@ use crate::{handlers::repo::hub, server::AppState};
 use anyhow::bail;
 use gitcore::{
     commands::{
-        commit,
+        commit, discard,
         diff::{ChangedFile, DiffTarget, PatchOptions},
     },
     model::Head,
@@ -56,6 +56,28 @@ pub async fn stage(app: &AppState, p: PathsParams) -> anyhow::Result<Value> {
     Ok(Value::Null)
 }
 
+#[derive(Deserialize)]
+pub struct DiscardParams {
+    id: RepoId,
+    /// Tracked files whose unstaged edits go.
+    #[serde(default)]
+    paths: Vec<String>,
+    /// Untracked files and folders, deleted.
+    #[serde(default)]
+    untracked: Vec<String>,
+}
+
+pub async fn discard(app: &AppState, p: DiscardParams) -> anyhow::Result<Value> {
+    let hub = hub(app).await?;
+    if !p.paths.is_empty() {
+        hub.write_git(p.id, discard::restore_args(&p.paths)).await?;
+    }
+    if !p.untracked.is_empty() {
+        hub.write_git(p.id, discard::clean_args(&p.untracked)).await?;
+    }
+    Ok(Value::Null)
+}
+
 pub async fn unstage(app: &AppState, p: PathsParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let entry = hub.entry(p.id)?;
@@ -83,10 +105,14 @@ pub async fn lines(app: &AppState, p: LinesParams) -> anyhow::Result<Value> {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommitParams {
     id: RepoId,
     message: String,
     amend: bool,
+    /// Adds a `Signed-off-by:` line with your name and email.
+    #[serde(default)]
+    sign_off: bool,
 }
 
 pub async fn create(app: &AppState, p: CommitParams) -> anyhow::Result<Value> {
@@ -94,13 +120,27 @@ pub async fn create(app: &AppState, p: CommitParams) -> anyhow::Result<Value> {
         bail!("empty commit message");
     }
     let hub = hub(app).await?;
-    hub.write_git(p.id, commit::commit_args(&p.message, p.amend)).await?;
+    hub.write_git(p.id, commit::commit_args(&p.message, p.amend, p.sign_off)).await?;
     Ok(Value::Null)
 }
 
 #[derive(Deserialize)]
 pub struct RepoParams {
     id: RepoId,
+}
+
+/// The text of the configured commit template, empty when none is set.
+pub async fn template(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {
+    let hub = hub(app).await?;
+    let entry = hub.entry(p.id)?;
+    let out = hub.runner.run(&entry.path, commit::TEMPLATE_ARGS).await?;
+    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if !out.ok() || path.is_empty() {
+        return Ok(json!(""));
+    }
+    let file = std::path::Path::new(&path);
+    let file = if file.is_relative() { entry.path.join(file) } else { file.to_path_buf() };
+    Ok(json!(std::fs::read_to_string(file).unwrap_or_default()))
 }
 
 pub async fn last_message(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {

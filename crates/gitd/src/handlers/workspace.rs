@@ -4,7 +4,7 @@ use futures::future::join_all;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{path::PathBuf, sync::Arc, time::Duration};
-use gitcore::GitRunner;
+use gitcore::{commands::ignored, GitRunner};
 use workspace::{discovery, watch::WatchTarget, Config};
 
 pub fn list(app: &AppState) -> anyhow::Result<Value> {
@@ -16,6 +16,9 @@ pub fn list(app: &AppState) -> anyhow::Result<Value> {
 #[derive(Deserialize)]
 pub struct OpenParams {
     name: String,
+    /// Rediscover even when this workspace is already live (after its roots changed).
+    #[serde(default)]
+    reload: bool,
 }
 
 pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
@@ -26,21 +29,47 @@ pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
         .workspace(&p.name)
         .cloned()
         .with_context(|| format!("no workspace {}", p.name))?;
+    // another window already has it open: share it instead of restarting the watchers
+    if !p.reload {
+        let live = app.live.lock().await.as_ref().filter(|l| l.name == ws.name).map(|l| l.hub.clone());
+        if let Some(hub) = live {
+            return Ok(json!({ "name": ws.name, "repos": hub.snapshots().await, "nestedRoots": nested_roots(&ws) }));
+        }
+    }
     let repos = discovery::discover(&app.runner, &ws).await?;
     let hub = Arc::new(Hub::new(app.runner.clone(), app.events.clone(), &repos));
     let snapshots = join_all(repos.into_iter().map(|entry| hub.snapshot(entry))).await;
-    let targets = snapshots
+    let targets: Vec<WatchTarget> = snapshots
         .iter()
         .filter(|s| s.entry.initialized && !s.entry.excluded)
         .map(|s| WatchTarget {
             id: s.entry.id,
             worktree: s.entry.path.clone(),
             gitdir: s.state.as_ref().map(|st| st.gitdir.clone()),
+            ignored: Vec::new(),
         })
         .collect();
+    let worktrees: Vec<PathBuf> = targets.iter().map(|t| t.worktree.clone()).collect();
     let interval = Duration::from_secs(ws.fetch_interval_minutes * 60);
-    *app.live.lock().await = Some(LiveWorkspace::start(hub, targets, interval)?);
-    Ok(json!({ "name": ws.name, "repos": snapshots }))
+    let live = LiveWorkspace::start(ws.name.clone(), hub, targets, interval)?;
+    // listing ignored files can take most of a second per repo: the page needn't wait for it
+    let ignore = live.ignore_list();
+    let runner = app.runner.clone();
+    tokio::spawn(async move {
+        join_all(worktrees.iter().map(|wt| async {
+            if let Ok(out) = runner.run_ok(wt, ignored::ARGS).await {
+                ignore.add(wt, ignored::parse(&out).into_iter().map(PathBuf::from));
+            }
+        }))
+        .await;
+    });
+    *app.live.lock().await = Some(live);
+    Ok(json!({ "name": ws.name, "repos": snapshots, "nestedRoots": nested_roots(&ws) }))
+}
+
+/// The roots whose inner clones are shown too, so the tree can offer turning it off.
+fn nested_roots(ws: &workspace::WorkspaceConfig) -> Vec<&PathBuf> {
+    ws.roots.iter().filter(|r| r.nested).map(|r| &r.path).collect()
 }
 
 #[derive(Deserialize)]
@@ -63,6 +92,22 @@ pub async fn add_root(app: &AppState, p: RootParams) -> anyhow::Result<Value> {
 pub fn remove_root(app: &AppState, p: RootParams) -> anyhow::Result<Value> {
     edit_config(app, |c| c.remove_root(&p.name, &p.path))?;
     list(app)
+}
+
+#[derive(Deserialize)]
+pub struct NestedParams {
+    name: String,
+    path: PathBuf,
+    on: bool,
+}
+
+pub fn set_nested(app: &AppState, p: NestedParams) -> anyhow::Result<Value> {
+    let mut found = false;
+    edit_config(app, |c| found = c.set_nested(&p.name, &p.path, p.on))?;
+    if !found {
+        bail!("{} is not a folder of {}: add it first", p.path.display(), p.name);
+    }
+    Ok(Value::Null)
 }
 
 #[derive(Deserialize)]
