@@ -60,13 +60,20 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'F5') {
+        // new file lists also reload the open diff; in its own window this beats reloading the page
+        e.preventDefault()
+        unstaged.reload()
+        staged.reload()
+        return
+      }
       // a menu or a confirmation on top takes the Escape for itself
       if (e.key !== 'Escape' || document.querySelector('[role="menu"], [aria-modal="true"]')) return
       onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, unstaged.reload, staged.reload])
 
   const switchMode = () => {
     const next = mode === 'tree' ? 'list' : 'tree'
