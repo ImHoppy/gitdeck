@@ -1,0 +1,41 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 260px;
+  height: 24px;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--fg-muted);
+}
+
+.icon {
+  flex: none;
+  display: flex;
+  color: var(--accent);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caret {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.danger .icon,
+.danger .label {
+  color: var(--danger);
+}

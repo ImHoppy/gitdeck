@@ -1,23 +1,44 @@
+/* a wide invisible grip with a thin line drawn in it, shown only on a deliberate hover or a drag */
 .handle {
   flex: none;
+  position: relative;
   z-index: 2;
+}
+
+.handle::after {
+  content: '';
+  position: absolute;
   background: transparent;
   transition: background 0.1s;
 }
 
-.handle:hover,
-.handle:active {
+.handle:hover::after {
   background: var(--accent);
+  transition-delay: 0.3s;
+}
+
+.dragging::after,
+.dragging:hover::after {
+  background: var(--accent);
+  transition-delay: 0s;
 }
 
 .x {
-  width: 4px;
-  margin: 0 -2px;
+  width: 6px;
+  margin: 0 -3px;
   cursor: col-resize;
 }
 
+.x::after {
+  inset: 0 2px;
+}
+
 .y {
-  height: 4px;
-  margin: -2px 0;
+  height: 6px;
+  margin: -3px 0;
   cursor: row-resize;
+}
+
+.y::after {
+  inset: 2px 0;
 }

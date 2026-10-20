@@ -1,4 +1,5 @@
 import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon, type IconName } from '../Icon/Icon'
 import styles from './Menu.module.css'
 
@@ -36,7 +37,11 @@ export function Menu({ items, at, onClose, owner }: Props) {
       const t = e.target as Node
       if (!ref.current?.contains(t) && !owner?.current?.contains(t)) onClose()
     }
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      onClose()
+    }
     document.addEventListener('mousedown', outside)
     document.addEventListener('keydown', key)
     window.addEventListener('scroll', onClose, true)
@@ -49,7 +54,7 @@ export function Menu({ items, at, onClose, owner }: Props) {
     }
   }, [onClose, owner])
 
-  return (
+  return createPortal(
     <div
       ref={ref}
       className={styles.menu}
@@ -77,6 +82,7 @@ export function Menu({ items, at, onClose, owner }: Props) {
           </div>
         ),
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }

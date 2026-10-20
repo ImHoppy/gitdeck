@@ -1,0 +1,54 @@
+import { type ReactNode, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { Icon } from '../Icon/Icon'
+import { Spinner } from '../Spinner/Spinner'
+import styles from './Toast.module.css'
+
+export type ToastTone = 'info' | 'ok' | 'bad' | 'busy'
+
+type Props = {
+  tone: ToastTone
+  title: ReactNode
+  children?: ReactNode
+  onDismiss?: () => void
+  /** Dismisses itself after this many ms. */
+  autoHide?: number
+}
+
+const MARK = { info: 'info', ok: 'checkout', bad: 'alert' } as const
+
+let host: HTMLDivElement | null = null
+
+function stack(): HTMLDivElement {
+  if (!host) {
+    host = document.createElement('div')
+    host.className = styles.stack
+    host.setAttribute('aria-live', 'polite')
+    document.body.appendChild(host)
+  }
+  return host
+}
+
+export function Toast({ tone, title, children, onDismiss, autoHide }: Props) {
+  useEffect(() => {
+    if (!autoHide || !onDismiss) return
+    const t = setTimeout(onDismiss, autoHide)
+    return () => clearTimeout(t)
+  }, [autoHide, onDismiss])
+
+  return createPortal(
+    <div className={`${styles.toast} ${styles[tone]}`} role={tone === 'bad' ? 'alert' : 'status'}>
+      <div className={styles.head}>
+        <span className={styles.mark}>{tone === 'busy' ? <Spinner /> : <Icon name={MARK[tone]} size={13} />}</span>
+        <span className={styles.title}>{title}</span>
+        {onDismiss && (
+          <button className={styles.close} title="Dismiss" onClick={onDismiss}>
+            <Icon name="close" size={11} />
+          </button>
+        )}
+      </div>
+      {children && <div className={styles.body}>{children}</div>}
+    </div>,
+    stack(),
+  )
+}

@@ -42,11 +42,27 @@
   gap: 4px;
 }
 
-.field input {
-  padding: 4px 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--fg);
-  font: inherit;
+
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: min(440px, calc(100vw - 64px));
+}
+
+.hint {
+  color: var(--fg-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.withButton {
+  display: flex;
+  gap: 6px;
+}
+
+.withButton input {
+  flex: 1;
+  min-width: 0;
 }

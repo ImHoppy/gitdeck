@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import { avatarColor, initials, isBot } from '../../lib/avatar'
+import { avatarUrl, useAvatarsEnabled } from '../../lib/avatarSource'
 import styles from './Avatar.module.css'
 
 export function Avatar({ name, email, size = 16 }: { name: string; email: string; size?: number }) {
+  const pictures = useAvatarsEnabled()
+  // the email a picture failed for: initials until another author is shown here
+  const [missing, setMissing] = useState<string | null>(null)
   if (isBot(name, email)) {
     return (
       <span className={`${styles.avatar} ${styles.bot}`} style={{ width: size, height: size }} title={`${name} (bot)`}>
@@ -12,6 +17,20 @@ export function Avatar({ name, email, size = 16 }: { name: string; email: string
           <circle cx="10" cy="9" r="1.2" fill="var(--bg)" />
         </svg>
       </span>
+    )
+  }
+  if (pictures && email && missing !== email) {
+    return (
+      <img
+        className={styles.picture}
+        src={avatarUrl(email)}
+        width={size}
+        height={size}
+        loading="lazy"
+        alt=""
+        title={`${name} <${email}>`}
+        onError={() => setMissing(email)}
+      />
     )
   }
   return (

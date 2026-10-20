@@ -14,7 +14,10 @@ export function Resizer({ axis, onDrag, onDone }: Props) {
       onPointerDown={(e) => {
         e.preventDefault()
         let last = axis === 'x' ? e.clientX : e.clientY
+        const handle = e.currentTarget
+        handle.classList.add(styles.dragging)
         document.body.style.userSelect = 'none'
+        document.body.style.cursor = axis === 'x' ? 'col-resize' : 'row-resize'
         const move = (m: PointerEvent) => {
           const now = axis === 'x' ? m.clientX : m.clientY
           onDrag(now - last)
@@ -24,6 +27,8 @@ export function Resizer({ axis, onDrag, onDone }: Props) {
           window.removeEventListener('pointermove', move)
           window.removeEventListener('pointerup', up)
           document.body.style.userSelect = ''
+          document.body.style.cursor = ''
+          handle.classList.remove(styles.dragging)
           onDone?.()
         }
         window.addEventListener('pointermove', move)

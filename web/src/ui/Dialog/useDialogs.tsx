@@ -1,11 +1,15 @@
 import { type ReactNode, useCallback, useState } from 'react'
 import { IconButton } from '../IconButton/IconButton'
+import { BrowseButton } from './BrowseButton'
 import { Dialog } from './Dialog'
 import styles from './Dialog.module.css'
 
 type Open =
   | { kind: 'confirm'; title: string; body: ReactNode; ok: string; resolve: (v: boolean) => void }
-  | { kind: 'prompt'; title: string; label: string; value: string; resolve: (v: string | null) => void }
+  | { kind: 'prompt'; title: string; label: string; value: string; browse?: Browse; allowEmpty?: boolean; resolve: (v: string | null) => void }
+
+/** Fills the prompt from a picker (a folder dialog); null when cancelled. */
+export type Browse = (current: string) => Promise<string | null>
 
 /** In-page replacements for `confirm` / `prompt`: await them, render `element` once. */
 export function useDialogs() {
@@ -18,8 +22,18 @@ export function useDialogs() {
   )
 
   const prompt = useCallback(
-    (title: string, label: string, value = '') =>
-      new Promise<string | null>((resolve) => setOpen({ kind: 'prompt', title, label, value, resolve })),
+    (title: string, label: string, value = '', browseOrEmpty?: Browse | boolean) =>
+      new Promise<string | null>((resolve) =>
+        setOpen({
+          kind: 'prompt',
+          title,
+          label,
+          value,
+          browse: typeof browseOrEmpty === 'function' ? browseOrEmpty : undefined,
+          allowEmpty: browseOrEmpty === true,
+          resolve,
+        }),
+      ),
     [],
   )
 
@@ -48,7 +62,7 @@ export function useDialogs() {
       </Dialog>
     )
   } else if (open?.kind === 'prompt') {
-    const submit = () => open.value.trim() && close(open.resolve, open.value.trim())
+    const submit = () => (open.value.trim() || open.allowEmpty) && close(open.resolve, open.value.trim())
     element = (
       <Dialog
         title={open.title}
@@ -57,7 +71,7 @@ export function useDialogs() {
             <IconButton title="Cancel" onClick={() => close(open.resolve, null)}>
               Cancel
             </IconButton>
-            <IconButton title="OK" disabled={!open.value.trim()} onClick={submit}>
+            <IconButton title="OK" disabled={!open.value.trim() && !open.allowEmpty} onClick={submit}>
               OK
             </IconButton>
           </>
@@ -65,15 +79,24 @@ export function useDialogs() {
       >
         <label className={styles.field}>
           {open.label}
-          <input
-            autoFocus
-            value={open.value}
-            onChange={(e) => setOpen({ ...open, value: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit()
-              if (e.key === 'Escape') close(open.resolve, null)
-            }}
-          />
+          <span className={styles.withButton}>
+            <input
+              autoFocus
+              value={open.value}
+              onChange={(e) => setOpen({ ...open, value: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit()
+                if (e.key === 'Escape') close(open.resolve, null)
+              }}
+            />
+            {open.browse && (
+              <BrowseButton
+                browse={open.browse}
+                current={open.value}
+                onPick={(value) => setOpen((o) => (o?.kind === 'prompt' ? { ...o, value } : o))}
+              />
+            )}
+          </span>
         </label>
       </Dialog>
     )

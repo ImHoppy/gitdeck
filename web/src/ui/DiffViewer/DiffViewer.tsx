@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { parseDiff } from '../../lib/diffLines'
+import { longPress } from '../../lib/longPress'
 import { useHighlight } from '../../lib/useHighlight'
 import { VirtualList } from '../VirtualList/VirtualList'
 import styles from './DiffViewer.module.css'
@@ -11,9 +12,10 @@ type Props = {
   path?: string
   selected?: ReadonlySet<number>
   onSelect?: (lines: Set<number>) => void
+  onContextMenu?: (line: number, at: { x: number; y: number }) => void
 }
 
-export function DiffViewer({ patch, path, selected, onSelect }: Props) {
+export function DiffViewer({ patch, path, selected, onSelect, onContextMenu }: Props) {
   const lines = useMemo(() => parseDiff(patch), [patch])
   const texts = useMemo(() => lines.map((l) => (l.kind === 'meta' || l.kind === 'hunk' ? '' : l.text)), [lines])
   const html = useHighlight(path, texts)
@@ -49,6 +51,28 @@ export function DiffViewer({ patch, path, selected, onSelect }: Props) {
     if (dragging.current && onSelect && anchor.current !== null) onSelect(range(anchor.current, i))
   }
 
+  const open = (i: number, at: { x: number; y: number }) => {
+    if (!onContextMenu) return
+    if (!selected?.has(i)) {
+      anchor.current = i
+      onSelect?.(new Set([i]))
+    }
+    onContextMenu(i, at)
+  }
+
+  const context = (i: number, e: React.MouseEvent) => {
+    if (!onContextMenu) return
+    e.preventDefault()
+    open(i, { x: e.clientX, y: e.clientY })
+  }
+
+  const handlers = (i: number) => ({
+    onMouseDown: (e: React.MouseEvent) => down(i, e),
+    onMouseEnter: () => enter(i),
+    onContextMenu: (e: React.MouseEvent) => context(i, e),
+    ...(onContextMenu ? longPress((at) => open(i, at)) : {}),
+  })
+
   if (lines.length === 0) return <div className={styles.empty}>No changes</div>
   return (
     <div className={`${styles.viewer} ${onSelect ? styles.selectable : ''}`}>
@@ -60,13 +84,13 @@ export function DiffViewer({ patch, path, selected, onSelect }: Props) {
           const cls = `${styles.line} ${styles[l.kind]} ${selected?.has(i) ? styles.picked : ''}`
           if (l.kind === 'meta' || l.kind === 'hunk') {
             return (
-              <div className={cls} onMouseDown={(e) => down(i, e)} onMouseEnter={() => enter(i)}>
+              <div className={cls} {...handlers(i)}>
                 {l.text}
               </div>
             )
           }
           return (
-            <div className={cls} onMouseDown={(e) => down(i, e)} onMouseEnter={() => enter(i)}>
+            <div className={cls} {...handlers(i)}>
               <span className={styles.no}>{l.oldNo ?? ''}</span>
               <span className={styles.no}>{l.newNo ?? ''}</span>
               <span className={styles.sign}>{l.kind === 'add' ? '+' : l.kind === 'del' ? '-' : ' '}</span>

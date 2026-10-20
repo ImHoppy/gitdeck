@@ -14,3 +14,10 @@
   background: var(--fg);
   color: var(--bg);
 }
+
+.picture {
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--hover);
+}
