@@ -19,7 +19,7 @@
 
 /* a faint tint, like Git Extensions marks the selected commit's author */
 .sameAuthor {
-  background: color-mix(in srgb, var(--selection) 35%, transparent);
+  background: color-mix(in srgb, var(--selection) 12%, transparent);
 }
 
 .selected,
