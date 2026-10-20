@@ -76,11 +76,15 @@ pub async fn open_in_editor(app: &AppState, p: EditorParams) -> anyhow::Result<V
 
 pub const DEFAULT_EDITOR: &str = "code";
 
+pub fn is_vscode_like(editor: &str) -> bool {
+    let stem = Path::new(editor).file_stem().map(|s| s.to_string_lossy().to_lowercase()).unwrap_or_default();
+    ["code", "code-insiders", "codium", "vscodium", "cursor", "windsurf"].contains(&stem.as_str())
+}
+
 /// VS Code and its forks open the repo as a folder with `-g <file>`, showing their conflict
 /// actions and merge editor; any other editor just gets the file.
 fn launch(editor: &str, repo: &Path, file: Option<&str>) -> std::io::Result<()> {
-    let stem = Path::new(editor).file_stem().map(|s| s.to_string_lossy().to_lowercase()).unwrap_or_default();
-    let vscode_like = ["code", "code-insiders", "codium", "vscodium", "cursor", "windsurf"].contains(&stem.as_str());
+    let vscode_like = is_vscode_like(editor);
     let mut args: Vec<String> = Vec::new();
     match (file, vscode_like) {
         (Some(f), true) => args.extend([repo.display().to_string(), "-g".into(), repo.join(f).display().to_string()]),

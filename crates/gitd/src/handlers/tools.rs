@@ -71,11 +71,20 @@ pub struct ToolParams {
     staged: bool,
 }
 
-/// `git difftool` with the configured tool, left running on its own.
+/// `git difftool` with the configured tool, left running on its own; with no tool configured
+/// (git would fail silently) the editor's diff view when it is VS Code-like.
 pub async fn difftool(app: &AppState, p: ToolParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let dir = hub.entry(p.id)?.path.clone();
     let mut args: Vec<String> = vec!["difftool".into(), "--no-prompt".into()];
+    let configured = ["diff.tool", "merge.tool"].iter().any(|k| git_config(app, &dir, k).is_some_and(|v| !v.is_empty()));
+    if !configured {
+        let editor = app.config.lock().unwrap().editor.clone().unwrap_or_else(|| super::conflict::DEFAULT_EDITOR.into());
+        if !super::conflict::is_vscode_like(&editor) {
+            bail!("no diff tool configured: set diff.tool in the git settings");
+        }
+        args.push(format!("--extcmd=\"{editor}\" --wait --diff"));
+    }
     if p.staged {
         args.push("--cached".into());
     }
@@ -85,7 +94,7 @@ pub async fn difftool(app: &AppState, p: ToolParams) -> anyhow::Result<Value> {
         _ => {}
     }
     args.extend(["--".into(), p.path.clone()]);
-    spawn_git(app, &dir, &args)?;
+    spawn_git(app, &dir, &args).await?;
     Ok(Value::Null)
 }
 
@@ -99,11 +108,11 @@ pub struct FileParams {
 pub async fn mergetool(app: &AppState, p: FileParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let dir = hub.entry(p.id)?.path.clone();
-    spawn_git(app, &dir, &["mergetool".into(), "--no-prompt".into(), "--".into(), p.path])?;
+    spawn_git(app, &dir, &["mergetool".into(), "--no-prompt".into(), "--".into(), p.path]).await?;
     Ok(Value::Null)
 }
 
-fn spawn_git(app: &AppState, dir: &std::path::Path, args: &[String]) -> anyhow::Result<()> {
+async fn spawn_git(app: &AppState, dir: &std::path::Path, args: &[String]) -> anyhow::Result<()> {
     let mut cmd = Command::new(app.runner.git());
     cmd.args(args).current_dir(dir).env("GIT_TERMINAL_PROMPT", "0");
     #[cfg(windows)]
@@ -111,8 +120,26 @@ fn spawn_git(app: &AppState, dir: &std::path::Path, args: &[String]) -> anyhow::
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000);
     }
-    cmd.spawn().context("could not start git")?;
+    cmd.stderr(std::process::Stdio::piped());
+    let mut child = cmd.spawn().context("could not start git")?;
+    // a tool that fails to start makes git exit at once: show why instead of doing nothing
+    tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+    if let Some(status) = child.try_wait()? {
+        if !status.success() {
+            let mut err = String::new();
+            if let Some(mut e) = child.stderr.take() {
+                use std::io::Read;
+                let _ = e.read_to_string(&mut err);
+            }
+            bail!("{}", err.trim().lines().last().unwrap_or("the tool exited with an error"));
+        }
+    }
     Ok(())
+}
+
+fn git_config(app: &AppState, dir: &std::path::Path, key: &str) -> Option<String> {
+    let out = Command::new(app.runner.git()).args(["config", "--get", key]).current_dir(dir).output().ok()?;
+    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
 #[derive(Deserialize)]
