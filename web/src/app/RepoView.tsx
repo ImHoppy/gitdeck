@@ -24,6 +24,10 @@ import {
 import { RemotesDialog } from '../features/remotes'
 import { WorktreesDialog } from '../features/worktrees'
 import { Toast } from '../ui/Toast/Toast'
+import { PullButton, type PullAction } from '../features/sync'
+import { SplitButton } from '../ui/SplitButton/SplitButton'
+import { Spinner } from '../ui/Spinner/Spinner'
+import { Icon } from '../ui/Icon/Icon'
 import { RepoToolbar } from './RepoToolbar'
 import { commitInWindow } from '../lib/commitWindow'
 import { openWindow } from './windows'
@@ -49,9 +53,10 @@ function diffTitle(s: GridSelection): string {
   return `${s.sha.slice(0, 8)}: ${s.subject}`
 }
 
-type Props = { repo: RepoSnapshot; workspace: string; onBack?: () => void; onPush: (id: number) => void }
+type Pull = { action: PullAction; setAction: (a: PullAction) => void; busy: boolean; run: (kind: PullAction) => void }
+type Props = { repo: RepoSnapshot; workspace: string; onBack?: () => void; onPush: (id: number) => void; pull: Pull }
 
-export function RepoView({ repo, workspace, onBack, onPush }: Props) {
+export function RepoView({ repo, workspace, onBack, onPush, pull }: Props) {
   const [filter, setFilter] = useState('')
   const filterBox = useRef<HTMLInputElement>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>(() => loadSetting('searchMode', ['message', 'content'] as const, 'message'))
@@ -118,6 +123,7 @@ export function RepoView({ repo, workspace, onBack, onPush }: Props) {
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
   const head = repo.state?.head
+  const ahead = repo.state?.tracking.ahead
   const currentBranch = head?.kind === 'branch' ? head.name : null
   const refs = useMemo(() => history.info?.refs ?? [], [history.info])
   const remotes = useMemo(() => [...new Set(refs.filter((r) => r.kind === 'remote').map((r) => r.name.split('/')[0]))].sort(), [refs])
@@ -159,10 +165,20 @@ export function RepoView({ repo, workspace, onBack, onPush }: Props) {
         ancestry={ancestry}
         onBack={onBack}
         onBranchMenu={(at) => setMenu({ items: branchMenu(ctx, refs, history.info?.head ?? null), at })}
-        onPushMenu={(at) => {
-          const t = repo.state?.tracking
-          setMenu({ items: pushMenu(ctx, { hasUpstream: t?.ahead != null, ahead: t?.ahead ?? 0, push: () => onPush(repo.id) }), at })
-        }}
+        sync={
+          <>
+            <PullButton defaultAction={pull.action} disabled={pull.busy} suffix={pull.busy ? <Spinner /> : null} onRun={pull.run} onSetDefault={pull.setAction} />
+            <SplitButton
+              title={ahead ? `Push ${ahead} commit${ahead === 1 ? '' : 's'}` : 'Push'}
+              disabled={pull.busy}
+              onClick={() => onPush(repo.id)}
+              menu={pushMenu(ctx, { hasUpstream: ahead != null, ahead: ahead ?? 0, push: () => onPush(repo.id) })}
+            >
+              <Icon name="push" />
+              {ahead ? ` ${ahead}` : ''}
+            </SplitButton>
+          </>
+        }
         onMoreMenu={(at) =>
           setMenu({
             items: moreMenu({

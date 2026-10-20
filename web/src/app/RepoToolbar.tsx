@@ -13,7 +13,8 @@ type Props = {
   ancestry: boolean
   onBack?: () => void
   onBranchMenu: (at: At) => void
-  onPushMenu: (at: At) => void
+  /** Pull and push of this repo, next to its branch. */
+  sync: ReactNode
   onMoreMenu: (at: At) => void
   onCommit: () => void
   onStash: () => void
@@ -23,11 +24,10 @@ type Props = {
   children: ReactNode
 }
 
-export function RepoToolbar({ repo, busy, ancestry, onBack, onBranchMenu, onPushMenu, onMoreMenu, onCommit, onStash, onStats, onAncestry, children }: Props) {
+export function RepoToolbar({ repo, busy, ancestry, onBack, onBranchMenu, sync, onMoreMenu, onCommit, onStash, onStats, onAncestry, children }: Props) {
   const head = repo.state?.head
   const status = repo.state?.status
   const changes = (status?.staged ?? 0) + (status?.unstaged ?? 0) + (status?.untracked ?? 0)
-  const ahead = repo.state?.tracking.ahead
   const branchLabel = head?.kind === 'branch' ? head.name : head?.kind === 'detached' ? `detached ${head.sha.slice(0, 7)}` : (head?.name ?? '…')
 
   return (
@@ -39,7 +39,7 @@ export function RepoToolbar({ repo, busy, ancestry, onBack, onBranchMenu, onPush
       )}
       <strong>{repo.pathInParent ?? repo.name}</strong>
       <DropButton icon="branch" label={branchLabel} title="Current branch: click to switch" danger={head?.kind === 'detached'} onOpen={onBranchMenu} />
-      <DropButton icon="push" label={`Push${ahead ? ` ${ahead}` : ''}`} title="Push, publish this branch, force push, push tags" onOpen={onPushMenu} />
+      {sync}
       <IconButton title="Open the commit dialog (Ctrl+Space)" onClick={onCommit}>
         <Icon name="commit" /> Commit ({changes})
       </IconButton>

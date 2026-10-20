@@ -225,6 +225,12 @@ function Browse() {
         {selected?.initialized && !selected.excluded ? (
           <RepoView key={selected.id} repo={selected} workspace={workspace.name} onBack={narrow ? () => setShowRepo(false) : undefined}
             onPush={(id) => void sync.sync(id, 'push')}
+            pull={{
+              action: sync.pullAction,
+              setAction: sync.setPullAction,
+              busy: sync.busy.has(selected.id) || sync.bulk !== null,
+              run: (kind) => void sync.sync(selected.id, kind),
+            }}
           />
         ) : (
           <div className={styles.message}>Select a repo in the tree.</div>
