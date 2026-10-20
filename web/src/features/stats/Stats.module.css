@@ -1,0 +1,283 @@
+.page {
+  height: 100%;
+  overflow: auto;
+  padding: 20px 24px 32px;
+  background: var(--bg);
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--fg-muted);
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+}
+
+.tileValue {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tileLabel {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.figure {
+  margin: 0 0 20px;
+  min-width: 0;
+}
+
+.caption {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+  gap: 24px;
+}
+
+/* commits per month */
+
+.plot {
+  position: relative;
+  padding-left: 28px;
+}
+
+.yMax {
+  position: absolute;
+  top: -6px;
+  left: 0;
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 160px;
+  border-top: 1px dashed var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.slot {
+  position: relative;
+  flex: 1;
+  min-width: 2px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 100%;
+  min-height: 1px;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.barHover {
+  opacity: 1;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tooltip span {
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.ticks {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.ticks span {
+  flex: 1;
+  min-width: 2px;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+/* contributors */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table tbody tr:hover {
+  background: var(--hover);
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.num {
+  text-align: right;
+}
+
+.table th.num {
+  text-align: right;
+}
+
+.share {
+  width: 30%;
+}
+
+.shareTrack {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--hover);
+}
+
+.shareFill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.added {
+  color: var(--ahead);
+}
+
+.removed {
+  color: var(--danger);
+}
+
+.muted {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+/* files by type */
+
+.hbars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hrow {
+  display: grid;
+  grid-template-columns: 70px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+}
+
+.hrow:hover .hfill {
+  opacity: 1;
+}
+
+.hlabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+}
+
+.htrack {
+  height: 12px;
+}
+
+.hfill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 0 4px 4px 0;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.hvalue {
+  text-align: right;
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 800px) {
+  .page {
+    padding: 12px;
+  }
+
+  .columns {
+    grid-template-columns: 1fr;
+  }
+
+  .table .share,
+  .table td:last-child,
+  .table th:last-child {
+    display: none;
+  }
+}
