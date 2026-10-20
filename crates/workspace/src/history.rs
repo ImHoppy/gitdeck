@@ -9,7 +9,7 @@ use std::{
     path::Path,
 };
 
-pub use log::LogCommit;
+pub use log::{LogCommit, LogOptions};
 pub use refs::GitRef;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -49,8 +49,10 @@ pub async fn key<R: GitRunner>(runner: &R, path: &Path) -> Result<HistoryKey, Ru
     Ok(HistoryKey { key: format!("{:016x}", h.finish()), head, refs: refs::parse(&refs_out) })
 }
 
-pub async fn load<R: GitRunner>(runner: &R, path: &Path, key: HistoryKey) -> Result<History, RunError> {
-    let out = runner.run(path, log::ARGS).await?;
+pub async fn load<R: GitRunner>(runner: &R, path: &Path, key: HistoryKey, opts: log::LogOptions) -> Result<History, RunError> {
+    let args = log::args(opts);
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let out = runner.run(path, &args).await?;
     // an unborn HEAD makes git log fail: that repo simply has no history yet
     let commits = if out.ok() { log::parse(&out.stdout) } else { Vec::new() };
     let rows = graph::layout(&parent_indices(&commits));
@@ -64,11 +66,20 @@ impl History {
         let hit = |c: &LogCommit| {
             [&c.subject, &c.body_hint, &c.author, &c.email].iter().any(|f| f.to_lowercase().contains(&q)) || c.sha.starts_with(&q)
         };
+        self.keep(|c| hit(c), &format!("{}:{query}", self.key.key))
+    }
+
+    /// Only the commits in `shas` (a content search done by git), laid out again.
+    pub fn only(&self, shas: &std::collections::HashSet<String>, key: &str) -> History {
+        self.keep(|c| shas.contains(&c.sha), key)
+    }
+
+    fn keep(&self, hit: impl Fn(&LogCommit) -> bool, key: &str) -> History {
         let commits: Vec<LogCommit> = self.commits.iter().filter(|c| hit(c)).cloned().collect();
         let rows = graph::layout(&parent_indices(&commits));
-        let mut key = self.key.clone();
-        key.key = format!("{}:{query}", key.key);
-        History { key, commits, rows }
+        let mut k = self.key.clone();
+        k.key = key.to_string();
+        History { key: k, commits, rows }
     }
 
     pub fn window(&self, start: usize, count: usize) -> Vec<HistoryRow<'_>> {

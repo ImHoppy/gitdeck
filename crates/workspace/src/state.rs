@@ -15,6 +15,8 @@ pub struct RepoState {
     pub tracking: Tracking,
     pub status: StatusCounts,
     pub operation: Option<Operation>,
+    /// A `git bisect` is running (it doesn't block other work, so it isn't an operation).
+    pub bisecting: bool,
 }
 
 pub async fn load<R: GitRunner>(runner: &R, path: &Path) -> Result<RepoState, RunError> {
@@ -42,6 +44,7 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path) -> Result<RepoState, Ru
         tracking,
         status: status::parse(&status_out),
         operation: operation::detect(&gitdir),
+        bisecting: gitdir.join("BISECT_LOG").exists(),
         gitdir,
     })
 }

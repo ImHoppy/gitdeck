@@ -93,6 +93,21 @@ pub async fn action<R: GitRunner>(runner: &R, path: &Path, action: &Action) -> S
     git(runner, path, &args).await
 }
 
+/// A write with arguments built elsewhere (an interactive rebase), refused like an action while
+/// another operation is in progress, its result classified the same way.
+pub async fn raw<R: GitRunner>(runner: &R, path: &Path, args: &[String]) -> SyncOutcome {
+    match git_dir(runner, path).await {
+        Ok(dir) => {
+            if let Some(op) = operation::detect(&dir) {
+                return SyncOutcome::Skipped { reason: format!("{op:?} in progress") };
+            }
+        }
+        Err(e) => return failed(e),
+    }
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    git(runner, path, &args).await
+}
+
 async fn git<R: GitRunner>(runner: &R, path: &Path, args: &[&str]) -> SyncOutcome {
     match runner.run(path, args).await {
         Ok(out) => sync::classify(out.code, &out.stdout, &out.stderr),

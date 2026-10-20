@@ -3,6 +3,15 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Config {
+    /// The git executable; unset means `git` from PATH.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub git: Option<PathBuf>,
+    /// Fetch commit authors' pictures from GitHub (the one third-party call, off by default).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub github_avatars: bool,
+    /// Editor for conflicts and "open in editor": a command on PATH or a full path; unset is `code`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub editor: Option<String>,
     #[serde(default, rename = "workspace")]
     pub workspaces: Vec<WorkspaceConfig>,
 }
@@ -27,6 +36,9 @@ pub struct RootConfig {
     pub path: PathBuf,
     #[serde(default)]
     pub submodules: SubmoduleMode,
+    /// Also show git repos cloned inside this one that aren't submodules (ignored folders).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub nested: bool,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,6 +78,14 @@ impl Config {
         self.workspaces.iter().find(|w| w.name == name)
     }
 
+    /// Turns the nested-repo scan of root `path` in workspace `name` on or off.
+    pub fn set_nested(&mut self, name: &str, path: &Path, on: bool) -> bool {
+        let Some(ws) = self.workspaces.iter_mut().find(|w| w.name == name) else { return false };
+        let Some(root) = ws.roots.iter_mut().find(|r| same_path(&r.path, path)) else { return false };
+        root.nested = on;
+        true
+    }
+
     pub fn save(&self, path: &Path) -> Result<(), ConfigError> {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
@@ -89,7 +109,7 @@ impl Config {
             }
         };
         if !ws.roots.iter().any(|r| same_path(&r.path, &path)) {
-            ws.roots.push(RootConfig { path, submodules: SubmoduleMode::default() });
+            ws.roots.push(RootConfig { path, submodules: SubmoduleMode::default(), nested: false });
         }
     }
 
@@ -168,3 +188,4 @@ mod tests {
         assert!(ws.is_excluded(Path::new("E:/AvaServer/big")));
     }
 }
+
