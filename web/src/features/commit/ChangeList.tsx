@@ -12,7 +12,7 @@ type Props = {
   mode: FileListMode
   all: { label: ReactNode; title: string; disabled: boolean; run: () => void }[]
   actions: FileAction[]
-  onContextMenu?: (files: ChangedFile[], at: { x: number; y: number }) => void
+  onContextMenu?: (files: ChangedFile[], at: { x: number; y: number }, folder?: string) => void
 }
 
 export function ChangeList({ title, files, selected, onSelect, mode, all, actions, onContextMenu }: Props) {

@@ -32,7 +32,7 @@ type Props = {
   /** Shown on hover; on a folder they run for every file below it. */
   actions?: FileAction[]
   /** Right-click or long press on a file, or on a folder for every file below it. */
-  onContextMenu?: (files: ChangedFile[], at: { x: number; y: number }) => void
+  onContextMenu?: (files: ChangedFile[], at: { x: number; y: number }, folder?: string) => void
 }
 
 function leaves(node: PathNode<ChangedFile>): ChangedFile[] {
@@ -60,17 +60,17 @@ export function FileList({ files, selected, onSelect, mode = 'list', actions = [
       </button>
     ))
 
-  const menu = (of: () => ChangedFile[], pick?: () => void) =>
+  const menu = (of: () => ChangedFile[], pick?: () => void, folder?: string) =>
     onContextMenu
       ? {
           onContextMenu: (e: React.MouseEvent) => {
             e.preventDefault()
             pick?.()
-            onContextMenu(of(), { x: e.clientX, y: e.clientY })
+            onContextMenu(of(), { x: e.clientX, y: e.clientY }, folder)
           },
           ...longPress((at) => {
             pick?.()
-            onContextMenu(of(), at)
+            onContextMenu(of(), at, folder)
           }),
         }
       : {}
@@ -109,7 +109,7 @@ export function FileList({ files, selected, onSelect, mode = 'list', actions = [
           if (node.kind === 'leaf') return fileRow(node.item, node.name, depth)
           return (
             <div
-              {...menu(() => leaves(node))}
+              {...menu(() => leaves(node), undefined, node.path)}
               className={`${styles.file} ${styles.dir}`}
               style={{ paddingLeft: 2 + depth * 14 }}
               onClick={() => toggle(node.path)}
