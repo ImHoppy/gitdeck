@@ -56,6 +56,24 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
   const patch = usePatch(repoId, target, file, list)
 
   const paths = (files: ChangedFile[] | null) => (files ?? []).map((f) => f.path)
+  // the lists move at once; git and the reload that follows only confirm it
+  const move = (files: ChangedFile[], from: typeof unstaged, to: typeof staged, kind: (f: ChangedFile) => ChangedFile['kind']) => {
+    const gone = new Set(paths(files))
+    from.update((l) => l && l.filter((f) => !gone.has(f.path)))
+    to.update((l) => l && [...l.filter((f) => !gone.has(f.path)), ...files.map((f) => ({ ...f, kind: kind(f) }))].sort((a, b) => a.path.localeCompare(b.path)))
+  }
+  const reload = () => {
+    unstaged.reload()
+    staged.reload()
+  }
+  const stage = (files: ChangedFile[]) => {
+    move(files, unstaged, staged, (f) => (f.kind === 'untracked' ? 'added' : f.kind))
+    void actions.stage(paths(files)).then((ok) => ok || reload())
+  }
+  const unstage = (files: ChangedFile[]) => {
+    move(files, staged, unstaged, (f) => (f.kind === 'added' ? 'untracked' : f.kind))
+    void actions.unstage(paths(files)).then((ok) => ok || reload())
+  }
   const canCommit = !actions.busy && message.trim() !== '' && ((staged.files?.length ?? 0) > 0 || amend)
 
   useEffect(() => {
@@ -107,8 +125,8 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
     const staged = side === 'index'
     const items: MenuItem[] = [
       staged
-        ? { key: 'unstage', label: 'Unstage', icon: 'push', onSelect: () => actions.unstage(paths(files)) }
-        : { key: 'stage', label: 'Stage', icon: 'pull', onSelect: () => actions.stage(paths(files)) },
+        ? { key: 'unstage', label: 'Unstage', icon: 'push', onSelect: () => unstage(files) }
+        : { key: 'stage', label: 'Stage', icon: 'pull', onSelect: () => stage(files) },
       { key: 'difftool', label: 'Open in the diff tool', icon: 'diff', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged })) },
       { key: 'editordiff', label: 'Open diff in editor', icon: 'editor', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged, editor: true })) },
     ]
@@ -179,11 +197,11 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               files={unstaged.files}
               selected={picked?.side === 'worktree' ? picked.path : null}
               onSelect={(f) => setPicked({ side: 'worktree', path: f.path })}
-              onOpen={(f) => actions.stage([f.path])}
+              onOpen={(f) => stage([f])}
               mode={mode}
               all={[
                 { label: <Icon name="restore" size={12} />, title: 'Discard all unstaged changes…', disabled: actions.busy, run: () => void discard(unstaged.files ?? []) },
-                { label: '⇊ stage all', title: 'Stage all', disabled: actions.busy, run: () => actions.stage(paths(unstaged.files)) },
+                { label: '⇊ stage all', title: 'Stage all', disabled: actions.busy, run: () => stage(unstaged.files ?? []) },
               ]}
               actions={[
                 {
@@ -192,7 +210,7 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
                   run: (fs) => void discard(fs),
                   titleFor: (fs) => (allDeleted(fs) ? 'Restore…' : null),
                 },
-                { label: <Icon name="pull" size={12} />, title: 'Stage', run: (fs) => actions.stage(paths(fs)) },
+                { label: <Icon name="pull" size={12} />, title: 'Stage', run: (fs) => stage(fs) },
               ]}
               onContextMenu={(files, at, folder) => setFileMenu({ side: 'worktree', files, at, folder })}
             />
@@ -201,11 +219,11 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               files={staged.files}
               selected={picked?.side === 'index' ? picked.path : null}
               onSelect={(f) => setPicked({ side: 'index', path: f.path })}
-              onOpen={(f) => actions.unstage([f.path])}
+              onOpen={(f) => unstage([f])}
               mode={mode}
-              all={[{ label: '⇈ unstage all', title: 'Unstage all', disabled: actions.busy, run: () => actions.unstage(paths(staged.files)) }]}
+              all={[{ label: '⇈ unstage all', title: 'Unstage all', disabled: actions.busy, run: () => unstage(staged.files ?? []) }]}
               actions={[
-                { label: <Icon name="push" size={12} />, title: 'Unstage', run: (fs) => actions.unstage(paths(fs)) },
+                { label: <Icon name="push" size={12} />, title: 'Unstage', run: (fs) => unstage(fs) },
               ]}
               onContextMenu={(files, at, folder) => setFileMenu({ side: 'index', files, at, folder })}
             />

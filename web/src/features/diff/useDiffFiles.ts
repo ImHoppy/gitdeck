@@ -26,5 +26,6 @@ export function useDiffFiles(repoId: number, target: DiffTarget) {
     })
   }, [repoId, target.kind, load])
 
-  return { files, error, reload: load }
+  /** Shows a change before the server confirms it; the next reload replaces it. */
+  return { files, error, reload: load, update: setFiles }
 }
