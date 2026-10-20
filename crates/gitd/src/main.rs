@@ -12,23 +12,24 @@ mod events;
 mod explorer;
 mod handlers;
 mod histories;
+mod icon;
 mod hub;
 mod launcher;
 mod lifecycle;
 mod live;
+#[cfg(target_os = "macos")]
+mod mac_menu;
 mod protocol;
 mod server;
 mod snapshot;
 mod static_files;
 #[cfg(windows)]
 mod tray;
-#[cfg(windows)]
 mod window;
 
 use clap::Parser;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     #[cfg(windows)]
     attach_console();
     let args = cli::Args::parse();
@@ -42,7 +43,20 @@ async fn main() -> anyhow::Result<()> {
         println!("explorer menu {mode}");
         return Ok(());
     }
-    server::run(args).await
+    let runtime = tokio::runtime::Runtime::new()?;
+    #[cfg(target_os = "macos")]
+    if !args.browser {
+        let event_loop = window::main_thread_loop();
+        std::thread::spawn(move || {
+            let result = runtime.block_on(server::run(args));
+            if let Err(e) = &result {
+                eprintln!("Error: {e:?}");
+            }
+            std::process::exit(i32::from(result.is_err()));
+        });
+        window::run(event_loop, cli::config_dir().join("webview"));
+    }
+    runtime.block_on(server::run(args))
 }
 
 /// Started from a terminal, print there as a console program would.

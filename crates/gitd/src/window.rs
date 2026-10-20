@@ -2,79 +2,115 @@ use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
 use tao::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
-    platform::windows::EventLoopBuilderExtWindows,
+    event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopProxy},
     window::{Icon, WindowBuilder, WindowId},
 };
 use wry::{NewWindowResponse, WebContext, WebViewBuilder};
 
-enum Request {
+pub enum Request {
     Open(String),
     Title(WindowId, String),
 }
 
 static WINDOWS: OnceLock<EventLoopProxy<Request>> = OnceLock::new();
 
-/// Native windows (WebView2) on their own thread; `open` adds one per call.
+/// Native windows (WebView2, WKWebView, WebKitGTK) on their own thread; `open` adds one per call.
+#[cfg(not(target_os = "macos"))]
 pub fn start(data_dir: PathBuf) {
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
+        #[cfg(windows)]
+        use tao::platform::windows::EventLoopBuilderExtWindows;
+        #[cfg(not(windows))]
+        use tao::platform::unix::EventLoopBuilderExtUnix;
         let event_loop = EventLoopBuilder::<Request>::with_user_event().with_any_thread(true).build();
         let _ = tx.send(event_loop.create_proxy());
-        let proxy = event_loop.create_proxy();
-        // one profile for every window, so the login cookie is shared
-        let mut context = WebContext::new(Some(data_dir));
-        let mut open: HashMap<WindowId, (tao::window::Window, wry::WebView)> = HashMap::new();
-        event_loop.run(move |event, target, flow| {
-            *flow = ControlFlow::Wait;
-            match event {
-                Event::UserEvent(Request::Title(id, title)) => {
-                    if let Some((window, _)) = open.get(&id) {
-                        window.set_title(&title);
-                    }
-                }
-                Event::UserEvent(Request::Open(url)) => {
-                    let (rgba, size) = crate::tray::icon_rgba();
-                    let Ok(window) = WindowBuilder::new()
-                        .with_title("gitdeck")
-                        .with_inner_size(LogicalSize::new(1400.0, 900.0))
-                        .with_window_icon(Icon::from_rgba(rgba, size, size).ok())
-                        .build(target)
-                    else {
-                        return;
-                    };
-                    let popups = proxy.clone();
-                    let titles = proxy.clone();
-                    let id = window.id();
-                    let webview = WebViewBuilder::new_with_web_context(&mut context)
-                        .with_url(url)
-                        // window.open (the commit page pop-out) becomes another native window
-                        .with_new_window_req_handler(move |url, _| {
-                            let _ = popups.send_event(Request::Open(url));
-                            NewWindowResponse::Deny
-                        })
-                        // the page names the repo it shows; the title bar and taskbar follow
-                        .with_document_title_changed_handler(move |title| {
-                            let _ = titles.send_event(Request::Title(id, title));
-                        })
-                        .build(&window);
-                    match webview {
-                        Ok(webview) => {
-                            open.insert(window.id(), (window, webview));
-                        }
-                        Err(e) => eprintln!("could not create the window: {e}"),
-                    }
-                }
-                Event::WindowEvent { window_id, event: WindowEvent::CloseRequested, .. } => {
-                    open.remove(&window_id);
-                }
-                _ => {}
-            }
-        });
+        run(event_loop, data_dir);
     });
     if let Ok(proxy) = rx.recv() {
         let _ = WINDOWS.set(proxy);
     }
+}
+
+/// macOS only runs windows on the main thread: `main` builds the loop there and calls `run`.
+#[cfg(target_os = "macos")]
+pub fn main_thread_loop() -> EventLoop<Request> {
+    let event_loop = EventLoopBuilder::<Request>::with_user_event().build();
+    let _ = WINDOWS.set(event_loop.create_proxy());
+    crate::mac_menu::install();
+    event_loop
+}
+
+pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
+    let proxy = event_loop.create_proxy();
+    // one profile for every window, so the login cookie is shared
+    let mut context = WebContext::new(Some(data_dir));
+    let mut open: HashMap<WindowId, (tao::window::Window, wry::WebView)> = HashMap::new();
+    event_loop.run(move |event, target, flow| {
+        *flow = ControlFlow::Wait;
+        match event {
+            Event::UserEvent(Request::Title(id, title)) => {
+                if let Some((window, _)) = open.get(&id) {
+                    window.set_title(&title);
+                }
+            }
+            Event::UserEvent(Request::Open(url)) => {
+                let (rgba, size) = crate::icon::rgba();
+                let Ok(window) = WindowBuilder::new()
+                    .with_title("gitdeck")
+                    .with_inner_size(LogicalSize::new(1400.0, 900.0))
+                    .with_window_icon(Icon::from_rgba(rgba, size, size).ok())
+                    .build(target)
+                else {
+                    return;
+                };
+                let popups = proxy.clone();
+                let titles = proxy.clone();
+                let id = window.id();
+                let builder = WebViewBuilder::new_with_web_context(&mut context)
+                    .with_url(url)
+                    // window.open (the commit page pop-out) becomes another native window
+                    .with_new_window_req_handler(move |url, _| {
+                        let _ = popups.send_event(Request::Open(url));
+                        NewWindowResponse::Deny
+                    })
+                    // the page names the repo it shows; the title bar and taskbar follow
+                    .with_document_title_changed_handler(move |title| {
+                        let _ = titles.send_event(Request::Title(id, title));
+                    });
+                let webview = attach(builder, &window);
+                match webview {
+                    Ok(webview) => {
+                        open.insert(window.id(), (window, webview));
+                    }
+                    Err(e) => eprintln!("could not create the window: {e}"),
+                }
+            }
+            Event::WindowEvent { window_id, event: WindowEvent::CloseRequested, .. } => {
+                open.remove(&window_id);
+            }
+            _ => {}
+        }
+    });
+}
+
+#[cfg(not(target_os = "linux"))]
+fn attach(builder: WebViewBuilder<'_>, window: &tao::window::Window) -> wry::Result<wry::WebView> {
+    builder.build(window)
+}
+
+/// `build` on Linux only works under X11; the GTK box works under Wayland too.
+#[cfg(target_os = "linux")]
+fn attach(builder: WebViewBuilder<'_>, window: &tao::window::Window) -> wry::Result<wry::WebView> {
+    use tao::platform::unix::WindowExtUnix;
+    use wry::WebViewBuilderExtUnix;
+    builder.build_gtk(window.default_vbox().expect("tao windows have a box"))
+}
+
+/// A Linux host reached over SSH has no desktop to open a window on.
+#[cfg(not(target_os = "macos"))]
+pub fn has_display() -> bool {
+    cfg!(windows) || std::env::var_os("DISPLAY").is_some() || std::env::var_os("WAYLAND_DISPLAY").is_some()
 }
 
 /// False when windows were never started, so the caller can fall back to the browser.

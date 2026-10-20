@@ -2,11 +2,9 @@ use crate::browser;
 
 /// Shows `url` in a native window, or in the browser when asked or when there are no windows.
 pub fn show(url: &str, in_browser: bool) {
-    #[cfg(windows)]
     if !in_browser && crate::window::open(url) {
         return;
     }
-    let _ = in_browser;
     browser::open(url);
 }
 

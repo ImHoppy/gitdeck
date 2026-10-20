@@ -85,8 +85,8 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         .with_state(app.clone());
 
     println!("gitd listening on {url}");
-    #[cfg(windows)]
-    if !args.browser {
+    #[cfg(not(target_os = "macos"))]
+    if !args.browser && crate::window::has_display() {
         crate::window::start(dir.join("webview"));
     }
     let app_browser = args.browser;

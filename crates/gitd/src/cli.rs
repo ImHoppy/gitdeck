@@ -15,7 +15,7 @@ pub struct Args {
     /// Don't open a window on start.
     #[arg(long)]
     pub no_open: bool,
-    /// Open the page in the browser instead of a gitdeck window (always so off Windows).
+    /// Open the page in the browser instead of a gitdeck window.
     #[arg(long)]
     pub browser: bool,
     /// Start gitd (kept running) at login, or stop doing so, then exit.
