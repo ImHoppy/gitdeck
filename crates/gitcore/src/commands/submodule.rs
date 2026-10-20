@@ -1,6 +1,6 @@
 use crate::model::{SubmoduleEntry, SubmoduleFlag};
 
-pub const ARGS: &[&str] = &["submodule", "status", "--recursive"];
+pub const ARGS: &[&str] = &["--no-optional-locks", "submodule", "status", "--recursive"];
 
 pub const UPDATE_ARGS: &[&str] = &["submodule", "update", "--init", "--recursive"];
 

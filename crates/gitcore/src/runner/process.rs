@@ -2,7 +2,8 @@ use super::{env::NO_PROMPT_ENV, CommandRecord, CommandSink, GitOutput, GitRunner
 use std::{
     path::Path,
     process::Stdio,
-    sync::Arc,
+    path::PathBuf,
+    sync::{Arc, RwLock},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Semaphore;
@@ -15,14 +16,43 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 pub struct ProcessRunner {
     pub timeout: Duration,
     limit: Arc<Semaphore>,
+    interactive: Arc<Semaphore>,
+    /// Shared by every clone, so changing it reaches the runners the hubs already hold.
+    git: Arc<RwLock<PathBuf>>,
     sink: Option<CommandSink>,
 }
 
 const DEFAULT_MAX_PROCESSES: usize = 6;
+const INTERACTIVE_PROCESSES: usize = 4;
+
+tokio::task_local! {
+    static INTERACTIVE: ();
+}
+
+/// Runs `fut` with its own pool of git processes, so a read the user waits on never queues
+/// behind background status scans and fetches.
+pub async fn interactive<F: std::future::Future>(fut: F) -> F::Output {
+    INTERACTIVE.scope((), fut).await
+}
 
 impl ProcessRunner {
     pub fn new(max_processes: usize) -> Self {
-        Self { timeout: Duration::from_secs(60), limit: Arc::new(Semaphore::new(max_processes)), sink: None }
+        Self {
+            timeout: Duration::from_secs(60),
+            limit: Arc::new(Semaphore::new(max_processes)),
+            interactive: Arc::new(Semaphore::new(INTERACTIVE_PROCESSES)),
+            git: Arc::new(RwLock::new(PathBuf::from("git"))),
+            sink: None,
+        }
+    }
+
+    /// The git executable to run; `None` means `git` from PATH.
+    pub fn set_git(&self, path: Option<PathBuf>) {
+        *self.git.write().unwrap_or_else(|e| e.into_inner()) = path.unwrap_or_else(|| PathBuf::from("git"));
+    }
+
+    pub fn git(&self) -> PathBuf {
+        self.git.read().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     pub fn with_sink(mut self, sink: CommandSink) -> Self {
@@ -39,7 +69,8 @@ impl Default for ProcessRunner {
 
 impl GitRunner for ProcessRunner {
     async fn run(&self, cwd: &Path, args: &[&str]) -> Result<GitOutput, RunError> {
-        let _permit = self.limit.acquire().await.expect("semaphore never closed");
+        let lane = if INTERACTIVE.try_with(|_| ()).is_ok() { &self.interactive } else { &self.limit };
+        let _permit = lane.acquire().await.expect("semaphore never closed");
         let started = Instant::now();
         let out = self.spawn(cwd, args).await;
         if let Some(sink) = &self.sink {
@@ -57,7 +88,7 @@ impl GitRunner for ProcessRunner {
 
 impl ProcessRunner {
     async fn spawn(&self, cwd: &Path, args: &[&str]) -> Result<GitOutput, RunError> {
-        let mut cmd = Command::new("git");
+        let mut cmd = Command::new(self.git());
         cmd.args(args)
             .current_dir(cwd)
             .envs(NO_PROMPT_ENV.iter().copied())

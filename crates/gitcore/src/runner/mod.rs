@@ -1,7 +1,7 @@
 mod env;
 mod process;
 
-pub use process::ProcessRunner;
+pub use process::{interactive, ProcessRunner};
 
 use serde::Serialize;
 use std::{path::Path, sync::Arc};

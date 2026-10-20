@@ -13,6 +13,29 @@ pub const ARGS: &[&str] = &[
     "HEAD",
 ];
 
+/// Narrows the grid like Git Extensions' branch filter and "first parent" toggle.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogOptions {
+    /// Only what HEAD reaches, no other branches, remotes or tags.
+    #[serde(default)]
+    pub current_branch: bool,
+    #[serde(default)]
+    pub first_parent: bool,
+}
+
+pub fn args(opts: LogOptions) -> Vec<String> {
+    let mut a: Vec<String> = ARGS.iter().map(|s| s.to_string()).collect();
+    if opts.current_branch {
+        a.retain(|s| !matches!(s.as_str(), "--branches" | "--remotes" | "--tags"));
+    }
+    if opts.first_parent {
+        let at = a.iter().position(|s| s == "--date-order").map_or(a.len(), |i| i + 1);
+        a.insert(at, "--first-parent".into());
+    }
+    a
+}
+
 const BODY_HINT_CHARS: usize = 200;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,6 +78,51 @@ fn parse_record(rec: &[u8]) -> Option<LogCommit> {
     })
 }
 
+/// Commits whose diff adds or removes `text` (Git Extensions' "diff contains"), newest first.
+pub fn content_search_args(text: &str) -> Vec<String> {
+    ["log", "--format=%H", "--regexp-ignore-case", "-S", text, "--branches", "--remotes", "--tags", "HEAD"].map(String::from).to_vec()
+}
+
+pub fn parse_shas(out: &[u8]) -> Vec<String> {
+    String::from_utf8_lossy(out).lines().map(str::trim).filter(|l| !l.is_empty()).map(str::to_string).collect()
+}
+
+/// Every commit that changed `path`, following renames, with the file's name in that commit.
+pub fn file_history_args(path: &str) -> Vec<String> {
+    ["log", "--follow", "--name-only", "-z", "--format=%x1e%H%x1f%P%x1f%aN%x1f%aE%x1f%at%x1f%s", "--", path].map(String::from).to_vec()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileCommit {
+    pub sha: String,
+    pub parent: Option<String>,
+    pub author: String,
+    pub email: String,
+    pub time: i64,
+    pub subject: String,
+    /// The file's path in this commit (it changes across renames).
+    pub path: String,
+}
+
+pub fn parse_file_history(out: &[u8]) -> Vec<FileCommit> {
+    String::from_utf8_lossy(out)
+        .split('\x1e')
+        .filter_map(|rec| {
+            let (head, rest) = rec.split_once('\n').unwrap_or((rec, ""));
+            let mut f = head.split('\x1f');
+            let sha = f.next()?.to_string();
+            let parent = f.next()?.split(' ').find(|p| !p.is_empty()).map(str::to_string);
+            let (author, email) = (f.next()?.to_string(), f.next()?.to_string());
+            let time = f.next()?.parse().ok()?;
+            // with -z the subject line ends with the NUL that separates it from the file names
+            let subject = f.next().unwrap_or("").trim_end_matches(|c: char| c.is_control()).to_string();
+            let path = rest.split('\0').map(|p| p.trim_matches('\n')).find(|p| !p.is_empty())?.to_string();
+            Some(FileCommit { sha, parent, author, email, time, subject, path })
+        })
+        .collect()
+}
+
 pub fn details_args(sha: &str) -> Vec<String> {
     let format = "--format=%H%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ce%x1f%ct%x1f%P%x1f%B";
     vec!["show".into(), "-s".into(), format.into(), sha.into()]
@@ -76,7 +144,7 @@ pub struct CommitDetails {
 
 pub fn parse_details(out: &[u8]) -> Option<CommitDetails> {
     let text = String::from_utf8_lossy(out);
-    let f: Vec<&str> = text.splitn(9, '').collect();
+    let f: Vec<&str> = text.splitn(9, '\x1f').collect();
     let [sha, author, author_email, at, committer, committer_email, ct, parents, message] = f.as_slice() else {
         return None;
     };
@@ -99,7 +167,7 @@ mod tests {
 
     #[test]
     fn parses_details() {
-        let d = parse_details(b"abcAnna@x10Bobb@x20p1 p2subject
+        let d = parse_details(b"abc\x1fAnn\x1fa@x\x1f10\x1fBob\x1fb@x\x1f20\x1fp1 p2\x1fsubject
 
 body
 
@@ -123,5 +191,37 @@ ddd\x1f\x1f1600000000\x1fBob\x1fbob@x\x1froot\n\x00";
         assert!(commits[0].multiline);
         assert_eq!(commits[1].parents, Vec::<String>::new());
         assert!(!commits[1].multiline);
+    }
+
+    #[test]
+    fn content_search_keeps_the_text_as_one_argument() {
+        let args = content_search_args("fn main() {");
+        assert_eq!(&args[..5], ["log", "--format=%H", "--regexp-ignore-case", "-S", "fn main() {"]);
+        assert_eq!(parse_shas(b"aa
+bb
+
+"), ["aa", "bb"]);
+    }
+
+    #[test]
+    fn file_history_records() {
+        let out = b"\x1eaaa\x1fp1\x1fAnn\x1fann@x\x1f100\x1frename it
+
+new/name.rs\0\x1ebbb\x1f\x1fAnn\x1fann@x\x1f50\x1fstart
+
+old.rs\0";
+        let h = parse_file_history(out);
+        assert_eq!(h.len(), 2);
+        assert_eq!((h[0].sha.as_str(), h[0].parent.as_deref(), h[0].path.as_str()), ("aaa", Some("p1"), "new/name.rs"));
+        assert_eq!((h[1].parent.as_deref(), h[1].path.as_str(), h[1].subject.as_str()), (None, "old.rs", "start"));
+    }
+
+    #[test]
+    fn options_narrow_the_log() {
+        let a = args(LogOptions { current_branch: true, first_parent: true });
+        assert!(!a.iter().any(|s| s == "--branches" || s == "--remotes" || s == "--tags"));
+        assert!(a.iter().any(|s| s == "--first-parent"));
+        assert_eq!(a.last().map(String::as_str), Some("HEAD"));
+        assert_eq!(args(LogOptions::default()), ARGS);
     }
 }
