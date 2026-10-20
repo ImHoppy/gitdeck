@@ -58,7 +58,7 @@ export function PatchView({ repoId, file, patch, side }: Props) {
     const items: MenuItem[] = []
     if (side === 'worktree') {
       items.push({ key: 'stage', label: 'Stage selected lines', icon: 'pull', disabled: none, onSelect: () => void run('stage') })
-      items.push({ key: 'reset', label: 'Reset selected lines…', icon: 'trash', danger: true, disabled: none, onSelect: () => setConfirmReset(true) })
+      items.push({ key: 'reset', label: 'Reset selected lines…', icon: 'restore', danger: true, disabled: none, onSelect: () => setConfirmReset(true) })
     }
     if (side === 'index') {
       items.push({ key: 'unstage', label: 'Unstage selected lines', icon: 'push', disabled: none, onSelect: () => void run('unstage') })

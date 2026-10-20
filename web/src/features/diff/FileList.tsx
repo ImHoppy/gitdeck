@@ -20,7 +20,13 @@ const ICON: Record<ChangeKind, string> = {
 
 const ROW_HEIGHT = 20
 
-export type FileAction = { label: ReactNode; title: string; run: (files: ChangedFile[]) => void }
+export type FileAction = {
+  label: ReactNode
+  title: string
+  run: (files: ChangedFile[]) => void
+  /** Another tooltip for these files, e.g. discard on deleted files is a restore. */
+  titleFor?: (files: ChangedFile[]) => string | null
+}
 
 export type FileListMode = 'list' | 'tree'
 
@@ -46,11 +52,13 @@ export function FileList({ files, selected, onSelect, mode = 'list', actions = [
   if (files.length === 0) return <div className={styles.empty}>No files</div>
 
   const actionButtons = (of: () => ChangedFile[]) =>
-    actions.map((a) => (
+    actions.map((a) => {
+      const title = a.titleFor?.(of()) ?? a.title
+      return (
       <button
         key={a.title}
         className={styles.action}
-        title={a.title}
+        title={title}
         onClick={(e) => {
           e.stopPropagation()
           a.run(of())
@@ -58,7 +66,8 @@ export function FileList({ files, selected, onSelect, mode = 'list', actions = [
       >
         {a.label}
       </button>
-    ))
+      )
+    })
 
   const menu = (of: () => ChangedFile[], pick?: () => void, folder?: string) =>
     onContextMenu

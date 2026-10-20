@@ -14,6 +14,7 @@ const PATHS = {
   refresh: 'M13.5 8A5.5 5.5 0 1 1 11.8 4M13.5 2v3.5H10',
   pin: 'M6 1.5h4M7 1.5v5l-3 3h8l-3-3v-5M8 9.5V15',
   copy: 'M5.5 5.5h8v8h-8zM10.5 5.5v-3h-8v8h3',
+  restore: 'M5.5 2.5 2.5 5.5l3 3M2.5 5.5h7a4 4 0 0 1 0 8H6',
   trash: 'M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4',
   merge: 'M4 2.5v11M4 5.5c0 4 8 3 8 8M4 2.5h.01M12 13.5h.01',
   checkout: 'M3 8.5 6.5 12 13 4.5',

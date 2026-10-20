@@ -78,6 +78,10 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
     if (files.length === 0) return
     const fresh = files.filter((f) => f.kind === 'untracked').length
     const what = files.length === 1 ? files[0].path : `${files.length} files`
+    if (allDeleted(files)) {
+      if (await dialogs.confirm('Restore?', `${what} will be brought back as last committed.`, 'Restore')) await actions.discard(files)
+      return
+    }
     const body = fresh ? `The changes to ${what} will be lost; ${fresh} new file${fresh === 1 ? '' : 's'} will be deleted.` : `The changes to ${what} will be lost.`
     if (await dialogs.confirm('Discard changes?', body, 'Discard')) await actions.discard(files)
   }
@@ -101,7 +105,13 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
       { key: 'difftool', label: 'Open in the diff tool', icon: 'diff', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged })) },
       { key: 'editordiff', label: 'Open diff in editor', icon: 'editor', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged, editor: true })) },
     ]
-    if (!staged) items.push({ key: 'discard', label: 'Discard changes…', icon: 'trash', danger: true, onSelect: () => void discard(files) })
+    if (!staged) {
+      items.push(
+        allDeleted(files)
+          ? { key: 'discard', label: 'Restore…', icon: 'restore', onSelect: () => void discard(files) }
+          : { key: 'discard', label: 'Discard changes…', icon: 'restore', danger: true, onSelect: () => void discard(files) },
+      )
+    }
     items.push('separator')
     if (one) {
       items.push(
@@ -164,11 +174,16 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               onSelect={(f) => setPicked({ side: 'worktree', path: f.path })}
               mode={mode}
               all={[
-                { label: <Icon name="trash" size={12} />, title: 'Discard all unstaged changes…', disabled: actions.busy, run: () => void discard(unstaged.files ?? []) },
+                { label: <Icon name="restore" size={12} />, title: 'Discard all unstaged changes…', disabled: actions.busy, run: () => void discard(unstaged.files ?? []) },
                 { label: '⇊ stage all', title: 'Stage all', disabled: actions.busy, run: () => actions.stage(paths(unstaged.files)) },
               ]}
               actions={[
-                { label: <Icon name="trash" size={12} />, title: 'Discard changes…', run: (fs) => void discard(fs) },
+                {
+                  label: <Icon name="restore" size={12} />,
+                  title: 'Discard changes…',
+                  run: (fs) => void discard(fs),
+                  titleFor: (fs) => (allDeleted(fs) ? 'Restore…' : null),
+                },
                 { label: <Icon name="pull" size={12} />, title: 'Stage', run: (fs) => actions.stage(paths(fs)) },
               ]}
               onContextMenu={(files, at, folder) => setFileMenu({ side: 'worktree', files, at, folder })}
@@ -233,6 +248,8 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
     </div>
   )
 }
+
+const allDeleted = (files: ChangedFile[]) => files.length > 0 && files.every((f) => f.kind === 'deleted')
 
 function commonFolder(paths: string[]): string {
   const parts = paths.map((p) => p.split('/').slice(0, -1))
