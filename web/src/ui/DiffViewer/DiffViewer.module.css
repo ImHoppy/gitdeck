@@ -62,7 +62,8 @@
 
 .picked {
   box-shadow: inset 3px 0 var(--accent);
-  filter: brightness(0.9);
+  /* a layer over the add/del colour, so picked lines keep their kind and still stand out */
+  background-image: linear-gradient(var(--picked), var(--picked));
 }
 
 .match {
