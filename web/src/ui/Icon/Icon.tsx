@@ -28,6 +28,8 @@ const PATHS = {
   tree: 'M2.5 2.5h4M4.5 2.5v9h3M4.5 6.5h3M9.5 5.5h4v2h-4zM9.5 10.5h4v2h-4z',
   list: 'M2 4h12M2 8h12M2 12h12',
   file: 'M3.5 1.5h6l3 3v10h-9zM9.5 1.5v3h3',
+  editor: 'M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5M9 2.5 7 13.5',
+  diff: 'M4.5 2v6M1.5 5h6M8.5 11h6M5 14 11 2',
   history: 'M8 4.5V8l2.5 1.5M2 8a6 6 0 1 0 1.8-4.3M2 2v3h3',
 } as const
 

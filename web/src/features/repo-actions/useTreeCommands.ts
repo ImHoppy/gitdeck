@@ -29,6 +29,7 @@ export function useTreeCommands() {
     error,
     clearError: () => setError(null),
     reveal: (id: number, what: 'explorer' | 'terminal') => call('repo.reveal', { id, with: what }),
+    openInEditor: (id: number) => call('editor.open', { id }),
     checkoutTracked: (id: number) => call('repo.checkoutTracked', { id }),
     submodule: (id: number, op: 'init' | 'update') => call('repo.submodule', { id, op }),
     recordPointer: (parentId: number, path: string) => runAction(parentId, { kind: 'recordPointers', paths: [path] }),

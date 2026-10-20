@@ -15,6 +15,9 @@ import { useNarrow } from '../../lib/useNarrow'
 import { loadSetting } from '../../lib/storedSetting'
 import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
+import { Menu, type MenuItem } from '../../ui/Menu/Menu'
+import { Toast } from '../../ui/Toast/Toast'
+import { useRepoTools } from '../repo-actions'
 
 type Props = {
   repoId: number
@@ -43,6 +46,25 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
   // on a phone the list and the patch take turns on the whole width
   const [patchOpen, setPatchOpen] = useState(false)
   const mode = useMemo(() => loadSetting('fileListMode', ['tree', 'list'] as const, 'tree'), [])
+  const tools = useRepoTools(repoId)
+  const [menu, setMenu] = useState<{ files: ChangedFile[]; at: { x: number; y: number } } | null>(null)
+
+  const menuItems = (fs: ChangedFile[]): MenuItem[] => {
+    const one = fs.length === 1 ? fs[0] : null
+    const gone = one?.kind === 'deleted'
+    const items: MenuItem[] = []
+    if (onDiffTool) items.push({ key: 'difftool', label: 'Open in the diff tool', icon: 'diff', onSelect: () => fs.forEach((f) => onDiffTool(f.path)) })
+    if (one && onFileHistory) items.push({ key: 'history', label: 'File history', icon: 'history', onSelect: () => onFileHistory(one.path) })
+    if (one) {
+      if (items.length) items.push('separator')
+      items.push(
+        { key: 'editor', label: 'Open in editor', icon: 'editor', disabled: gone, onSelect: () => void tools.openInEditor(one.path) },
+        { key: 'explorer', label: 'Show in file explorer', icon: 'folder', disabled: gone, onSelect: () => void tools.reveal(one.path) },
+        { key: 'copy', label: 'Copy path', icon: 'copy', onSelect: () => void navigator.clipboard?.writeText(one.path) },
+      )
+    }
+    return items
+  }
 
   if (error) return <div className={styles.empty}>{error}</div>
   if (!files) return <div className={styles.empty}><Spinner /></div>
@@ -79,7 +101,10 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
             setPicked(f.path)
             setPatchOpen(true)
           }}
+          onContextMenu={(fs, at) => setMenu({ files: fs, at })}
         />
+        {menu && <Menu items={menuItems(menu.files)} at={menu.at} onClose={() => setMenu(null)} />}
+        {tools.result && !tools.result.ok && <Toast tone="bad" title={tools.result.text} onDismiss={tools.clear} />}
       </div>
       )}
       {!narrow && <Resizer axis="x" onDrag={listWidth.drag} onDone={listWidth.save} />}

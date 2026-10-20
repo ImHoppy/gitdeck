@@ -128,6 +128,7 @@ function Browse() {
         open: setSelectedId,
         sync: (id, kind) => void sync.sync(id, kind),
         reveal: (id, what) => void tree.reveal(id, what),
+        openInEditor: (id) => void tree.openInEditor(id),
         checkoutTracked: (id) => void tree.checkoutTracked(id),
         submodule: tree.submodule,
         recordPointer: (parentId, path) => void tree.recordPointer(parentId, path),

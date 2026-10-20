@@ -5,6 +5,7 @@ export type TreeMenuDeps = {
   open: (id: number) => void
   sync: (id: number, kind: SyncKind) => void
   reveal: (id: number, what: 'explorer' | 'terminal') => void
+  openInEditor: (id: number) => void
   checkoutTracked: (id: number) => void
   submodule: (id: number, op: 'init' | 'update') => Promise<boolean>
   recordPointer: (parentId: number, path: string) => void
@@ -71,6 +72,7 @@ export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
   items.push(
     'separator',
     { key: 'explorer', label: 'Open in file explorer', icon: 'folder', onSelect: () => d.reveal(repo.id, 'explorer') },
+    { key: 'editor', label: 'Open in editor', icon: 'editor', onSelect: () => d.openInEditor(repo.id) },
     { key: 'terminal', label: 'Open terminal here', icon: 'terminal', onSelect: () => d.reveal(repo.id, 'terminal') },
     { key: 'copy', label: 'Copy path', icon: 'copy', onSelect: () => void navigator.clipboard?.writeText(repo.path) },
     ...workspaceItems,

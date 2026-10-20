@@ -98,15 +98,15 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
       staged
         ? { key: 'unstage', label: 'Unstage', icon: 'push', onSelect: () => actions.unstage(paths(files)) }
         : { key: 'stage', label: 'Stage', icon: 'pull', onSelect: () => actions.stage(paths(files)) },
-      { key: 'difftool', label: 'Open in the diff tool', icon: 'file', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged })) },
+      { key: 'difftool', label: 'Open in the diff tool', icon: 'diff', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged })) },
     ]
     if (!staged) items.push({ key: 'discard', label: 'Discard changes…', icon: 'trash', danger: true, onSelect: () => void discard(files) })
     items.push('separator')
     if (one) {
       items.push(
-        { key: 'editor', label: 'Open in editor', icon: 'file', disabled: one.kind === 'deleted', onSelect: () => void tools.openInEditor(one.path) },
+        { key: 'editor', label: 'Open in editor', icon: 'editor', disabled: one.kind === 'deleted', onSelect: () => void tools.openInEditor(one.path) },
         { key: 'explorer', label: 'Show in file explorer', icon: 'folder', disabled: one.kind === 'deleted', onSelect: () => void tools.reveal(one.path) },
-        { key: 'copy', label: 'Copy path', onSelect: () => void navigator.clipboard.writeText(one.path) },
+        { key: 'copy', label: 'Copy path', icon: 'copy', onSelect: () => void navigator.clipboard.writeText(one.path) },
       )
     }
     if (!staged) {
