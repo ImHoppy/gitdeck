@@ -86,7 +86,11 @@ export function useDialogs() {
               onChange={(e) => setOpen({ ...open, value: e.target.value })}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') submit()
-                if (e.key === 'Escape') close(open.resolve, null)
+                if (e.key === 'Escape') {
+                  // the page under the prompt (the commit page) would take this Escape too
+                  e.stopPropagation()
+                  close(open.resolve, null)
+                }
               }}
             />
             {open.browse && (
