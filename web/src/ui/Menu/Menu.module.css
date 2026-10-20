@@ -2,7 +2,8 @@
   position: fixed;
   z-index: 20;
   min-width: 200px;
-  max-height: min(70vh, 520px);
+  /* scrolls only when the window is too short for it (Menu keeps it inside the viewport) */
+  max-height: calc(100vh - 8px);
   overflow-y: auto;
   padding: 4px 0;
   background: var(--bg);
