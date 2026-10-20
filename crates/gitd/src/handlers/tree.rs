@@ -92,9 +92,10 @@ fn select_in_explorer(file: &Path) -> std::io::Result<()> {
 
 fn terminal(path: &Path) -> std::io::Result<()> {
     if cfg!(windows) {
+        // wt parses its own arguments (`;`, brackets): give it the folder as its working directory
         Command::new("wt")
-            .args(["-d"])
-            .arg(path)
+            .args(["-d", "."])
+            .current_dir(path)
             .spawn()
             .or_else(|_| Command::new("cmd").args(["/c", "start", "cmd"]).current_dir(path).spawn())
             .map(drop)
