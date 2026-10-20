@@ -24,7 +24,7 @@ export function PullButton({ defaultAction, disabled, suffix, onRun, onSetDefaul
     })),
   ]
   return (
-    <SplitButton title={current.title} disabled={disabled} onClick={() => onRun(defaultAction)} menu={menu}>
+    <SplitButton title={`${current.title} (Ctrl+Down)`} disabled={disabled} onClick={() => onRun(defaultAction)} menu={menu}>
       <Icon name={current.icon} />
       {suffix}
     </SplitButton>
