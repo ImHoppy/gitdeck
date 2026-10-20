@@ -44,6 +44,11 @@
   background: var(--bg-panel);
 }
 
+/* plain, split and drop-down buttons line up on one height */
+.toolbar button {
+  height: 24px;
+}
+
 .bottomPane {
   flex: none;
   display: flex;
