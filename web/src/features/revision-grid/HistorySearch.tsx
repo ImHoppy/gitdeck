@@ -12,8 +12,8 @@ const MODES = [
 ] as const
 
 const HINT: Record<SearchMode, string> = {
-  message: 'Search message, author, hash (Ctrl+F)',
-  content: 'Search text added or removed (Ctrl+F)',
+  message: 'Message, author, hash (Ctrl+F)',
+  content: 'Text added or removed (Ctrl+F)',
 }
 
 type Props = {

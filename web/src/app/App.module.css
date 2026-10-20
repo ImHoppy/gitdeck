@@ -36,7 +36,9 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* too narrow for everything: the search moves to a second line instead of being cut off */
+  flex-wrap: wrap;
+  gap: 4px 8px;
   padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
