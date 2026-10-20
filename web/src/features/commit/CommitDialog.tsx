@@ -99,6 +99,7 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
         ? { key: 'unstage', label: 'Unstage', icon: 'push', onSelect: () => actions.unstage(paths(files)) }
         : { key: 'stage', label: 'Stage', icon: 'pull', onSelect: () => actions.stage(paths(files)) },
       { key: 'difftool', label: 'Open in the diff tool', icon: 'diff', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged })) },
+      { key: 'editordiff', label: 'Open diff in editor', icon: 'editor', onSelect: () => files.forEach((f) => void tools.diffTool(f.path, { staged, editor: true })) },
     ]
     if (!staged) items.push({ key: 'discard', label: 'Discard changes…', icon: 'trash', danger: true, onSelect: () => void discard(files) })
     items.push('separator')

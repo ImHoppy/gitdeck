@@ -82,6 +82,9 @@ pub struct ToolParams {
     rev: Option<String>,
     #[serde(default)]
     staged: bool,
+    /// The editor's diff view even when a diff tool is configured.
+    #[serde(default)]
+    editor: bool,
 }
 
 /// `git difftool` with the configured tool, left running on its own; with no tool configured
@@ -91,7 +94,7 @@ pub async fn difftool(app: &AppState, p: ToolParams) -> anyhow::Result<Value> {
     let dir = hub.entry(p.id)?.path.clone();
     let mut args: Vec<String> = vec!["difftool".into(), "--no-prompt".into()];
     let configured = ["diff.tool", "merge.tool"].iter().any(|k| git_config(app, &dir, k).is_some_and(|v| !v.is_empty()));
-    if !configured {
+    if p.editor || !configured {
         let editor = app.config.lock().unwrap().editor.clone().unwrap_or_else(|| super::conflict::DEFAULT_EDITOR.into());
         if !super::conflict::is_vscode_like(&editor) {
             bail!("no diff tool configured: set diff.tool in the git settings");

@@ -7,6 +7,7 @@ import { Menu, type MenuItem } from '../../ui/Menu/Menu'
 import { parseDiff } from '../../lib/diffLines'
 import styles from './Diff.module.css'
 import { type LineMode, useLineStaging } from './useLineStaging'
+import { useRepoTools } from '../repo-actions'
 
 const EMPTY: Set<number> = new Set()
 
@@ -23,7 +24,8 @@ export function PatchView({ repoId, file, patch, side }: Props) {
   const selected = picked?.diffId === patch.diffId ? picked.lines : EMPTY
   const setSelected = (lines: Set<number>) => setPicked({ diffId: patch.diffId, lines })
   const [confirmReset, setConfirmReset] = useState(false)
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null)
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number; line: number } | null>(null)
+  const tools = useRepoTools(repoId)
   const staging = useLineStaging(repoId)
 
   const run = async (mode: LineMode) => {
@@ -63,6 +65,11 @@ export function PatchView({ repoId, file, patch, side }: Props) {
     }
     if (items.length) items.push('separator')
     items.push({ key: 'copy', label: 'Copy selected lines', icon: 'copy', disabled: selected.size === 0, onSelect: copySelected })
+    const l = menuAt ? parseDiff(patch.text)[menuAt.line] : undefined
+    const at = l && 'newNo' in l ? (l.newNo ?? l.oldNo) : null
+    if (at !== null && file.kind !== 'deleted') {
+      items.push({ key: 'editor', label: `Open in editor at line ${at}`, icon: 'editor', onSelect: () => void tools.openInEditor(file.path, at) })
+    }
     return items
   }
   return (
@@ -96,7 +103,7 @@ export function PatchView({ repoId, file, patch, side }: Props) {
           path={file.path}
           selected={side ? selected : undefined}
           onSelect={side ? setSelected : undefined}
-          onContextMenu={side ? (_, at) => setMenuAt(at) : undefined}
+          onContextMenu={side ? (line, at) => setMenuAt({ ...at, line }) : undefined}
         />
       </div>
       {menuAt && <Menu items={menuItems()} at={menuAt} onClose={() => setMenuAt(null)} />}

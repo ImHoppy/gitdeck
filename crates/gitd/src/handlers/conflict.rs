@@ -64,13 +64,16 @@ pub struct EditorParams {
     /// A file of the repo to show; none opens the repo folder.
     #[serde(default)]
     path: Option<String>,
+    /// A line of that file to put the cursor on (VS Code-like editors).
+    #[serde(default)]
+    line: Option<u32>,
 }
 
 pub async fn open_in_editor(app: &AppState, p: EditorParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let dir = hub.entry(p.id)?.path.clone();
     let editor = app.config.lock().unwrap().editor.clone().unwrap_or_else(|| DEFAULT_EDITOR.into());
-    launch(&editor, &dir, p.path.as_deref()).with_context(|| format!("could not start the editor `{editor}` (set it in Settings)"))?;
+    launch(&editor, &dir, p.path.as_deref(), p.line).with_context(|| format!("could not start the editor `{editor}` (set it in Settings)"))?;
     Ok(json!(editor))
 }
 
@@ -83,11 +86,14 @@ pub fn is_vscode_like(editor: &str) -> bool {
 
 /// VS Code and its forks open the repo as a folder with `-g <file>`, showing their conflict
 /// actions and merge editor; any other editor just gets the file.
-fn launch(editor: &str, repo: &Path, file: Option<&str>) -> std::io::Result<()> {
+fn launch(editor: &str, repo: &Path, file: Option<&str>, line: Option<u32>) -> std::io::Result<()> {
     let vscode_like = is_vscode_like(editor);
     let mut args: Vec<String> = Vec::new();
     match (file, vscode_like) {
-        (Some(f), true) => args.extend([repo.display().to_string(), "-g".into(), repo.join(f).display().to_string()]),
+        (Some(f), true) => {
+            let at = line.map(|l| format!(":{l}")).unwrap_or_default();
+            args.extend([repo.display().to_string(), "-g".into(), format!("{}{at}", repo.join(f).display())])
+        }
         (Some(f), false) => args.push(repo.join(f).display().to_string()),
         (None, _) => args.push(repo.display().to_string()),
     }
