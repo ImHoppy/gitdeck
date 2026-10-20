@@ -1,5 +1,8 @@
 use crate::{autofetch, hub::Hub};
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{atomic::AtomicUsize, Arc},
+    time::Duration,
+};
 use tokio::{sync::mpsc, task::JoinHandle};
 use workspace::{
     watch::{IgnoreList, RepoWatcher, WatchTarget},
@@ -26,11 +29,11 @@ impl LiveWorkspace {
         self._watcher.ignore_list()
     }
 
-    pub fn start(name: String, hub: Arc<Hub>, targets: Vec<WatchTarget>, fetch_interval: Duration) -> notify::Result<Self> {
+    pub fn start(name: String, hub: Arc<Hub>, targets: Vec<WatchTarget>, fetch_interval: Duration, clients: Arc<AtomicUsize>) -> notify::Result<Self> {
         let (tx, rx) = mpsc::unbounded_channel();
         let watcher = RepoWatcher::start(targets, tx)?;
         let refresher = tokio::spawn(refresh_loop(rx, hub.clone()));
-        let fetcher = tokio::spawn(autofetch::run(hub.clone(), fetch_interval));
+        let fetcher = tokio::spawn(autofetch::run(hub.clone(), fetch_interval, clients));
         Ok(Self { name, hub, _watcher: watcher, refresher, fetcher })
     }
 }

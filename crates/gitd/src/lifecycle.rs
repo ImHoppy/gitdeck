@@ -1,12 +1,15 @@
 use std::{
-    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    sync::{
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 use tokio::sync::Notify;
 
 /// Exits after the last client closes plus the grace period, never during a job (PLAN §2.1).
 pub struct Lifecycle {
-    clients: AtomicUsize,
+    clients: Arc<AtomicUsize>,
     keep: AtomicBool,
     grace: Duration,
     pub shutdown: Notify,
@@ -16,7 +19,12 @@ const BUSY_POLL: Duration = Duration::from_secs(1);
 
 impl Lifecycle {
     pub fn new(grace: Duration, keep: bool) -> Self {
-        Self { clients: AtomicUsize::new(0), keep: AtomicBool::new(keep), grace, shutdown: Notify::new() }
+        Self { clients: Arc::new(AtomicUsize::new(0)), keep: AtomicBool::new(keep), grace, shutdown: Notify::new() }
+    }
+
+    /// The open-page count, shared with work that only makes sense while someone looks (auto fetch).
+    pub fn clients(&self) -> Arc<AtomicUsize> {
+        self.clients.clone()
     }
 
     pub fn keep_running(&self) -> bool {

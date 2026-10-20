@@ -51,7 +51,7 @@ pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
         .collect();
     let worktrees: Vec<PathBuf> = targets.iter().map(|t| t.worktree.clone()).collect();
     let interval = Duration::from_secs(ws.fetch_interval_minutes * 60);
-    let live = LiveWorkspace::start(ws.name.clone(), hub, targets, interval)?;
+    let live = LiveWorkspace::start(ws.name.clone(), hub, targets, interval, app.lifecycle.clients())?;
     // listing ignored files can take most of a second per repo: the page needn't wait for it
     let ignore = live.ignore_list();
     let runner = app.runner.clone();
