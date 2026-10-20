@@ -8,6 +8,8 @@ mod avatars;
 mod browser;
 mod cli;
 mod command_log;
+#[cfg(target_os = "linux")]
+mod desktop_entry;
 mod events;
 mod explorer;
 mod handlers;

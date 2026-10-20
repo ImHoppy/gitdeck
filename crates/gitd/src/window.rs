@@ -23,7 +23,14 @@ pub fn start(data_dir: PathBuf) {
         use tao::platform::windows::EventLoopBuilderExtWindows;
         #[cfg(not(windows))]
         use tao::platform::unix::EventLoopBuilderExtUnix;
-        let event_loop = EventLoopBuilder::<Request>::with_user_event().with_any_thread(true).build();
+        let mut builder = EventLoopBuilder::<Request>::with_user_event();
+        builder.with_any_thread(true);
+        #[cfg(target_os = "linux")]
+        {
+            crate::desktop_entry::install();
+            builder.with_app_id(crate::desktop_entry::APP_ID);
+        }
+        let event_loop = builder.build();
         let _ = tx.send(event_loop.create_proxy());
         run(event_loop, data_dir);
     });
