@@ -179,6 +179,7 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               files={unstaged.files}
               selected={picked?.side === 'worktree' ? picked.path : null}
               onSelect={(f) => setPicked({ side: 'worktree', path: f.path })}
+              onOpen={(f) => actions.stage([f.path])}
               mode={mode}
               all={[
                 { label: <Icon name="restore" size={12} />, title: 'Discard all unstaged changes…', disabled: actions.busy, run: () => void discard(unstaged.files ?? []) },
@@ -200,6 +201,7 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               files={staged.files}
               selected={picked?.side === 'index' ? picked.path : null}
               onSelect={(f) => setPicked({ side: 'index', path: f.path })}
+              onOpen={(f) => actions.unstage([f.path])}
               mode={mode}
               all={[{ label: '⇈ unstage all', title: 'Unstage all', disabled: actions.busy, run: () => actions.unstage(paths(staged.files)) }]}
               actions={[

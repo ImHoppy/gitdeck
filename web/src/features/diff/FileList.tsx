@@ -34,6 +34,7 @@ type Props = {
   files: ChangedFile[]
   selected: string | null
   onSelect: (f: ChangedFile) => void
+  onOpen?: (f: ChangedFile) => void
   mode?: FileListMode
   /** Shown on hover; on a folder they run for every file below it. */
   actions?: FileAction[]
@@ -45,7 +46,7 @@ function leaves(node: PathNode<ChangedFile>): ChangedFile[] {
   return node.kind === 'leaf' ? [node.item] : node.children.flatMap(leaves)
 }
 
-export function FileList({ files, selected, onSelect, mode = 'list', actions = [], onContextMenu }: Props) {
+export function FileList({ files, selected, onSelect, onOpen, mode = 'list', actions = [], onContextMenu }: Props) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const tree = useMemo(() => (mode === 'tree' ? buildPathTree(files, (f) => f.path) : null), [files, mode])
 
@@ -90,6 +91,7 @@ export function FileList({ files, selected, onSelect, mode = 'list', actions = [
       className={`${styles.file} ${f.path === selected ? styles.selected : ''}`}
       style={{ paddingLeft: 6 + depth * 14 }}
       onClick={() => onSelect(f)}
+      onDoubleClick={() => onOpen?.(f)}
       title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}
     >
       <span className={`${styles.icon} ${styles[f.kind]}`}>{ICON[f.kind]}</span>

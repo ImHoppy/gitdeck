@@ -9,13 +9,14 @@ type Props = {
   files: ChangedFile[] | null
   selected: string | null
   onSelect: (f: ChangedFile) => void
+  onOpen: (f: ChangedFile) => void
   mode: FileListMode
   all: { label: ReactNode; title: string; disabled: boolean; run: () => void }[]
   actions: FileAction[]
   onContextMenu?: (files: ChangedFile[], at: { x: number; y: number }, folder?: string) => void
 }
 
-export function ChangeList({ title, files, selected, onSelect, mode, all, actions, onContextMenu }: Props) {
+export function ChangeList({ title, files, selected, onSelect, onOpen, mode, all, actions, onContextMenu }: Props) {
   return (
     <>
       <div className={styles.listHeader}>
@@ -31,7 +32,7 @@ export function ChangeList({ title, files, selected, onSelect, mode, all, action
         </span>
       </div>
       <div className={styles.list}>
-        <FileList files={files ?? []} selected={selected} onSelect={onSelect} mode={mode} actions={actions} onContextMenu={onContextMenu} />
+        <FileList files={files ?? []} selected={selected} onSelect={onSelect} onOpen={onOpen} mode={mode} actions={actions} onContextMenu={onContextMenu} />
       </div>
     </>
   )
