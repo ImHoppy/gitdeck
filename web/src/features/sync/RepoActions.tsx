@@ -1,3 +1,4 @@
+import { Spinner } from '../../ui/Spinner/Spinner'
 import type { RebaseAction, RepoSnapshot, SyncKind } from '../../protocol/types'
 import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
@@ -34,13 +35,13 @@ export function RepoActions({ repo, busy, pullAction, onSetPullAction, onSync, o
       </IconButton>
     )
   }
-  const { ahead, behind } = s.tracking
+  const { ahead } = s.tracking
   return (
     <>
       <PullButton
         defaultAction={pullAction}
         disabled={busy}
-        suffix={busy ? ' …' : ahead || behind ? ` ${behind ?? 0}↓ ${ahead ?? 0}↑` : ''}
+        suffix={busy ? <Spinner /> : null}
         onRun={onSync}
         onSetDefault={onSetPullAction}
       />

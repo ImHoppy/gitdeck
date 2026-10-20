@@ -8,9 +8,9 @@ import { useGitData } from './useGitData'
 
 const LINE = 18
 
-type Props = { repoId: number; sha: string; path: string; onPick: (sha: string) => void }
+type Props = { repoId: number; sha: string; path: string; onPick: (sha: string) => void; onHistory?: (path: string) => void }
 
-export function FileView({ repoId, sha, path, onPick }: Props) {
+export function FileView({ repoId, sha, path, onPick, onHistory }: Props) {
   const [blame, setBlame] = useState(false)
   const content = useGitData<FileContent>('file.show', { id: repoId, sha, path })
   const blamed = useGitData<BlameLine[]>('file.blame', blame ? { id: repoId, sha, path } : null)
@@ -26,6 +26,11 @@ export function FileView({ repoId, sha, path, onPick }: Props) {
       <label>
         <input type="checkbox" checked={blame} onChange={(e) => setBlame(e.target.checked)} /> Blame
       </label>
+      {onHistory && (
+        <button className={styles.historyButton} title="Every commit that changed this file (new window)" onClick={() => onHistory(path)}>
+          History
+        </button>
+      )}
     </div>
   )
 

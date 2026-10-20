@@ -1,4 +1,5 @@
 import type { PatchOptions } from '../../protocol/types'
+import { Select } from '../../ui/Select/Select'
 import styles from './Diff.module.css'
 import { CONTEXT_CHOICES } from './useDiffOptions'
 
@@ -9,13 +10,11 @@ export function DiffToolbar({ options, onChange, staging }: Props) {
     <div className={styles.toolbar}>
       <label title="Context lines around each change">
         context{' '}
-        <select value={String(options.context)} onChange={(e) => onChange({ ...options, context: Number(e.target.value) })}>
-          {CONTEXT_CHOICES.map((c) => (
-            <option key={c} value={c}>
-              {c === '100000' ? 'whole file' : c}
-            </option>
-          ))}
-        </select>
+        <Select
+          value={String(options.context)}
+          options={CONTEXT_CHOICES.map((c) => [c, c === '100000' ? 'whole file' : c] as const)}
+          onChange={(c) => onChange({ ...options, context: Number(c) })}
+        />
       </label>
       <label>
         <input

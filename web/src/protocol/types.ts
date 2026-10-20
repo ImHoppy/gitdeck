@@ -15,6 +15,7 @@ export type RepoState = {
   tracking: Tracking
   status: StatusCounts
   operation: Operation | null
+  bisecting: boolean
 }
 
 export type RepoSnapshot = {
@@ -32,7 +33,7 @@ export type RepoSnapshot = {
   lastFetch: LastFetch | null
 }
 
-export type WorkspaceSnapshot = { name: string; repos: RepoSnapshot[] }
+export type WorkspaceSnapshot = { name: string; repos: RepoSnapshot[]; nestedRoots: string[] }
 
 export type SyncKind = 'fetch' | 'pull' | 'push' | 'sync'
 
@@ -99,18 +100,29 @@ export type RepoAction =
   | { kind: 'renameBranch'; from: string; to: string }
   | { kind: 'deleteBranch'; name: string; force: boolean }
   | { kind: 'deleteRemoteBranch'; remote: string; name: string }
-  | { kind: 'merge'; rev: string }
+  | { kind: 'merge'; rev: string; mode: 'default' | 'noFastForward' | 'squash' }
   | { kind: 'rebase'; onto: string }
   | { kind: 'cherryPick'; sha: string }
   | { kind: 'revert'; sha: string }
   | { kind: 'reset'; sha: string; mode: ResetMode }
-  | { kind: 'createTag'; name: string; at: string }
+  | { kind: 'createTag'; name: string; at: string; message: string | null }
   | { kind: 'deleteTag'; name: string }
   | { kind: 'stashPush'; message: string; untracked: boolean }
   | { kind: 'stashApply'; index: number }
   | { kind: 'stashPop'; index: number }
   | { kind: 'stashDrop'; index: number }
   | { kind: 'recordPointers'; paths: string[] }
+  | { kind: 'publish'; remote: string; branch: string }
+  | { kind: 'forcePush' }
+  | { kind: 'pushTags'; remote: string }
+  | { kind: 'pushTag'; remote: string; name: string }
+  | { kind: 'deleteRemoteTag'; remote: string; name: string }
+  | { kind: 'addRemote'; name: string; url: string }
+  | { kind: 'removeRemote'; name: string }
+  | { kind: 'renameRemote'; from: string; to: string }
+  | { kind: 'setRemoteUrl'; name: string; url: string }
+  | { kind: 'fetchRemote'; name: string }
+  | { kind: 'pruneRemote'; name: string }
 
 export type Stash = { index: number; sha: string; time: number; message: string }
 

@@ -3,6 +3,8 @@ import type { ChangedFile, Patch } from '../../protocol/types'
 import { Dialog } from '../../ui/Dialog/Dialog'
 import { DiffViewer } from '../../ui/DiffViewer/DiffViewer'
 import { IconButton } from '../../ui/IconButton/IconButton'
+import { Menu, type MenuItem } from '../../ui/Menu/Menu'
+import { parseDiff } from '../../lib/diffLines'
 import styles from './Diff.module.css'
 import { type LineMode, useLineStaging } from './useLineStaging'
 
@@ -21,6 +23,7 @@ export function PatchView({ repoId, file, patch, side }: Props) {
   const selected = picked?.diffId === patch.diffId ? picked.lines : EMPTY
   const setSelected = (lines: Set<number>) => setPicked({ diffId: patch.diffId, lines })
   const [confirmReset, setConfirmReset] = useState(false)
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null)
   const staging = useLineStaging(repoId)
 
   const run = async (mode: LineMode) => {
@@ -42,6 +45,26 @@ export function PatchView({ repoId, file, patch, side }: Props) {
   })
 
   const none = selected.size === 0 || staging.busy
+
+  const copySelected = () => {
+    const lines = parseDiff(patch.text)
+    const text = [...selected].sort((a, b) => a - b).map((i) => lines[i]?.text ?? '').join('\n')
+    void navigator.clipboard?.writeText(text)
+  }
+
+  const menuItems = (): MenuItem[] => {
+    const items: MenuItem[] = []
+    if (side === 'worktree') {
+      items.push({ key: 'stage', label: 'Stage selected lines', icon: 'pull', disabled: none, onSelect: () => void run('stage') })
+      items.push({ key: 'reset', label: 'Reset selected lines…', icon: 'trash', danger: true, disabled: none, onSelect: () => setConfirmReset(true) })
+    }
+    if (side === 'index') {
+      items.push({ key: 'unstage', label: 'Unstage selected lines', icon: 'push', disabled: none, onSelect: () => void run('unstage') })
+    }
+    if (items.length) items.push('separator')
+    items.push({ key: 'copy', label: 'Copy selected lines', icon: 'copy', disabled: selected.size === 0, onSelect: copySelected })
+    return items
+  }
   return (
     <div className={styles.patchView}>
       {side && (
@@ -68,8 +91,15 @@ export function PatchView({ repoId, file, patch, side }: Props) {
         </div>
       )}
       <div className={styles.patchBody}>
-        <DiffViewer patch={patch.text} path={file.path} selected={side ? selected : undefined} onSelect={side ? setSelected : undefined} />
+        <DiffViewer
+          patch={patch.text}
+          path={file.path}
+          selected={side ? selected : undefined}
+          onSelect={side ? setSelected : undefined}
+          onContextMenu={side ? (_, at) => setMenuAt(at) : undefined}
+        />
       </div>
+      {menuAt && <Menu items={menuItems()} at={menuAt} onClose={() => setMenuAt(null)} />}
       {confirmReset && (
         <Dialog
           title="Reset selected lines?"

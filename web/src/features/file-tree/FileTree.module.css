@@ -85,3 +85,13 @@
 .blameStart {
   border-top: 1px solid var(--border);
 }
+
+.historyButton {
+  padding: 1px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}

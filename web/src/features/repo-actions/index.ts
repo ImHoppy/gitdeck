@@ -1,4 +1,6 @@
-export { type Commands, commitMenu, refMenu, stashMenu, stashPush } from './menus'
+export { branchMenu, type Commands, commitMenu, pushMenu, refMenu, stashMenu, stashPush } from './menus'
+export { commitToolsMenu, moreMenu, type ViewOptions } from './moreMenu'
 export { type TreeMenuDeps, treeMenu } from './treeMenu'
 export { type CommandResult, useRepoCommands } from './useRepoCommands'
+export { type ToolResult, useRepoTools } from './useRepoTools'
 export { useTreeCommands } from './useTreeCommands'

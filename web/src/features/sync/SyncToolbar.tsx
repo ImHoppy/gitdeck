@@ -1,3 +1,4 @@
+import { Spinner } from '../../ui/Spinner/Spinner'
 import type { SyncKind } from '../../protocol/types'
 import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
@@ -17,12 +18,12 @@ export function SyncToolbar({ running, pullAction, onSetPullAction, onRunAll }: 
       <PullButton
         defaultAction={pullAction}
         disabled={running !== null}
-        suffix={running && running !== 'push' ? ' … all' : ' all'}
+        suffix={running && running !== 'push' ? <Spinner /> : ' all'}
         onRun={onRunAll}
         onSetDefault={onSetPullAction}
       />
       <IconButton title="Push every repo that is ahead" disabled={running !== null} onClick={() => onRunAll('push')}>
-        {running === 'push' ? '…' : <Icon name="push" />} all
+        {running === 'push' ? <Spinner /> : <Icon name="push" />} all
       </IconButton>
     </>
   )

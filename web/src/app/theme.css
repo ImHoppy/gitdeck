@@ -1,16 +1,21 @@
 :root {
   --bg: #ffffff;
   --bg-panel: #f5f6f8;
+  --bg-input: #ffffff;
   --fg: #1f2328;
   --fg-muted: #656d76;
   --accent: #0969da;
+  --focus: #0969da;
   --ahead: #1a7f37;
   --behind: #bc4c00;
   --dirty: #9a6700;
   --danger: #cf222e;
   --border: #d0d7de;
+  --border-input: #c4ccd5;
   --hover: #eaeef2;
   --selection: #ddf4ff;
+  --scrollbar: rgb(100 100 100 / 0.35);
+  --scrollbar-hover: rgb(100 100 100 / 0.6);
   --diff-add: #dafbe1;
   --diff-del: #ffebe9;
   --syn-keyword: #cf222e;
@@ -19,60 +24,129 @@
   --syn-number: #0550ae;
   --syn-type: #8250df;
   --syn-meta: #116329;
-  font: 13px/1.4 system-ui, sans-serif;
+  color-scheme: light;
+  font: 13px/1.4 'Segoe UI', system-ui, -apple-system, Ubuntu, sans-serif;
   color: var(--fg);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0d1117;
-    --bg-panel: #161b22;
-    --fg: #e6edf3;
-    --fg-muted: #8d96a0;
-    --accent: #4493f8;
+    --bg: #1f1f1f;
+    --bg-panel: #181818;
+    --bg-input: #313131;
+    --fg: #cccccc;
+    --fg-muted: #9d9d9d;
+    --accent: #0078d4;
+    --focus: #0078d4;
     --ahead: #3fb950;
     --behind: #f0883e;
     --dirty: #d29922;
     --danger: #f85149;
-    --border: #30363d;
-    --hover: #1f2630;
-    --selection: #1c2d41;
-    --diff-add: #12261e;
-    --diff-del: #25171c;
-    --syn-keyword: #ff7b72;
-    --syn-string: #a5d6ff;
-    --syn-comment: #8b949e;
-    --syn-number: #79c0ff;
-    --syn-type: #d2a8ff;
-    --syn-meta: #7ee787;
+    --border: #2b2b2b;
+    --border-input: #3c3c3c;
+    --hover: #2a2d2e;
+    --selection: #04395e;
+    --scrollbar: rgb(121 121 121 / 0.4);
+    --scrollbar-hover: rgb(100 100 100 / 0.7);
+    --diff-add: #1b2f23;
+    --diff-del: #3a1d1d;
+    --syn-keyword: #569cd6;
+    --syn-string: #ce9178;
+    --syn-comment: #6a9955;
+    --syn-number: #b5cea8;
+    --syn-type: #4ec9b0;
+    --syn-meta: #c586c0;
+    color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #0d1117;
-  --bg-panel: #161b22;
-  --fg: #e6edf3;
-  --fg-muted: #8d96a0;
-  --accent: #4493f8;
+  --bg: #1f1f1f;
+  --bg-panel: #181818;
+  --bg-input: #313131;
+  --fg: #cccccc;
+  --fg-muted: #9d9d9d;
+  --accent: #0078d4;
+  --focus: #0078d4;
   --ahead: #3fb950;
   --behind: #f0883e;
   --dirty: #d29922;
   --danger: #f85149;
-  --border: #30363d;
-  --hover: #1f2630;
-  --selection: #1c2d41;
-  --diff-add: #12261e;
-  --diff-del: #25171c;
-  --syn-keyword: #ff7b72;
-  --syn-string: #a5d6ff;
-  --syn-comment: #8b949e;
-  --syn-number: #79c0ff;
-  --syn-type: #d2a8ff;
-  --syn-meta: #7ee787;
+  --border: #2b2b2b;
+  --border-input: #3c3c3c;
+  --hover: #2a2d2e;
+  --selection: #04395e;
+  --scrollbar: rgb(121 121 121 / 0.4);
+  --scrollbar-hover: rgb(100 100 100 / 0.7);
+  --diff-add: #1b2f23;
+  --diff-del: #3a1d1d;
+  --syn-keyword: #569cd6;
+  --syn-string: #ce9178;
+  --syn-comment: #6a9955;
+  --syn-number: #b5cea8;
+  --syn-type: #4ec9b0;
+  --syn-meta: #c586c0;
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-hover);
+}
+
+input:not([type='checkbox'], [type='radio']),
+textarea {
+  padding: 4px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  outline: none;
+  transition: border-color 0.1s;
+}
+
+input:not([type='checkbox'], [type='radio']):focus,
+textarea:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px var(--focus);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--fg-muted);
+  opacity: 0.8;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: -1px;
 }
 
 html,

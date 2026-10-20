@@ -1,16 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
 import { CommitInfo } from '../features/commit-info'
+import { InteractiveRebaseDialog } from '../features/rebase'
 import { DiffPanel } from '../features/diff'
 import { FileTreePanel } from '../features/file-tree'
 import { OutputPanel, useCommandLog } from '../features/output'
 import { RefsPanel, type RefTarget, useStashes } from '../features/refs-panel'
-import { type Commands, commitMenu, refMenu, stashMenu, stashPush, useRepoCommands } from '../features/repo-actions'
-import { type GridSelection, RevisionGrid, useHistory } from '../features/revision-grid'
+import {
+  branchMenu,
+  type Commands,
+  commitMenu,
+  commitToolsMenu,
+  moreMenu,
+  pushMenu,
+  refMenu,
+  stashMenu,
+  stashPush,
+  useRepoCommands,
+  useRepoTools,
+  type ViewOptions,
+} from '../features/repo-actions'
+import { RemotesDialog } from '../features/remotes'
+import { WorktreesDialog } from '../features/worktrees'
+import { Toast } from '../ui/Toast/Toast'
+import { RepoToolbar } from './RepoToolbar'
+import { openWindow } from './windows'
+import { type GridSelection, HistorySearch, RevisionGrid, type SearchMode, useHistory } from '../features/revision-grid'
+import { loadSetting, saveSetting } from '../lib/storedSetting'
 import type { DiffTarget, GitRef, HistoryRow, RepoSnapshot } from '../protocol/types'
 import { useDialogs } from '../ui/Dialog/useDialogs'
-import { Icon } from '../ui/Icon/Icon'
 import { IconButton } from '../ui/IconButton/IconButton'
 import { Resizer } from '../ui/Resizer/Resizer'
 import { usePaneSize } from '../lib/usePaneSize'
@@ -29,10 +48,26 @@ function diffTitle(s: GridSelection): string {
   return `${s.sha.slice(0, 8)}: ${s.subject}`
 }
 
-export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => void }) {
+type Props = { repo: RepoSnapshot; workspace: string; onBack?: () => void; onPush: (id: number) => void }
+
+export function RepoView({ repo, workspace, onBack, onPush }: Props) {
   const [filter, setFilter] = useState('')
   const filterBox = useRef<HTMLInputElement>(null)
-  const history = useHistory(repo.id, useDebounced(filter.trim(), 250))
+  const [searchMode, setSearchMode] = useState<SearchMode>(() => loadSetting('searchMode', ['message', 'content'] as const, 'message'))
+  // content search runs git over every diff: wait for a pause in typing
+  const query = useDebounced(filter.trim(), searchMode === 'content' ? 600 : 250)
+  const [view, setView] = useState<ViewOptions>(() => ({
+    currentBranch: loadSetting('viewCurrentBranch', ['1', '0'] as const, '0') === '1',
+    firstParent: loadSetting('viewFirstParent', ['1', '0'] as const, '0') === '1',
+  }))
+  const changeView = (v: ViewOptions) => {
+    setView(v)
+    saveSetting('viewCurrentBranch', v.currentBranch ? '1' : '0')
+    saveSetting('viewFirstParent', v.firstParent ? '1' : '0')
+  }
+  const history = useHistory(repo.id, query, searchMode === 'content', view)
+  const tools = useRepoTools(repo.id)
+  const [panel, setPanel] = useState<'remotes' | 'worktrees' | null>(null)
   const stashes = useStashes(repo.id)
   const commands = useRepoCommands(repo.id)
   const dialogs = useDialogs()
@@ -40,6 +75,8 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
   const [scrollTo, setScrollTo] = useState<number | null>(null)
   const [ancestry, setAncestry] = useState(false)
   const [committing, setCommitting] = useState(false)
+  const [rebaseBase, setRebaseBase] = useState<string | null>(null)
+  const closeCommit = useCallback(() => setCommitting(false), [])
   const [lineage, setLineage] = useState<{ sha: string; rows: ReadonlySet<number> } | null>(null)
   const selectedSha = selection?.kind === 'commit' ? selection.sha : null
   const { ancestors } = history
@@ -67,22 +104,25 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [history])
+  useEffect(() => {
+    document.title = `${repo.pathInParent ?? repo.name} · gitdeck`
+  }, [repo.pathInParent, repo.name])
+  const openFileHistory = (path: string) => openWindow({ kind: 'history', repo: repo.id, path }, workspace)
   const highlighted = ancestry && lineage && lineage.sha === selectedSha ? lineage.rows : null
   const [tab, setTab] = useState<'commit' | 'diff' | 'files' | 'output'>('commit')
   const commandLog = useCommandLog()
-  const refsWidth = usePaneSize('refs', 200, 120, 500)
+  const refsWidth = usePaneSize('refs', 150, 100, 500)
   const bottomHeight = usePaneSize('bottom', 300, 100, 2000)
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
   const head = repo.state?.head
   const currentBranch = head?.kind === 'branch' ? head.name : null
-  const status = repo.state?.status
-  const changes = (status?.staged ?? 0) + (status?.unstaged ?? 0) + (status?.untracked ?? 0)
   const refs = useMemo(() => history.info?.refs ?? [], [history.info])
+  const remotes = useMemo(() => [...new Set(refs.filter((r) => r.kind === 'remote').map((r) => r.name.split('/')[0]))].sort(), [refs])
   const ctx = useMemo(() => {
     const cmd: Commands = { run: commands.run, prompt: dialogs.prompt, confirm: dialogs.confirm }
-    return { cmd, currentBranch }
-  }, [commands.run, dialogs.prompt, dialogs.confirm, currentBranch])
+    return { cmd, currentBranch, remotes: remotes.length ? remotes : ['origin'] }
+  }, [commands.run, dialogs.prompt, dialogs.confirm, currentBranch, remotes])
 
   const pick = async (sha: string) => {
     const index = await history.locate(sha)
@@ -94,7 +134,8 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
 
   const onCommitMenu = (row: HistoryRow, at: { x: number; y: number }) => {
     const branchesHere = refs.filter((r) => r.kind === 'branch' && r.sha === row.sha && r.name !== currentBranch).map((r) => r.name)
-    setMenu({ items: commitMenu(ctx, row.sha, branchesHere), at })
+    const interactive: MenuItem = { key: 'rebase-i', label: 'Rebase interactively from here…', icon: 'history', disabled: !currentBranch || row.sha === history.info?.head, onSelect: () => setRebaseBase(row.sha) }
+    setMenu({ items: [...commitMenu(ctx, row.sha, branchesHere), 'separator', interactive, 'separator', ...commitToolsMenu(tools, row.sha, row.subject)], at })
   }
 
   const onRefMenu = (target: RefTarget, at: { x: number; y: number }) =>
@@ -110,32 +151,65 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
   if (!history.info) return <div className={styles.message}>Loading history…</div>
   return (
     <div className={styles.repoView}>
-      <div className={styles.toolbar}>
-        {onBack && (
-          <IconButton title="Back to the repositories" onClick={onBack}>
-            <Icon name="folder" /> Repos
-          </IconButton>
-        )}
-        <strong>{repo.pathInParent ?? repo.name}</strong>
-        <IconButton title="Open the commit dialog (Ctrl+Space)" onClick={() => setCommitting(true)}>
-          <Icon name="commit" /> Commit ({changes})
-        </IconButton>
-        <IconButton title="Stash all changes" disabled={changes === 0 || commands.busy} onClick={() => void stashPush(ctx)}>
-          <Icon name="stash" /> Stash
-        </IconButton>
-        <IconButton title="Dim commits that are not ancestors of the selected one" onClick={() => setAncestry(!ancestry)}>
-          <Icon name="history" /> {ancestry ? 'ancestry on' : 'ancestry'}
-        </IconButton>
-        <input
-          ref={filterBox}
-          className={styles.filter}
-          placeholder="Filter: message, author, hash (Ctrl+F)"
+      <RepoToolbar
+        repo={repo}
+        busy={commands.busy}
+        ancestry={ancestry}
+        onBack={onBack}
+        onBranchMenu={(at) => setMenu({ items: branchMenu(ctx, refs, history.info?.head ?? null), at })}
+        onPushMenu={(at) => {
+          const t = repo.state?.tracking
+          setMenu({ items: pushMenu(ctx, { hasUpstream: t?.ahead != null, ahead: t?.ahead ?? 0, push: () => onPush(repo.id) }), at })
+        }}
+        onMoreMenu={(at) =>
+          setMenu({
+            items: moreMenu({
+              view,
+              setView: changeView,
+              tools,
+              bisecting: !!repo.state?.bisecting,
+              open: (what) => (what === 'reflog' ? openWindow({ kind: 'reflog', repo: repo.id }, workspace) : setPanel(what)),
+            }),
+            at,
+          })
+        }
+        onCommit={() => setCommitting(true)}
+        onStash={() => void stashPush(ctx)}
+        onStats={() => openWindow({ kind: 'stats', repo: repo.id }, workspace)}
+        onAncestry={() => setAncestry(!ancestry)}
+      >
+        <HistorySearch
+          inputRef={filterBox}
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          onKeyDown={(e) => e.key === 'Escape' && setFilter('')}
+          mode={searchMode}
+          searching={history.searching}
+          count={query ? history.info.count : null}
+          onChange={setFilter}
+          onMode={(m) => {
+            setSearchMode(m)
+            saveSetting('searchMode', m)
+          }}
         />
         <CommandStatus busy={commands.busy} last={commands.last} onDismiss={commands.clear} />
-      </div>
+      </RepoToolbar>
+      {repo.state?.bisecting && (
+        <div className={styles.bisectBar}>
+          <strong>Bisecting</strong>
+          <span>Test the checked-out commit, then mark it:</span>
+          <IconButton title="This commit has the bug" onClick={() => void tools.bisect('bad', 'HEAD')}>
+            Bad
+          </IconButton>
+          <IconButton title="This commit is fine" onClick={() => void tools.bisect('good', 'HEAD')}>
+            Good
+          </IconButton>
+          <IconButton title="Can't test this one" onClick={() => void tools.bisect('skip', 'HEAD')}>
+            Skip
+          </IconButton>
+          <IconButton title="Stop and go back to where the bisect started" onClick={() => void tools.stopBisect()}>
+            Stop
+          </IconButton>
+        </div>
+      )}
       <div className={styles.repoBody}>
         <div className={`${styles.refsPane} ${styles.wideOnly}`} style={{ width: refsWidth.size }}>
           <RefsPanel
@@ -160,6 +234,11 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
               selection={selection}
               onSelect={setSelection}
               onCommitMenu={onCommitMenu}
+              onOpenCommits={(picks) =>
+                // from before the oldest pick to the newest: every picked commit's changes are in
+                openWindow({ kind: 'compare', repo: repo.id, newest: picks[0].sha, base: picks[picks.length - 1].parents[0] ?? '', count: picks.length }, workspace)
+              }
+              onOpenCommit={(row) => openWindow({ kind: 'show', repo: repo.id, sha: row.sha, parents: row.parents }, workspace)}
               scrollTo={scrollTo}
               onScrollTo={setScrollTo}
               highlighted={highlighted}
@@ -189,6 +268,7 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
                   repoId={repo.id}
                   sha={selection?.kind === 'commit' ? selection.sha : (history.info.head ?? 'HEAD')}
                   onPick={(sha) => void pick(sha)}
+                  onHistory={openFileHistory}
                 />
               ) : tab === 'commit' && selection?.kind === 'commit' ? (
                 <CommitInfo repoId={repo.id} sha={selection.sha} refs={refs} onPick={(sha) => void pick(sha)} />
@@ -199,6 +279,15 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
                   target={diffTarget(selection)}
                   title={diffTitle(selection)}
                   parents={selection.kind === 'commit' ? selection.parents : undefined}
+                  onFileHistory={openFileHistory}
+                  onDiffTool={(path) =>
+                    void tools.diffTool(
+                      path,
+                      selection.kind === 'commit'
+                        ? { base: selection.parents[0] ?? null, rev: selection.sha }
+                        : { staged: selection.kind === 'index' },
+                    )
+                  }
                 />
               ) : (
                 <div className={styles.message}>Select a row to see its changes.</div>
@@ -208,7 +297,29 @@ export function RepoView({ repo, onBack }: { repo: RepoSnapshot; onBack?: () => 
         </div>
       </div>
       {menu && <Menu items={menu.items} at={menu.at} onClose={() => setMenu(null)} />}
-      {committing && <CommitDialog repoId={repo.id} onClose={() => setCommitting(false)} />}
+      {committing && (
+        <CommitDialog
+          repoId={repo.id}
+          onClose={closeCommit}
+          onPush={() => onPush(repo.id)}
+          onPopOut={() => {
+            closeCommit()
+            openWindow({ kind: 'commit', repo: repo.id }, workspace)
+          }}
+        />
+      )}
+      {panel === 'remotes' && <RemotesDialog repoId={repo.id} cmd={ctx.cmd} onClose={() => setPanel(null)} />}
+      {panel === 'worktrees' && (
+        <WorktreesDialog
+          repoId={repo.id}
+          cmd={ctx.cmd}
+          branches={refs.filter((r) => r.kind === 'branch').map((r) => r.name)}
+          onOpen={(path) => window.open(`/?open=${encodeURIComponent(path)}`, `worktree-${path}`, 'popup,width=1400,height=900')}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {tools.result && <Toast tone={tools.result.ok ? 'ok' : 'bad'} title={tools.result.text} onDismiss={tools.clear} autoHide={tools.result.ok ? 6000 : undefined} />}
+      {rebaseBase && <InteractiveRebaseDialog repoId={repo.id} base={rebaseBase} onClose={() => setRebaseBase(null)} />}
       {dialogs.element}
     </div>
   )

@@ -21,6 +21,7 @@ function repo(id: number, parent: number | null, pathInParent: string | null, be
       tracking: { ahead: 0, behind, gone: false },
       status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 0 },
       operation: null,
+      bisecting: false,
     },
   }
 }

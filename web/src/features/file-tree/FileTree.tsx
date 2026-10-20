@@ -1,3 +1,4 @@
+import { Spinner } from '../../ui/Spinner/Spinner'
 import { useState } from 'react'
 import type { TreeEntry } from '../../protocol/types'
 import { Chevron } from '../../ui/Chevron/Chevron'
@@ -17,7 +18,9 @@ export function FileTree(props: Props) {
 function Dir({ repoId, sha, dir, depth, selected, onSelect }: Props & { dir: string; depth: number }) {
   const { data, error } = useGitData<TreeEntry[]>('tree.list', { id: repoId, sha, dir })
   if (error) return <div className={styles.error}>{error}</div>
-  if (!data) return <div className={styles.row} style={{ paddingLeft: 8 + depth * 14 }}>…</div>
+  if (!data) return <div className={styles.row} style={{ paddingLeft: 8 + depth * 14 }}>
+        <Spinner />
+      </div>
   return (
     <>
       {data.map((e) => {

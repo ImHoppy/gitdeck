@@ -11,6 +11,9 @@ export type TreeMenuDeps = {
   refresh: () => void
   removeRoot: (path: string) => void
   setExcluded: (path: string, excluded: boolean) => void
+  /** Roots that also show the git repos cloned inside them; null: not a root. */
+  nested: boolean | null
+  setNested: (path: string, on: boolean) => void
 }
 
 export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
@@ -22,6 +25,9 @@ export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
     repo.excluded
       ? { key: 'include', label: 'Include in auto fetch and live status', onSelect: () => d.setExcluded(repo.path, false) }
       : { key: 'exclude', label: 'Exclude from auto fetch and live status', onSelect: () => d.setExcluded(repo.path, true) },
+    ...(d.nested !== null
+      ? [{ key: 'nested', label: 'Show repos cloned inside this folder', checked: d.nested, onSelect: () => d.setNested(repo.path, !d.nested) }]
+      : []),
     ...(repo.parent === null ? [{ key: 'remove', label: 'Remove from workspace', icon: 'trash' as const, danger: true, onSelect: () => d.removeRoot(repo.path) }] : []),
   ]
   if (repo.excluded) return workspaceItems.slice(1)

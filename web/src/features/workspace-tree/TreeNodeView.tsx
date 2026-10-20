@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react'
 import type { RepoSnapshot } from '../../protocol/types'
 import type { TreeNode } from './model'
 import { rollup } from './model'
+import { Icon } from '../../ui/Icon/Icon'
 import { RepoBadges } from './RepoBadges'
 import { TreeRow } from './TreeRow'
 import styles from './WorkspaceTree.module.css'
@@ -22,10 +23,20 @@ export function TreeNodeView({ node, depth, selectedId, onSelect, actions, onRep
 
   const label =
     node.kind === 'folder' ? (
-      <span className={styles.folder}>{node.name} ›</span>
+      <>
+        <span className={styles.kindIcon}>
+          <Icon name="folder" size={13} />
+        </span>
+        <span className={styles.folder}>{node.name}</span>
+      </>
     ) : (
       <>
-        <span className={styles.name}>{node.repo.name}</span>
+        <span className={`${styles.kindIcon} ${styles.repoIcon}`}>
+          <Icon name="repo" size={13} />
+        </span>
+        <span className={styles.name} title={node.repo.name}>
+          {node.repo.name}
+        </span>
         <span className={styles.head}>{headLabel(node)}</span>
         <span className={styles.badges}>
           <RepoBadges repo={node.repo} />

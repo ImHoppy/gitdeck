@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { gitd } from '../../protocol/client'
+import type { ChangedFile } from '../../protocol/types'
 
 export function useCommitActions(repoId: number) {
   const [busy, setBusy] = useState(false)
@@ -19,12 +20,20 @@ export function useCommitActions(repoId: number) {
     }
   }, [repoId])
 
+  const template = useCallback(() => gitd.call<string>('commit.template', { id: repoId }).catch(() => ''), [repoId])
+
   return {
     busy,
     error,
     stage: (paths: string[]) => run('stage.files', { paths }),
     unstage: (paths: string[]) => run('unstage.files', { paths }),
-    commit: (message: string, amend: boolean) => run('commit.create', { message, amend }),
+    discard: (files: ChangedFile[]) =>
+      run('changes.discard', {
+        paths: files.filter((f) => f.kind !== 'untracked').map((f) => f.path),
+        untracked: files.filter((f) => f.kind === 'untracked').map((f) => f.path),
+      }),
+    commit: (message: string, amend: boolean, signOff: boolean) => run('commit.create', { message, amend, signOff }),
+    template,
     lastMessage: () => gitd.call<string>('commit.lastMessage', { id: repoId }),
   }
 }

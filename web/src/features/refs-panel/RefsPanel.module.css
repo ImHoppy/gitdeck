@@ -1,4 +1,7 @@
 .panel {
+  /* its column is a flex row: grow to the dragged width, not to the longest name */
+  flex: 1;
+  min-width: 0;
   height: 100%;
   overflow: auto;
   background: var(--bg-panel);

@@ -1,5 +1,5 @@
 export { DiffPanel } from './DiffPanel'
-export { FileList } from './FileList'
+export { type FileAction, FileList, type FileListMode } from './FileList'
 export { PatchView } from './PatchView'
 export { useDiffFiles } from './useDiffFiles'
 export { usePatch } from './usePatch'

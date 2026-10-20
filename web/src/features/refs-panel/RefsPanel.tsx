@@ -29,7 +29,7 @@ export function RefsPanel({ refs, stashes, currentBranch, aheadBehind, onPick, o
   const renderNodes = (nodes: RefNode[], depth: number): ReactNode =>
     nodes.map((n) =>
       n.kind === 'folder' ? (
-        <Folder key={n.path} name={n.name} depth={depth}>
+        <Folder key={n.path} name={n.name} depth={depth} open={!!currentBranch?.startsWith(n.path)}>
           {renderNodes(n.children, depth + 1)}
         </Folder>
       ) : (
@@ -88,8 +88,9 @@ function Section({ title, closed, children }: { title: string; closed?: boolean;
   )
 }
 
-function Folder({ name, depth, children }: { name: string; depth: number; children: ReactNode }) {
-  const [open, setOpen] = useState(true)
+// collapsed unless it holds the checked-out branch
+function Folder({ name, depth, open: initial, children }: { name: string; depth: number; open: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(initial)
   return (
     <>
       <div className={`${styles.row} ${styles.folder}`} style={{ paddingLeft: depth * 12 - 4 }} onClick={() => setOpen(!open)}>

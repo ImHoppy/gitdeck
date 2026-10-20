@@ -1,18 +1,3 @@
-.summary {
-  margin: 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-panel);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-}
-
 .group {
   padding: 4px 8px 2px;
   font-size: 11px;

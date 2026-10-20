@@ -1,3 +1,4 @@
+import { Spinner } from '../../ui/Spinner/Spinner'
 import { relativeTime } from '../../lib/relativeTime'
 import type { GitRef } from '../../protocol/types'
 import styles from './CommitInfo.module.css'
@@ -8,7 +9,7 @@ type Props = { repoId: number; sha: string; refs: GitRef[]; onPick: (sha: string
 export function CommitInfo({ repoId, sha, refs, onPick }: Props) {
   const { details: d, error } = useCommitDetails(repoId, sha)
   if (error) return <div className={styles.info}>{error}</div>
-  if (!d) return <div className={styles.info}>Loading…</div>
+  if (!d) return <div className={styles.info}><Spinner /></div>
   const here = refs.filter((r) => r.sha === d.sha)
   const when = (t: number) => `${new Date(t * 1000).toLocaleString()} (${relativeTime(t)})`
   return (

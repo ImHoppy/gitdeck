@@ -1,4 +1,9 @@
+import { type ReactNode, useMemo, useState } from 'react'
+import { buildPathTree, type FlatNode, flattenPathTree, type PathNode } from '../../lib/pathTree'
 import type { ChangedFile, ChangeKind } from '../../protocol/types'
+import { Chevron } from '../../ui/Chevron/Chevron'
+import { Icon } from '../../ui/Icon/Icon'
+import { VirtualList } from '../../ui/VirtualList/VirtualList'
 import styles from './Diff.module.css'
 
 const ICON: Record<ChangeKind, string> = {
@@ -12,40 +17,92 @@ const ICON: Record<ChangeKind, string> = {
   untracked: '?',
 }
 
+const ROW_HEIGHT = 20
+
+export type FileAction = { label: ReactNode; title: string; run: (files: ChangedFile[]) => void }
+
+export type FileListMode = 'list' | 'tree'
+
 type Props = {
   files: ChangedFile[]
   selected: string | null
   onSelect: (f: ChangedFile) => void
-  action?: { label: React.ReactNode; title: string; run: (f: ChangedFile) => void }
+  mode?: FileListMode
+  /** Shown on hover; on a folder they run for every file below it. */
+  actions?: FileAction[]
 }
 
-export function FileList({ files, selected, onSelect, action }: Props) {
+function leaves(node: PathNode<ChangedFile>): ChangedFile[] {
+  return node.kind === 'leaf' ? [node.item] : node.children.flatMap(leaves)
+}
+
+export function FileList({ files, selected, onSelect, mode = 'list', actions = [] }: Props) {
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
+  const tree = useMemo(() => (mode === 'tree' ? buildPathTree(files, (f) => f.path) : null), [files, mode])
+
   if (files.length === 0) return <div className={styles.empty}>No files</div>
+
+  const actionButtons = (of: () => ChangedFile[]) =>
+    actions.map((a) => (
+      <button
+        key={a.title}
+        className={styles.action}
+        title={a.title}
+        onClick={(e) => {
+          e.stopPropagation()
+          a.run(of())
+        }}
+      >
+        {a.label}
+      </button>
+    ))
+
+  const fileRow = (f: ChangedFile, label: string, depth: number) => (
+    <div
+      className={`${styles.file} ${f.path === selected ? styles.selected : ''}`}
+      style={{ paddingLeft: 6 + depth * 14 }}
+      onClick={() => onSelect(f)}
+      title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}
+    >
+      <span className={`${styles.icon} ${styles[f.kind]}`}>{ICON[f.kind]}</span>
+      <span className={mode === 'tree' ? styles.name : styles.path}>{label}</span>
+      {actionButtons(() => [f])}
+    </div>
+  )
+
+  const toggle = (path: string) => {
+    const next = new Set(collapsed)
+    if (!next.delete(path)) next.add(path)
+    setCollapsed(next)
+  }
+
+  const rows: FlatNode<ChangedFile>[] = tree
+    ? flattenPathTree(tree, collapsed)
+    : files.map((f) => ({ node: { kind: 'leaf', name: f.path, path: f.path, item: f }, depth: 0 }))
+
   return (
     <div className={styles.files}>
-      {files.map((f) => (
-        <div
-          key={f.path}
-          className={`${styles.file} ${f.path === selected ? styles.selected : ''}`}
-          onClick={() => onSelect(f)}
-          title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}
-        >
-          <span className={`${styles.icon} ${styles[f.kind]}`}>{ICON[f.kind]}</span>
-          <span className={styles.path}>{f.path}</span>
-          {action && (
-            <button
-              className={styles.action}
-              title={action.title}
-              onClick={(e) => {
-                e.stopPropagation()
-                action.run(f)
-              }}
+      <VirtualList
+        count={rows.length}
+        rowHeight={ROW_HEIGHT}
+        renderRow={(i) => {
+          const { node, depth } = rows[i]
+          if (node.kind === 'leaf') return fileRow(node.item, node.name, depth)
+          return (
+            <div
+              className={`${styles.file} ${styles.dir}`}
+              style={{ paddingLeft: 2 + depth * 14 }}
+              onClick={() => toggle(node.path)}
+              title={node.path}
             >
-              {action.label}
-            </button>
-          )}
-        </div>
-      ))}
+              <Chevron open={!collapsed.has(node.path)} />
+              <Icon name="folder" size={13} />
+              <span className={styles.name}>{node.name}</span>
+              {actionButtons(() => leaves(node))}
+            </div>
+          )
+        }}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   ConflictPanel,
   hasConflicts,
@@ -21,30 +21,99 @@ import type { RepoSnapshot } from '../protocol/types'
 import { Icon } from '../ui/Icon/Icon'
 import { IconButton } from '../ui/IconButton/IconButton'
 import { Menu, type MenuItem } from '../ui/Menu/Menu'
+import { Toast } from '../ui/Toast/Toast'
+import { pickFolder } from '../lib/pickFolder'
+import { loadLastRepo, saveLastRepo } from '../lib/lastRepo'
 import styles from './App.module.css'
+import { CommitDetailWindow } from './CommitDetailWindow'
+import { CommitWindow } from './CommitWindow'
+import { CompareWindow } from './CompareWindow'
+import { FileHistoryWindow } from './FileHistoryWindow'
+import { ReflogWindow } from './ReflogWindow'
+import { StatsWindow } from './StatsWindow'
 import { RepoView } from './RepoView'
+import { StartPage } from '../features/start'
+import { useOpenParam } from './useOpenParam'
 
 export function App() {
-  const { names, workspace, error, open, addRoot, removeRoot, setExcluded } = useWorkspace()
+  const params = new URLSearchParams(location.search)
+  const commitId = params.get('commit')
+  const reflog = params.get('reflog')
+  if (reflog) return <ReflogWindow repoId={Number(reflog)} workspace={params.get('ws') ?? ''} />
+  const history = params.get('history')
+  if (history) return <FileHistoryWindow path={history} repoId={Number(params.get('repo'))} workspace={params.get('ws') ?? ''} />
+  const compare = params.get('compare')
+  if (compare) {
+    return (
+      <CompareWindow
+        newest={compare}
+        base={params.get('base') || null}
+        count={Number(params.get('count'))}
+        repoId={Number(params.get('repo'))}
+        workspace={params.get('ws') ?? ''}
+      />
+    )
+  }
+  const stats = params.get('stats')
+  if (stats) return <StatsWindow repoId={Number(stats)} workspace={params.get('ws') ?? ''} />
+  const show = params.get('show')
+  if (show) {
+    const parents = params.get('parents')?.split(',').filter(Boolean) ?? []
+    return <CommitDetailWindow sha={show} parents={parents} repoId={Number(params.get('repo'))} workspace={params.get('ws') ?? ''} />
+  }
+  return commitId ? <CommitWindow repoId={Number(commitId)} workspace={params.get('ws') ?? ''} /> : <Browse />
+}
+
+function Browse() {
+  const { names, workspace, error, open, close, addRoot, removeRoot, setExcluded, setNested } = useWorkspace()
   const dialogs = useDialogs()
   const treeWidth = usePaneSize('tree', 340, 200, 700)
   const narrow = useNarrow()
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [showRepo, setShowRepo] = useState(false)
-  const pickRepo = (id: number) => {
+  const pickRepo = useCallback((id: number) => {
     setSelectedId(id)
     setShowRepo(true)
+  }, [])
+  const [openError, setOpenError] = useState<string | null>(null)
+  useOpenParam(workspace, pickRepo, open, setOpenError)
+  // back where you left the project; a project of one repo opens straight into it, like Git Extensions
+  const openProject = useCallback(
+    async (name: string) => {
+      const ws = await open(name)
+      if (!ws) return
+      const last = loadLastRepo(name)
+      const repo = ws.repos.find((r) => r.path === last) ?? (ws.repos.length === 1 ? ws.repos[0] : undefined)
+      if (repo) pickRepo(repo.id)
+      else setSelectedId(null)
+    },
+    [open, pickRepo],
+  )
+  const closeProject = () => {
+    close()
+    setSelectedId(null)
+    setShowRepo(false)
   }
+  const shown = selectedId !== null && workspace?.repos.some((r) => r.id === selectedId)
+  useEffect(() => {
+    // RepoView names the repo while one is open
+    if (!shown) document.title = workspace ? `${workspace.name} · gitdeck` : 'gitdeck'
+  }, [shown, workspace])
   const repoOpen = narrow && showRepo && selectedId !== null
 
   const addRepo = async () => {
-    const path = await dialogs.prompt('Add a repository', 'Folder of a git repository (its submodules come along)', '')
+    const path = await dialogs.prompt('Add a repository', 'Folder of a git repository (its submodules come along)', '', pickFolder)
     if (!path) return
     const name = await dialogs.prompt('Workspace', 'Add it to workspace (an existing name or a new one)', workspace?.name ?? 'default')
     if (name) await addRoot(name, path)
   }
   const sync = useSync()
   const selected = workspace?.repos.find((r) => r.id === selectedId)
+  const projectName = workspace?.name
+  const selectedPath = selected?.path
+  useEffect(() => {
+    if (projectName && selectedPath) saveLastRepo(projectName, selectedPath)
+  }, [projectName, selectedPath])
   const conflictFiles = useConflicts(selected)
   const tree = useTreeCommands()
   const theme = useTheme()
@@ -65,8 +134,19 @@ export function App() {
         refresh: () => workspace && open(workspace.name),
         removeRoot: (path) => workspace && void removeRoot(workspace.name, path),
         setExcluded: (path, excluded) => workspace && void setExcluded(workspace.name, path, excluded),
+        nested: repo.parent === null ? (workspace?.nestedRoots ?? []).some((p) => samePath(p, repo.path)) : null,
+        setNested: (path, on) => workspace && void setNested(workspace.name, path, on),
       }),
     })
+
+  if (!workspace) {
+    return (
+      <>
+        <StartPage onOpen={openProject} />
+        {(openError ?? error) && <Toast tone="bad" title={openError ?? error} onDismiss={() => setOpenError(null)} />}
+      </>
+    )
+  }
 
   return (
     <div className={`${styles.layout} ${narrow ? styles.narrow : ''} ${repoOpen ? styles.repoOpen : ''}`}>
@@ -76,8 +156,13 @@ export function App() {
             workspace={workspace}
             selectedId={selectedId}
             onSelect={pickRepo}
-            onRefresh={() => open(workspace.name)}
-            picker={<WorkspacePicker names={names ?? []} current={workspace.name} onOpen={(n) => void open(n)} onAdd={() => void addRepo()} />}
+            onRefresh={() => open(workspace.name, true)}
+            picker={<>
+              <IconButton title="Close the project and go back to the start page" onClick={closeProject}>
+                <Icon name="close" size={12} />
+              </IconButton>
+              <WorkspacePicker names={names ?? []} current={workspace.name} onOpen={(n) => void openProject(n)} onAdd={() => void addRepo()} />
+            </>}
             onRepoMenu={onRepoMenu}
             toolbar={
               <>
@@ -111,30 +196,12 @@ export function App() {
               />
             )}
           />
-        ) : (
-          <div className={styles.message}>
-            {names?.length === 0 ? (
-              <>
-                <p>No workspace yet.</p>
-                <IconButton title="Add a repository folder" onClick={() => void addRepo()}>
-                  + Add a repository
-                </IconButton>
-              </>
-            ) : (
-              (error ?? 'Loading…')
-            )}
-          </div>
-        )}
+        ) : null}
       </aside>
       {!narrow && <Resizer axis="x" onDrag={treeWidth.drag} onDone={treeWidth.save} />}
       <main className={styles.main}>
         {tree.error && (
-          <div className={styles.banner}>
-            {tree.error}
-            <IconButton title="Dismiss" onClick={tree.clearError}>
-              <Icon name="close" />
-            </IconButton>
-          </div>
+          <Toast tone="bad" title={tree.error} onDismiss={tree.clearError} />
         )}
         {selected && hasConflicts(selected) && (
           <ConflictPanel
@@ -156,7 +223,9 @@ export function App() {
           <SubmoduleUpdateDialog moved={sync.moved} repos={workspace.repos} onAnswer={sync.answerMoved} />
         )}
         {selected?.initialized && !selected.excluded ? (
-          <RepoView key={selected.id} repo={selected} onBack={narrow ? () => setShowRepo(false) : undefined} />
+          <RepoView key={selected.id} repo={selected} workspace={workspace.name} onBack={narrow ? () => setShowRepo(false) : undefined}
+            onPush={(id) => void sync.sync(id, 'push')}
+          />
         ) : (
           <div className={styles.message}>Select a repo in the tree.</div>
         )}
@@ -173,10 +242,16 @@ export function App() {
             options: [['ask', 'Ask every time'], ['always', 'Always update'], ['never', 'Never update']],
           }}
           keepRunning={server.info ? { value: server.info.keepRunning, onChange: server.setKeepRunning } : null}
+          githubAvatars={server.info ? { value: server.info.githubAvatars, onChange: server.setGithubAvatars } : null}
           version={server.info?.version ?? null}
+          repoId={selected?.id ?? null}
+          editor={server.info ? { path: server.info.editor, onSave: server.setEditor } : null}
+          git={server.info ? { path: server.info.git, version: server.info.gitVersion, onSave: server.setGit } : null}
           onClose={() => setSettingsOpen(false)}
         />
       )}
     </div>
   )
 }
+
+const samePath = (a: string, b: string) => a.replaceAll('\\', '/').toLowerCase() === b.replaceAll('\\', '/').toLowerCase()

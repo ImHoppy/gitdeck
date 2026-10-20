@@ -1,35 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
-import { loadSetting, saveSetting } from '../../lib/storedSetting'
+import { touchRecent } from '../start'
 import { gitd } from '../../protocol/client'
 import type { RepoSnapshot, WorkspaceSnapshot } from '../../protocol/types'
-
-const LAST = 'gitdeck.workspace'
 
 export function useWorkspace() {
   const [names, setNames] = useState<string[] | null>(null)
   const [workspace, setWorkspace] = useState<WorkspaceSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const open = useCallback(async (name: string) => {
+  const open = useCallback(async (name: string, reload = false): Promise<WorkspaceSnapshot | null> => {
     try {
-      setWorkspace(await gitd.call<WorkspaceSnapshot>('workspace.open', { name }))
-      saveSetting(LAST, name)
+      const ws = await gitd.call<WorkspaceSnapshot>('workspace.open', { name, reload })
+      setWorkspace(ws)
+      touchRecent(name)
       setError(null)
+      return ws
     } catch (e) {
       setError((e as Error).message)
+      return null
     }
   }, [])
 
+  // nothing opens by itself: the start page picks the project
   useEffect(() => {
-    gitd
-      .call<string[]>('workspace.list')
-      .then((list) => {
-        setNames(list)
-        const last = loadSetting(LAST, list, list[0])
-        if (last) return open(last)
-      })
-      .catch((e: Error) => setError(e.message))
-  }, [open])
+    gitd.call<string[]>('workspace.list').then(setNames, (e: Error) => setError(e.message))
+  }, [])
+
+  const close = useCallback(() => setWorkspace(null), [])
 
   useEffect(
     () =>
@@ -43,7 +40,7 @@ export function useWorkspace() {
     async (name: string, path: string) => {
       try {
         setNames(await gitd.call<string[]>('workspace.addRoot', { name, path }))
-        await open(name)
+        await open(name, true)
       } catch (e) {
         setError((e as Error).message)
       }
@@ -54,7 +51,7 @@ export function useWorkspace() {
   const removeRoot = useCallback(
     async (name: string, path: string) => {
       setNames(await gitd.call<string[]>('workspace.removeRoot', { name, path }))
-      await open(name)
+      await open(name, true)
     },
     [open],
   )
@@ -62,10 +59,22 @@ export function useWorkspace() {
   const setExcluded = useCallback(
     async (name: string, path: string, excluded: boolean) => {
       await gitd.call('workspace.exclude', { name, path, excluded })
-      await open(name)
+      await open(name, true)
     },
     [open],
   )
 
-  return { names, workspace, error, open, addRoot, removeRoot, setExcluded }
+  const setNested = useCallback(
+    async (name: string, path: string, on: boolean) => {
+      try {
+        await gitd.call('workspace.setNested', { name, path, on })
+        await open(name, true)
+      } catch (e) {
+        setError((e as Error).message)
+      }
+    },
+    [open],
+  )
+
+  return { names, workspace, error, open, close, addRoot, removeRoot, setExcluded, setNested }
 }

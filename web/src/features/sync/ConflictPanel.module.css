@@ -1,0 +1,72 @@
+.panel {
+  margin: 8px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: var(--bg-panel);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header strong {
+  color: var(--danger);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.note {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--fg-muted);
+}
+
+.files {
+  max-height: 40vh;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.file:last-child {
+  border-bottom: none;
+}
+
+.file:hover {
+  background: var(--hover);
+}
+
+.path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.kind {
+  flex: none;
+  color: var(--fg-muted);
+  font-size: 12px;
+}

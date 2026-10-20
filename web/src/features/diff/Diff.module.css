@@ -30,7 +30,7 @@
 
 .files {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
 }
 
 .file {
@@ -83,6 +83,22 @@
   text-overflow: ellipsis;
   direction: rtl;
   text-align: left;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dir {
+  gap: 4px;
+  color: var(--fg-muted);
+}
+
+.dir svg {
+  flex: none;
 }
 
 .action {
@@ -148,15 +164,6 @@
   border-bottom: 1px solid var(--border);
   color: var(--fg-muted);
   font-size: 12px;
-}
-
-.toolbar select,
-.fileFilter {
-  background: var(--bg);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font: inherit;
 }
 
 .fileFilter {

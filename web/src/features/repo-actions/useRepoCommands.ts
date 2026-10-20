@@ -24,5 +24,6 @@ export function useRepoCommands(repoId: number) {
     [repoId],
   )
 
-  return { busy, last, run, clear: () => setLast(null) }
+  const clear = useCallback(() => setLast(null), [])
+  return { busy, last, run, clear }
 }
