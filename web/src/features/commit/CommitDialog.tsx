@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadSetting, saveSetting } from '../../lib/storedSetting'
 import { Toast } from '../../ui/Toast/Toast'
 import { useRepoTools } from '../repo-actions'
@@ -76,8 +76,31 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
   }
   const canCommit = !actions.busy && message.trim() !== '' && ((staged.files?.length ?? 0) > 0 || amend)
 
+  // Git Extensions keys on the picked file: S stage, U unstage, R reset; the next file gets picked
+  const fileKeys = useRef<(key: string) => boolean>(() => false)
+  fileKeys.current = (key) => {
+    if (!file || !picked || !list) return false
+    const next = list[list.indexOf(file) + 1] ?? list[list.indexOf(file) - 1]
+    const pickNext = () => setPicked(next ? { side: picked.side, path: next.path } : null)
+    if (key === 's' && picked.side === 'worktree') {
+      stage([file])
+      pickNext()
+    } else if (key === 'u' && picked.side === 'index') {
+      unstage([file])
+      pickNext()
+    } else if (key === 'r' && picked.side === 'worktree') void discard([file])
+    else return false
+    return true
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const typing = e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')
+      const covered = document.querySelector('[role="menu"], [aria-modal="true"]')
+      if (!typing && !covered && !e.ctrlKey && !e.altKey && !e.metaKey && fileKeys.current(e.key.toLowerCase())) {
+        e.preventDefault()
+        return
+      }
       if (e.key === 'F5') {
         // new file lists also reload the open diff; in its own window this beats reloading the page
         e.preventDefault()
@@ -206,11 +229,11 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               actions={[
                 {
                   label: <Icon name="restore" size={12} />,
-                  title: 'Discard changes…',
+                  title: 'Discard changes… (R)',
                   run: (fs) => void discard(fs),
                   titleFor: (fs) => (allDeleted(fs) ? 'Restore…' : null),
                 },
-                { label: <Icon name="pull" size={12} />, title: 'Stage', run: (fs) => stage(fs) },
+                { label: <Icon name="pull" size={12} />, title: 'Stage (S)', run: (fs) => stage(fs) },
               ]}
               onContextMenu={(files, at, folder) => setFileMenu({ side: 'worktree', files, at, folder })}
             />
@@ -223,7 +246,7 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
               mode={mode}
               all={[{ label: '⇈ unstage all', title: 'Unstage all', disabled: actions.busy, run: () => unstage(staged.files ?? []) }]}
               actions={[
-                { label: <Icon name="push" size={12} />, title: 'Unstage', run: (fs) => unstage(fs) },
+                { label: <Icon name="push" size={12} />, title: 'Unstage (U)', run: (fs) => unstage(fs) },
               ]}
               onContextMenu={(files, at, folder) => setFileMenu({ side: 'index', files, at, folder })}
             />
