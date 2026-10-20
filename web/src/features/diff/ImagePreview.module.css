@@ -1,6 +1,8 @@
 .preview {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: flex-start;
   gap: 16px;
   padding: 12px;
   height: 100%;

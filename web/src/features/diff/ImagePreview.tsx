@@ -16,28 +16,63 @@ function revisions(target: DiffTarget): [string | null, string] {
 const url = (repoId: number, rev: string, path: string) =>
   `/blob?${new URLSearchParams({ repo: String(repoId), rev, path })}`
 
+const UNITS = ['B', 'KB', 'MB']
+
+function formatBytes(bytes: number): string {
+  let n = Math.abs(bytes)
+  let unit = 0
+  while (n >= 1024 && unit < UNITS.length - 1) {
+    n /= 1024
+    unit++
+  }
+  return `${unit ? n.toFixed(1) : n} ${UNITS[unit]}`
+}
+
+/** The image's file size, from the browser's record of the request (no second fetch). */
+function fileSize(src: string): number | null {
+  const entry = performance.getEntriesByName(src).at(-1) as PerformanceResourceTiming | undefined
+  return entry?.decodedBodySize || null
+}
+
+function change(before: number, after: number): string {
+  const delta = after - before
+  if (delta === 0) return 'same size'
+  const sign = delta > 0 ? '+' : '−'
+  return `${sign}${formatBytes(delta)}, ${sign}${Math.abs(Math.round((delta / before) * 100))}%`
+}
+
 type Props = { repoId: number; file: ChangedFile; target: DiffTarget }
 
 export function ImagePreview({ repoId, file, target }: Props) {
   const [before, after] = revisions(target)
   const old = file.kind === 'added' || file.kind === 'untracked' ? null : before
   const gone = file.kind === 'deleted'
+  const oldSrc = old && url(repoId, old, file.oldPath ?? file.path)
+  const newSrc = gone ? null : url(repoId, after, file.path)
+  // keyed by url, so switching files never shows the last image's numbers
+  const [sizes, setSizes] = useState<Record<string, number>>({})
+  const onSize = (src: string, n: number) => setSizes((s) => (s[src] === n ? s : { ...s, [src]: n }))
+  const a = oldSrc ? sizes[oldSrc] : undefined
+  const b = newSrc ? sizes[newSrc] : undefined
   return (
     <div className={styles.preview}>
-      {old && <Side label={gone ? 'Deleted' : 'Before'} src={url(repoId, old, file.oldPath ?? file.path)} />}
-      {!gone && <Side label={old ? 'After' : 'New'} src={url(repoId, after, file.path)} />}
+      {oldSrc && <Side key={oldSrc} label={gone ? 'Deleted' : 'Before'} src={oldSrc} onSize={onSize} />}
+      {newSrc && <Side key={newSrc} label={oldSrc ? 'After' : 'New'} src={newSrc} onSize={onSize} note={a !== undefined && b !== undefined ? change(a, b) : null} />}
     </div>
   )
 }
 
-function Side({ label, src }: { label: string; src: string }) {
-  const [size, setSize] = useState<string | null>(null)
+type SideProps = { label: string; src: string; onSize: (src: string, bytes: number) => void; note?: string | null }
+
+function Side({ label, src, onSize, note }: SideProps) {
+  const [info, setInfo] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   return (
     <figure className={styles.side}>
       <figcaption>
         {label}
-        {size && ` · ${size}`}
+        {info && ` · ${info}`}
+        {note && ` (${note})`}
       </figcaption>
       {failed ? (
         <div className={styles.missing}>Could not load the image</div>
@@ -45,7 +80,12 @@ function Side({ label, src }: { label: string; src: string }) {
         <img
           src={src}
           alt={label}
-          onLoad={(e) => setSize(`${e.currentTarget.naturalWidth} × ${e.currentTarget.naturalHeight}`)}
+          onLoad={(e) => {
+            const { naturalWidth: w, naturalHeight: h, currentSrc } = e.currentTarget
+            const n = fileSize(currentSrc)
+            if (n) onSize(src, n)
+            setInfo([`${w} × ${h}`, n && formatBytes(n)].filter(Boolean).join(' · '))
+          }}
           onError={() => setFailed(true)}
         />
       )}
