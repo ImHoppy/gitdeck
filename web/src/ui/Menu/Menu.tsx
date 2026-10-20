@@ -42,18 +42,21 @@ export function Menu({ items, at, onClose, owner }: Props) {
       e.stopPropagation()
       onClose()
     }
-    // scrolling the page moves what the menu points at; scrolling the menu's own list doesn't
+    // the user scrolling the page moves what the menu points at; scrolling the menu's own list
+    // doesn't, nor does a panel resetting its scroll when it loads (a scroll event, no wheel)
     const scroll = (e: Event) => {
       if (!ref.current?.contains(e.target as Node)) onClose()
     }
     document.addEventListener('mousedown', outside)
     document.addEventListener('keydown', key)
-    window.addEventListener('scroll', scroll, true)
+    window.addEventListener('wheel', scroll, true)
+    window.addEventListener('touchmove', scroll, true)
     window.addEventListener('resize', onClose)
     return () => {
       document.removeEventListener('mousedown', outside)
       document.removeEventListener('keydown', key)
-      window.removeEventListener('scroll', scroll, true)
+      window.removeEventListener('wheel', scroll, true)
+      window.removeEventListener('touchmove', scroll, true)
       window.removeEventListener('resize', onClose)
     }
   }, [onClose, owner])
