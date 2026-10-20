@@ -25,6 +25,7 @@ import { RemotesDialog } from '../features/remotes'
 import { WorktreesDialog } from '../features/worktrees'
 import { Toast } from '../ui/Toast/Toast'
 import { RepoToolbar } from './RepoToolbar'
+import { commitInWindow } from '../lib/commitWindow'
 import { openWindow } from './windows'
 import { type GridSelection, HistorySearch, RevisionGrid, type SearchMode, useHistory } from '../features/revision-grid'
 import { loadSetting, saveSetting } from '../lib/storedSetting'
@@ -95,7 +96,7 @@ export function RepoView({ repo, workspace, onBack, onPush }: Props) {
         history.reload()
       } else if (e.ctrlKey && e.key === ' ') {
         e.preventDefault()
-        setCommitting(true)
+        openCommit()
       } else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
         e.preventDefault()
         filterBox.current?.focus()
@@ -107,6 +108,7 @@ export function RepoView({ repo, workspace, onBack, onPush }: Props) {
   useEffect(() => {
     document.title = `${repo.pathInParent ?? repo.name} · gitdeck`
   }, [repo.pathInParent, repo.name])
+  const openCommit = () => (commitInWindow() ? openWindow({ kind: 'commit', repo: repo.id }, workspace) : setCommitting(true))
   const openFileHistory = (path: string) => openWindow({ kind: 'history', repo: repo.id, path }, workspace)
   const highlighted = ancestry && lineage && lineage.sha === selectedSha ? lineage.rows : null
   const [tab, setTab] = useState<'commit' | 'diff' | 'files' | 'output'>('commit')
@@ -173,7 +175,7 @@ export function RepoView({ repo, workspace, onBack, onPush }: Props) {
             at,
           })
         }
-        onCommit={() => setCommitting(true)}
+        onCommit={openCommit}
         onStash={() => void stashPush(ctx)}
         onStats={() => openWindow({ kind: 'stats', repo: repo.id }, workspace)}
         onAncestry={() => setAncestry(!ancestry)}

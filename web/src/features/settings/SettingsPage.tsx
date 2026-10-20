@@ -1,6 +1,7 @@
 import { Icon } from '../../ui/Icon/Icon'
 import { Select } from '../../ui/Select/Select'
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
+import { commitInWindow, setCommitInWindow } from '../../lib/commitWindow'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { GitConfigSection } from './GitConfigSection'
 import { PathRow } from './PathRow'
@@ -24,6 +25,7 @@ type Props<S extends string, P extends string> = {
 }
 
 export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, keepRunning, githubAvatars, version, git, editor, repoId, onClose }: Props<S, P>) {
+  const [commitWindow, setCommitWindow] = useState(commitInWindow)
   return (
     <div className={styles.backdrop} onClick={onClose}>
       <div className={styles.page} role="dialog" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
@@ -43,6 +45,16 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               disabled={!githubAvatars}
               checked={githubAvatars?.value ?? false}
               onChange={(e) => githubAvatars?.onChange(e.target.checked)}
+            />
+          </Row>
+          <Row label="Always open the commit page in a new window">
+            <input
+              type="checkbox"
+              checked={commitWindow}
+              onChange={(e) => {
+                setCommitWindow(e.target.checked)
+                setCommitInWindow(e.target.checked)
+              }}
             />
           </Row>
         </Section>
