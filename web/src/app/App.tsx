@@ -143,7 +143,7 @@ function Browse() {
   if (!workspace) {
     return (
       <>
-        <StartPage onOpen={openProject} />
+        <StartPage onOpen={openProject} version={server.info?.version ?? null} />
         {(openError ?? error) && <Toast tone="bad" title={openError ?? error} onDismiss={() => setOpenError(null)} />}
       </>
     )

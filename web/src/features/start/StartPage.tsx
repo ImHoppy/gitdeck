@@ -9,7 +9,7 @@ import styles from './StartPage.module.css'
 import { useProjects } from './useProjects'
 
 /** Like the Git Extensions dashboard: start actions on the left, recent repositories on the right. */
-export function StartPage({ onOpen: openProject }: { onOpen: (name: string) => Promise<void> }) {
+export function StartPage({ onOpen: openProject, version }: { onOpen: (name: string) => Promise<void>; version: string | null }) {
   const p = useProjects()
   const dialogs = useDialogs()
   const [cloning, setCloning] = useState(false)
@@ -43,6 +43,7 @@ export function StartPage({ onOpen: openProject }: { onOpen: (name: string) => P
         <div className={styles.brand}>
           <img src="/favicon.svg" alt="" width={28} height={28} />
           gitdeck
+          {version && <span className={styles.version}>v{version}</span>}
         </div>
         <h2 className={styles.heading}>Start</h2>
         <Action icon="add" label="Create new repository" onClick={() => void createRepo()} />
