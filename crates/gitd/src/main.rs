@@ -5,6 +5,7 @@ mod auth;
 mod autofetch;
 mod autostart;
 mod avatars;
+mod blob;
 mod browser;
 mod cli;
 mod command_log;

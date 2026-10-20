@@ -7,7 +7,7 @@ import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { useDialogs } from '../../ui/Dialog/useDialogs'
 import { Menu, type MenuItem } from '../../ui/Menu/Menu'
-import { type FileListMode, PatchView, useDiffFiles, usePatch } from '../diff'
+import { type FileListMode, ImagePreview, isImage, PatchView, useDiffFiles, usePatch } from '../diff'
 import { ChangeList } from './ChangeList'
 import styles from './CommitDialog.module.css'
 import { useCommitActions } from './useCommitActions'
@@ -230,7 +230,11 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
           </div>
           <div className={styles.right}>
             <div className={styles.diff}>
-              {patch?.patch && file && <PatchView repoId={repoId} file={file} patch={patch.patch} side={picked?.side ?? null} />}
+              {file && isImage(file.path) ? (
+                <ImagePreview repoId={repoId} file={file} target={target} />
+              ) : (
+                patch?.patch && file && <PatchView repoId={repoId} file={file} patch={patch.patch} side={picked?.side ?? null} />
+              )}
             </div>
             <div className={styles.compose}>
               <div className={styles.buttons}>

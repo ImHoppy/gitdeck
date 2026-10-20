@@ -1,0 +1,34 @@
+.preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px;
+  height: 100%;
+  overflow: auto;
+}
+
+.side {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.side figcaption {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.side img {
+  max-width: 100%;
+  image-rendering: auto;
+  /* a checkerboard so transparent pixels read as transparent */
+  background: repeating-conic-gradient(var(--hover) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px;
+  border: 1px solid var(--border);
+}
+
+.missing {
+  color: var(--fg-muted);
+  padding: 8px 0;
+}

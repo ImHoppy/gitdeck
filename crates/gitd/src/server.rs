@@ -81,6 +81,7 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         .route("/ws", get(ws_upgrade))
         .route("/window", get(window))
         .route("/avatar", get(avatar))
+        .route("/blob", get(blob))
         .fallback(get(web))
         .with_state(app.clone());
 
@@ -148,6 +149,13 @@ async fn avatar(State(app): State<Shared>, headers: HeaderMap, Query(q): Query<H
             .into_response(),
         None => StatusCode::NOT_FOUND.into_response(),
     }
+}
+
+async fn blob(State(app): State<Shared>, headers: HeaderMap, Query(q): Query<HashMap<String, String>>) -> HttpResponse {
+    if !authorized(&app, &headers) {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    crate::blob::serve(&app, &q).await
 }
 
 async fn web(State(app): State<Shared>, headers: HeaderMap, uri: Uri) -> HttpResponse {

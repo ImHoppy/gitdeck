@@ -1,4 +1,5 @@
 import { Spinner } from '../../ui/Spinner/Spinner'
+import { ImagePreview, isImage } from './ImagePreview'
 import { Select } from '../../ui/Select/Select'
 import { useMemo, useState } from 'react'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
@@ -120,6 +121,10 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
         )}
         <DiffToolbar options={diff.options} onChange={diff.setOptions} staging={diff.isDefault || target.kind === 'commit'} />
         <div className={styles.patchBody}>
+        {file && isImage(file.path) ? (
+          <ImagePreview repoId={repoId} file={file} target={target} />
+        ) : (
+          <>
         {patch?.error && <div className={styles.empty}>{patch.error}</div>}
         {patch?.patch && file && (
           <PatchView
@@ -128,6 +133,8 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
             patch={patch.patch}
             side={target.kind === 'commit' || !diff.isDefault ? null : target.kind}
           />
+        )}
+          </>
         )}
         </div>
       </div>
