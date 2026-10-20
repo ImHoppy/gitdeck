@@ -2,8 +2,11 @@ import { useMemo, useRef } from 'react'
 import { parseDiff } from '../../lib/diffLines'
 import { longPress } from '../../lib/longPress'
 import { useHighlight } from '../../lib/useHighlight'
+import { Icon } from '../Icon/Icon'
 import { VirtualList } from '../VirtualList/VirtualList'
+import { DiffFind } from './DiffFind'
 import styles from './DiffViewer.module.css'
+import { useDiffFind } from './useDiffFind'
 
 const LINE_HEIGHT = 18
 
@@ -19,6 +22,8 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu }: P
   const lines = useMemo(() => parseDiff(patch), [patch])
   const texts = useMemo(() => lines.map((l) => (l.kind === 'meta' || l.kind === 'hunk' ? '' : l.text)), [lines])
   const html = useHighlight(path, texts)
+  const all = useMemo(() => lines.map((l) => l.text), [lines])
+  const find = useDiffFind(all)
   const anchor = useRef<number | null>(null)
   const dragging = useRef(false)
 
@@ -75,13 +80,48 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu }: P
 
   if (lines.length === 0) return <div className={styles.empty}>No changes</div>
   return (
-    <div className={`${styles.viewer} ${onSelect ? styles.selectable : ''}`}>
+    <div
+      className={`${styles.viewer} ${onSelect ? styles.selectable : ''}`}
+      tabIndex={-1}
+      // line clicks prevent the default (no text selection), which would also keep focus away
+      onMouseDownCapture={(e) => e.currentTarget.focus({ preventScroll: true })}
+      onKeyDown={(e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+          // the diff's own search, not the history search of the page around it
+          e.preventDefault()
+          e.stopPropagation()
+          find.show()
+        } else if (e.ctrlKey && e.key.toLowerCase() === 'a' && !(e.target instanceof HTMLInputElement)) {
+          // every changed line of this diff, not the whole page's text
+          e.preventDefault()
+          e.stopPropagation()
+          onSelect?.(new Set(lines.flatMap((l, i) => (l.kind === 'add' || l.kind === 'del' ? [i] : []))))
+        }
+      }}
+    >
+      {find.open ? (
+        <DiffFind
+          query={find.query}
+          count={find.matches.length}
+          current={find.current}
+          onSearch={find.search}
+          onNext={find.next}
+          onPrev={find.prev}
+          onClose={find.hide}
+        />
+      ) : (
+        <button className={styles.findOpen} title="Find in diff (Ctrl+F)" onClick={find.show}>
+          <Icon name="search" size={12} />
+        </button>
+      )}
       <VirtualList
         count={lines.length}
         rowHeight={LINE_HEIGHT}
+        scrollTo={find.line}
         renderRow={(i) => {
           const l = lines[i]
-          const cls = `${styles.line} ${styles[l.kind]} ${selected?.has(i) ? styles.picked : ''}`
+          const hit = find.matchSet.has(i) ? (i === find.line ? styles.current : styles.match) : ''
+          const cls = `${styles.line} ${styles[l.kind]} ${selected?.has(i) ? styles.picked : ''} ${hit}`
           if (l.kind === 'meta' || l.kind === 'hunk') {
             return (
               <div className={cls} {...handlers(i)}>
