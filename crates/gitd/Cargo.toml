@@ -17,7 +17,14 @@ rand = "0.9"
 rust-embed = "8"
 mime_guess = "2"
 notify = "8"
+ureq = "3.4.2"
 
 [target.'cfg(windows)'.dependencies]
+rfd = { version = "0.17.2", default-features = false }
+tao = "0.37.1"
 tray-icon = "0.21"
-windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_Console"] }
+wry = "0.57.0"
+
+[build-dependencies]
+winresource = "0.1.34"
