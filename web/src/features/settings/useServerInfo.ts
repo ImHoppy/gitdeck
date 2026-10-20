@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { setAvatarsEnabled } from '../../lib/avatarSource'
 import { gitd } from '../../protocol/client'
 
-export type ServerInfo = { keepRunning: boolean; version: string; git: string | null; gitVersion: string | null; githubAvatars: boolean; editor: string | null }
+export type ServerInfo = { keepRunning: boolean; version: string; git: string | null; gitVersion: string | null; githubAvatars: boolean; editor: string | null; fileManager: string | null }
 
 export function useServerInfo() {
   const [info, setInfo] = useState<ServerInfo | null>(null)
@@ -39,5 +39,14 @@ export function useServerInfo() {
     }
   }, [])
 
-  return { info, setKeepRunning, setGit, setGithubAvatars, setEditor }
+  const setFileManager = useCallback(async (path: string): Promise<string | null> => {
+    try {
+      setInfo(await gitd.call<ServerInfo>('server.setFileManager', { path }))
+      return null
+    } catch (e) {
+      return (e as Error).message
+    }
+  }, [])
+
+  return { info, setKeepRunning, setGit, setGithubAvatars, setEditor, setFileManager }
 }

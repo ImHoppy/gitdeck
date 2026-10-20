@@ -19,12 +19,13 @@ type Props<S extends string, P extends string> = {
   version: string | null
   git: { path: string | null; version: string | null; onSave: (path: string) => Promise<string | null> } | null
   editor: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
+  fileManager: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
   /** The open repository, for its own git settings. */
   repoId: number | null
   onClose: () => void
 }
 
-export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, keepRunning, githubAvatars, version, git, editor, repoId, onClose }: Props<S, P>) {
+export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, keepRunning, githubAvatars, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -82,6 +83,15 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
                 path={editor.path}
                 status={editor.path ? `Opens with ${editor.path}` : 'Opens with VS Code (code)'}
                 onSave={editor.onSave}
+              />
+            )}
+            {fileManager && (
+              <PathRow
+                label="File manager"
+                placeholder="the system one, or e.g. C:/Program Files/FPilot/FPilot.exe"
+                path={fileManager.path}
+                status={fileManager.path ? `Opens with ${fileManager.path}` : 'Opens with the system file manager'}
+                onSave={fileManager.onSave}
               />
             )}
           </Section>

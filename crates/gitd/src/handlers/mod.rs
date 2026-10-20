@@ -50,6 +50,7 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "conflict.resolved" => conflict::resolved(app, serde_json::from_value(params)?).await,
         "editor.open" => conflict::open_in_editor(app, serde_json::from_value(params)?).await,
         "server.setEditor" => meta::set_editor(app, serde_json::from_value(params)?).await,
+        "server.setFileManager" => meta::set_file_manager(app, serde_json::from_value(params)?).await,
         "rebase.plan" => interactive::plan(app, serde_json::from_value(params)?).await,
         "rebase.interactive" => interactive::run(app, serde_json::from_value(params)?).await,
         "log.file" => log::file_history(app, serde_json::from_value(params)?).await,

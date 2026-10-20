@@ -14,6 +14,7 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
         "gitVersion": git_version(app).await,
         "githubAvatars": app.config.lock().unwrap().github_avatars,
         "editor": app.config.lock().unwrap().editor.clone(),
+        "fileManager": app.config.lock().unwrap().file_manager.clone(),
     }))
 }
 
@@ -79,6 +80,16 @@ pub async fn set_editor(app: &AppState, p: EditorParams) -> anyhow::Result<Value
     {
         let mut config = app.config.lock().unwrap();
         config.editor = p.path.map(|s| s.trim().trim_matches('"').to_string()).filter(|s| !s.is_empty());
+        config.save(&app.config_path)?;
+    }
+    info(app).await
+}
+
+/// Empty or missing: the system file manager.
+pub async fn set_file_manager(app: &AppState, p: EditorParams) -> anyhow::Result<Value> {
+    {
+        let mut config = app.config.lock().unwrap();
+        config.file_manager = p.path.map(|s| s.trim().trim_matches('"').to_string()).filter(|s| !s.is_empty());
         config.save(&app.config_path)?;
     }
     info(app).await

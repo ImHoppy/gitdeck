@@ -56,7 +56,13 @@ pub struct RevealParams {
 pub async fn reveal(app: &AppState, p: RevealParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let path = hub.entry(p.id)?.path.clone();
+    let manager = app.config.lock().unwrap().file_manager.clone();
     match p.with.as_str() {
+        "explorer" if manager.is_some() => {
+            let target = p.path.as_deref().map(|f| path.join(f)).and_then(|f| f.parent().map(Path::to_path_buf)).unwrap_or(path);
+            let manager = manager.unwrap_or_default();
+            Command::new(&manager).arg(&target).spawn().with_context(|| format!("could not start `{manager}` (set the file manager in Settings)"))?;
+        }
         "explorer" => match &p.path {
             Some(file) => select_in_explorer(&path.join(file))?,
             None => explorer(&path)?,

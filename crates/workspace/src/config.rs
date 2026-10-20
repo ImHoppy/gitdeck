@@ -12,6 +12,9 @@ pub struct Config {
     /// Editor for conflicts and "open in editor": a command on PATH or a full path; unset is `code`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
+    /// File manager for "open in file explorer" (e.g. FPilot.exe); unset is the system one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file_manager: Option<String>,
     #[serde(default, rename = "workspace")]
     pub workspaces: Vec<WorkspaceConfig>,
 }
