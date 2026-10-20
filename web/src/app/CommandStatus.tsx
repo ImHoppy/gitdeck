@@ -15,6 +15,6 @@ export function CommandStatus({ busy, last, onDismiss }: Props) {
         : o.kind === 'conflict' || o.kind === 'autostashConflict'
           ? `${last.title} stopped on a conflict`
           : `${last.title}: done`
-  const bad = o.kind === 'failed' || o.kind === 'conflict' || o.kind === 'autostashConflict' || o.kind === 'authFailed'
+  const bad = o.kind === 'failed' || o.kind === 'conflict' || o.kind === 'autostashConflict' || o.kind === 'authFailed' || o.kind === 'rejected'
   return <Toast tone={bad ? 'bad' : 'ok'} title={text} onDismiss={onDismiss} autoHide={bad ? undefined : 4000} />
 }

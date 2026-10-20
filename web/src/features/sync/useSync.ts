@@ -12,7 +12,11 @@ function failedResult(id: number, e: unknown): RepoResult {
   return { id, outcome: { kind: 'failed', message: (e as Error).message }, submodulesMoved: [] }
 }
 
-export function useSync() {
+/** Asks the user something; resolves true on yes. */
+type Confirm = (title: string, body: string, yes: string) => Promise<boolean>
+
+/** `confirm`: offered after a rejected push, to pull (rebase) and push again. */
+export function useSync(confirm?: Confirm) {
   const [busy, setBusy] = useState<ReadonlySet<number>>(new Set())
   const [bulk, setBulk] = useState<SyncKind | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -60,19 +64,40 @@ export function useSync() {
     [choice, updateSubmodules],
   )
 
+  const run = useCallback(
+    async (id: number, kind: SyncKind): Promise<RepoResult> => {
+      setBusyFor(id, true)
+      try {
+        return await gitd.call<RepoResult>('repo.sync', { id, kind })
+      } catch (e) {
+        return failedResult(id, e)
+      } finally {
+        setBusyFor(id, false)
+      }
+    },
+    [setBusyFor],
+  )
+
   const sync = useCallback(
     async (id: number, kind: SyncKind) => {
-      setBusyFor(id, true)
-      let result: RepoResult
-      try {
-        result = await gitd.call<RepoResult>('repo.sync', { id, kind })
-      } catch (e) {
-        result = failedResult(id, e)
-      }
-      setBusyFor(id, false)
+      const result = await run(id, kind)
       finish(kind, [result])
+      if (kind !== 'push' || result.outcome.kind !== 'rejected' || !confirm) return
+      const ok = await confirm(
+        'Push rejected',
+        'The remote has commits this branch does not have. Pull them (rebase, your changes kept aside), then push?',
+        'Pull & push',
+      )
+      if (!ok) return
+      const pulled = await run(id, 'pull')
+      if (pulled.outcome.kind !== 'done' && pulled.outcome.kind !== 'upToDate') {
+        // a conflict stops here, with continue / skip / abort as after any pull
+        finish('pull', [pulled])
+        return
+      }
+      finish('pull & push', [await run(id, 'push')])
     },
-    [finish, setBusyFor],
+    [finish, run, confirm],
   )
 
   const syncAll = useCallback(

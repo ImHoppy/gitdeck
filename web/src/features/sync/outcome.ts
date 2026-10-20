@@ -16,6 +16,7 @@ export function groupOf(o: SyncOutcome): OutcomeGroup {
     case 'autostashConflict':
       return 'conflict'
     case 'authFailed':
+    case 'rejected':
     case 'failed':
       return 'failed'
     default:
@@ -29,6 +30,8 @@ export function describe(o: SyncOutcome): string {
       return 'autostash conflict, stash entry kept'
     case 'authFailed':
       return 'auth failed'
+    case 'rejected':
+      return 'the remote has commits you do not have: pull first'
     case 'skipped':
       return o.reason
     case 'failed':

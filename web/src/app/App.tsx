@@ -107,7 +107,7 @@ function Browse() {
     const name = await dialogs.prompt('Workspace', 'Add it to workspace (an existing name or a new one)', workspace?.name ?? 'default')
     if (name) await addRoot(name, path)
   }
-  const sync = useSync()
+  const sync = useSync(dialogs.confirm)
   const selected = workspace?.repos.find((r) => r.id === selectedId)
   const projectName = workspace?.name
   const selectedPath = selected?.path

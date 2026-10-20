@@ -20,6 +20,8 @@ pub enum SyncOutcome {
     UpToDate,
     Conflict,
     AutostashConflict,
+    /// A push refused because the remote has commits this branch doesn't: pull first.
+    Rejected,
     AuthFailed,
     Skipped { reason: String },
     Failed { message: String },
@@ -44,6 +46,9 @@ pub fn classify(code: i32, stdout: &[u8], stderr: &[u8]) -> SyncOutcome {
     if all.contains("CONFLICT") || all.contains("could not apply") {
         return SyncOutcome::Conflict;
     }
+    if all.contains("[rejected]") && (all.contains("fetch first") || all.contains("non-fast-forward")) {
+        return SyncOutcome::Rejected;
+    }
     if all.contains("Authentication failed")
         || all.contains("Permission denied")
         || all.contains("terminal prompts disabled")
@@ -57,6 +62,18 @@ pub fn classify(code: i32, stdout: &[u8], stderr: &[u8]) -> SyncOutcome {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_push_behind_the_remote_is_rejected() {
+        let err = b"To github.com:a/b.git
+ ! [rejected]        master -> master (non-fast-forward)
+error: failed to push some refs
+hint: See the 'Note about fast-forwards'
+";
+        assert_eq!(classify(1, b"", err), SyncOutcome::Rejected);
+        assert_eq!(classify(1, b"", b" ! [rejected] main -> main (fetch first)
+"), SyncOutcome::Rejected);
+    }
 
     #[test]
     fn classifies_outcomes() {

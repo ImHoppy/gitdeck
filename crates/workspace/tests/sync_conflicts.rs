@@ -126,3 +126,14 @@ async fn autostash_conflict_keeps_the_stash_entry() {
     let stashes = runner.run_ok(&f.mine, &["stash", "list"]).await.unwrap();
     assert_eq!(String::from_utf8_lossy(&stashes).lines().count(), 1);
 }
+
+#[tokio::test]
+async fn push_behind_the_remote_is_rejected_then_pull_and_push_works() {
+    let f = fixture();
+    let runner = ProcessRunner::default();
+    upstream_change(&f, "theirs\n");
+    commit(&f.mine, "b.txt", "mine\n");
+    assert_eq!(sync::run(&runner, &f.mine, SyncKind::Push).await, SyncOutcome::Rejected);
+    assert_eq!(sync::run(&runner, &f.mine, SyncKind::Pull).await, SyncOutcome::Done);
+    assert_eq!(sync::run(&runner, &f.mine, SyncKind::Push).await, SyncOutcome::Done);
+}

@@ -44,6 +44,7 @@ export type SyncOutcome =
   | { kind: 'upToDate' }
   | { kind: 'conflict' }
   | { kind: 'autostashConflict' }
+  | { kind: 'rejected' }
   | { kind: 'authFailed' }
   | { kind: 'skipped'; reason: string }
   | { kind: 'failed'; message: string }
