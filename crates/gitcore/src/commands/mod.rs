@@ -29,3 +29,4 @@ pub mod patch;
 pub mod reflog;
 pub mod remote;
 pub mod worktree;
+pub mod pathspec;

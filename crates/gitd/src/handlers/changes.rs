@@ -2,7 +2,7 @@ use crate::{handlers::repo::hub, server::AppState};
 use anyhow::bail;
 use gitcore::{
     commands::{
-        commit, discard,
+        commit, discard, pathspec,
         diff::{ChangedFile, DiffTarget, PatchOptions},
     },
     model::Head,
@@ -54,7 +54,9 @@ pub struct PathsParams {
 
 pub async fn stage(app: &AppState, p: PathsParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
-    hub.write_git(p.id, commit::stage_args(&p.paths)).await?;
+    for c in pathspec::chunks(&p.paths) {
+        hub.write_git(p.id, commit::stage_args(c)).await?;
+    }
     Ok(Value::Null)
 }
 
@@ -71,11 +73,11 @@ pub struct DiscardParams {
 
 pub async fn discard(app: &AppState, p: DiscardParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
-    if !p.paths.is_empty() {
-        hub.write_git(p.id, discard::restore_args(&p.paths)).await?;
+    for c in pathspec::chunks(&p.paths) {
+        hub.write_git(p.id, discard::restore_args(c)).await?;
     }
-    if !p.untracked.is_empty() {
-        hub.write_git(p.id, discard::clean_args(&p.untracked)).await?;
+    for c in pathspec::chunks(&p.untracked) {
+        hub.write_git(p.id, discard::clean_args(c)).await?;
     }
     Ok(Value::Null)
 }
@@ -84,7 +86,9 @@ pub async fn unstage(app: &AppState, p: PathsParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let entry = hub.entry(p.id)?;
     let unborn = matches!(state::load(&hub.runner, &entry.path).await?.head, Head::Unborn { .. });
-    hub.write_git(p.id, commit::unstage_args(&p.paths, unborn)).await?;
+    for c in pathspec::chunks(&p.paths) {
+        hub.write_git(p.id, commit::unstage_args(c, unborn)).await?;
+    }
     Ok(Value::Null)
 }
 
