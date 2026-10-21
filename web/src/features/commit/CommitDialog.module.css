@@ -22,14 +22,6 @@
   overflow: hidden;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 10px;
-  border-bottom: 1px solid var(--border);
-}
-
 .headerTools {
   display: flex;
   gap: 4px;

@@ -1,5 +1,6 @@
-import { Icon } from '../../ui/Icon/Icon'
+import { useEffect } from 'react'
 import { IconButton } from '../../ui/IconButton/IconButton'
+import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { Select } from '../../ui/Select/Select'
 import { Spinner } from '../../ui/Spinner/Spinner'
 import styles from './InteractiveRebase.module.css'
@@ -41,15 +42,16 @@ export function InteractiveRebaseDialog({ repoId, base, onClose }: Props) {
     if (await r.run()) onClose()
   }
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
     <div className={styles.backdrop}>
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="Rebase interactively">
-        <header className={styles.header}>
-          <strong>Rebase interactively onto {base.slice(0, 8)}</strong>
-          <IconButton title="Close" onClick={onClose}>
-            <Icon name="close" size={12} />
-          </IconButton>
-        </header>
+        <PageHeader title={`Rebase interactively onto ${base.slice(0, 8)}`} onClose={onClose} />
         <p className={styles.hint}>Oldest commit on top. Squash and fixup join a commit into the one above it.</p>
         {r.merges && <p className={styles.warn}>Merge commits in this range are flattened: their branches' commits are replayed one by one.</p>}
         <div className={styles.list}>

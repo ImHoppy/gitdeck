@@ -5,6 +5,7 @@ import { useRepoTools } from '../repo-actions'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
 import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
+import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { useDialogs } from '../../ui/Dialog/useDialogs'
 import { Menu, type MenuItem } from '../../ui/Menu/Menu'
 import { FileFilter, type FileListMode, ImagePreview, isImage, PatchView, useDiffFiles, useFileFilter, usePatch } from '../diff'
@@ -201,9 +202,10 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
   return (
     <div className={`${styles.backdrop} ${standalone ? styles.standalone : ''}`}>
       <div className={styles.dialog} role="dialog" aria-label="Commit">
-        <header className={styles.header}>
-          <strong>Commit</strong>
-          <span className={styles.headerTools}>
+        <PageHeader
+          title="Commit"
+          onClose={onClose}
+          tools={<>
             <IconButton title={mode === 'tree' ? 'Show a flat list' : 'Show folders'} onClick={switchMode}>
               <Icon name={mode === 'tree' ? 'list' : 'tree'} size={13} />
             </IconButton>
@@ -212,11 +214,8 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
                 <Icon name="popout" size={12} />
               </IconButton>
             )}
-            <IconButton title="Close (Esc)" onClick={onClose}>
-              <Icon name="close" size={12} />
-            </IconButton>
-          </span>
-        </header>
+          </>}
+        />
         <div className={styles.body}>
           <div className={styles.lists}>
             <FileFilter filter={filter} />

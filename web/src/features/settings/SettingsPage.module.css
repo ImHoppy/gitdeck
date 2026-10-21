@@ -26,12 +26,8 @@
   position: sticky;
   top: 0;
   z-index: 1;
+  margin: 0 -16px;
   background: var(--bg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
 }
 
 .section h3 {

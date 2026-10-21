@@ -1,8 +1,7 @@
-import { Icon } from '../../ui/Icon/Icon'
 import { Select } from '../../ui/Select/Select'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { commitInWindow, setCommitInWindow } from '../../lib/commitWindow'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { GitConfigSection } from './GitConfigSection'
 import { PathRow } from './PathRow'
 import styles from './SettingsPage.module.css'
@@ -28,15 +27,17 @@ type Props<S extends string, P extends string> = {
 
 export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
     <div className={styles.backdrop} onClick={onClose}>
       <div className={styles.page} role="dialog" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
-        <header className={styles.header}>
-          <strong>Settings</strong>
-          <IconButton title="Close" onClick={onClose}>
-            <Icon name="close" size={12} />
-          </IconButton>
-        </header>
+        <PageHeader title="Settings" className={styles.header} onClose={onClose} />
         <Section title="Appearance">
           <Row label="Theme">
             <ChoiceSelect choice={theme} />
