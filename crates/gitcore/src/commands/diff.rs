@@ -29,7 +29,7 @@ pub struct ChangedFile {
     pub kind: ChangeKind,
 }
 
-pub fn files_args(target: &DiffTarget) -> Vec<String> {
+pub fn files_args(target: &DiffTarget, content: Option<&str>) -> Vec<String> {
     let mut a: Vec<String> = match target {
         DiffTarget::Worktree => vec!["diff".into()],
         DiffTarget::Index => vec!["diff".into(), "--cached".into()],
@@ -37,6 +37,9 @@ pub fn files_args(target: &DiffTarget) -> Vec<String> {
         DiffTarget::Commit { sha, parent: None } => vec!["diff-tree".into(), "--no-commit-id".into(), "--root".into(), "-r".into(), sha.clone()],
     };
     a.extend(["--name-status", "-z", "-M", "--no-ext-diff", "--ignore-submodules=none"].map(String::from));
+    if let Some(re) = content {
+        a.push(format!("-G{re}"));
+    }
     a
 }
 

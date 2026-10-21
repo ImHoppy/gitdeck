@@ -20,12 +20,14 @@ use workspace::{
 pub struct FilesParams {
     id: RepoId,
     target: DiffTarget,
+    #[serde(default)]
+    content: Option<String>,
 }
 
 pub async fn files(app: &AppState, p: FilesParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let entry = hub.entry(p.id)?;
-    Ok(serde_json::to_value(changes::files(&hub.runner, &entry.path, &p.target).await?)?)
+    Ok(serde_json::to_value(changes::files(&hub.runner, &entry.path, &p.target, p.content.as_deref()).await?)?)
 }
 
 #[derive(Deserialize)]

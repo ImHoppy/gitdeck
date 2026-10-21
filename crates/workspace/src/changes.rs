@@ -15,10 +15,10 @@ pub struct Patch {
     pub diff_id: String,
 }
 
-pub async fn files<R: GitRunner>(runner: &R, path: &Path, target: &DiffTarget) -> Result<Vec<ChangedFile>, RunError> {
-    let args = diff::files_args(target);
+pub async fn files<R: GitRunner>(runner: &R, path: &Path, target: &DiffTarget, content: Option<&str>) -> Result<Vec<ChangedFile>, RunError> {
+    let args = diff::files_args(target, content);
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    if *target != DiffTarget::Worktree {
+    if *target != DiffTarget::Worktree || content.is_some() {
         return Ok(diff::parse_name_status(&runner.run_ok(path, &args).await?));
     }
     // the untracked scan is the slow half on big trees: run it alongside the diff

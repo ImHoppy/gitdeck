@@ -177,3 +177,19 @@
   margin: 4px 6px;
   padding: 2px 6px;
 }
+
+.filterRow {
+  display: flex;
+  align-items: stretch;
+  margin-right: 6px;
+}
+
+.filterRow .fileFilter {
+  flex: 1;
+  min-width: 0;
+}
+
+.filterRow > button {
+  margin: 4px 0;
+  padding: 0 6px;
+}

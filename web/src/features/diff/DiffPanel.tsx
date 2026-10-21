@@ -11,6 +11,8 @@ import { FileList } from './FileList'
 import { useDiffOptions } from './useDiffOptions'
 import { PatchView } from './PatchView'
 import { useDiffFiles } from './useDiffFiles'
+import { useFileFilter } from './useFileFilter'
+import { FileFilter } from './FileFilter'
 import { usePatch } from './usePatch'
 import { useNarrow } from '../../lib/useNarrow'
 import { loadSetting } from '../../lib/storedSetting'
@@ -35,9 +37,10 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
   const [parentIndex, setParentIndex] = useState(0)
   const target: DiffTarget =
     base.kind === 'commit' && parents.length > 1 ? { ...base, parent: parents[parentIndex] ?? base.parent } : base
-  const { files: all, error } = useDiffFiles(repoId, target)
-  const [query, setQuery] = useState(initialQuery)
-  const files = useMemo(() => filterFiles(all, query), [all, query])
+  const filter = useFileFilter(initialQuery)
+  const { files: all, error } = useDiffFiles(repoId, target, filter.code)
+  const { apply } = filter
+  const files = useMemo(() => apply(all), [all, apply])
   const [picked, setPicked] = useState<string | null>(null)
   const file: ChangedFile | null = files?.find((f) => f.path === picked) ?? files?.[0] ?? null
   const diff = useDiffOptions()
@@ -84,12 +87,7 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
             onChange={(v) => setParentIndex(Number(v))}
           />
         )}
-        <input
-          className={styles.fileFilter}
-          placeholder="Filter files (regex)"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <FileFilter filter={filter} />
         <FileList
           files={files}
           selected={file?.path ?? null}
@@ -143,14 +141,3 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
   )
 }
 
-function filterFiles(files: ChangedFile[] | null, query: string): ChangedFile[] | null {
-  if (!files || !query.trim()) return files
-  let re: RegExp
-  try {
-    re = new RegExp(query, 'i')
-  } catch {
-    const q = query.toLowerCase()
-    return files.filter((f) => f.path.toLowerCase().includes(q))
-  }
-  return files.filter((f) => re.test(f.path))
-}

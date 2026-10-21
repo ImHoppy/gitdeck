@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadSetting, saveSetting } from '../../lib/storedSetting'
 import { Toast } from '../../ui/Toast/Toast'
 import { useRepoTools } from '../repo-actions'
@@ -7,7 +7,7 @@ import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { useDialogs } from '../../ui/Dialog/useDialogs'
 import { Menu, type MenuItem } from '../../ui/Menu/Menu'
-import { type FileListMode, ImagePreview, isImage, PatchView, useDiffFiles, usePatch } from '../diff'
+import { FileFilter, type FileListMode, ImagePreview, isImage, PatchView, useDiffFiles, useFileFilter, usePatch } from '../diff'
 import { ChangeList } from './ChangeList'
 import styles from './CommitDialog.module.css'
 import { useCommitActions } from './useCommitActions'
@@ -29,8 +29,12 @@ type Props = {
 }
 
 export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: Props) {
-  const unstaged = useDiffFiles(repoId, WORKTREE)
-  const staged = useDiffFiles(repoId, INDEX)
+  const filter = useFileFilter()
+  const unstaged = useDiffFiles(repoId, WORKTREE, filter.code)
+  const staged = useDiffFiles(repoId, INDEX, filter.code)
+  const { apply } = filter
+  const shownUnstaged = useMemo(() => apply(unstaged.files), [apply, unstaged.files])
+  const shownStaged = useMemo(() => apply(staged.files), [apply, staged.files])
   const actions = useCommitActions(repoId)
   const dialogs = useDialogs()
   const [picked, setPicked] = useState<Picked | null>(null)
@@ -215,16 +219,17 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
         </header>
         <div className={styles.body}>
           <div className={styles.lists}>
+            <FileFilter filter={filter} />
             <ChangeList
               title="Unstaged"
-              files={unstaged.files}
+              files={shownUnstaged}
               selected={picked?.side === 'worktree' ? picked.path : null}
               onSelect={(f) => setPicked({ side: 'worktree', path: f.path })}
               onOpen={(f) => stage([f])}
               mode={mode}
               all={[
-                { label: <Icon name="restore" size={12} />, title: 'Discard all unstaged changes…', disabled: actions.busy, run: () => void discard(unstaged.files ?? []) },
-                { label: '⇊ stage all', title: 'Stage all', disabled: actions.busy, run: () => stage(unstaged.files ?? []) },
+                { label: <Icon name="restore" size={12} />, title: 'Discard all unstaged changes…', disabled: actions.busy, run: () => void discard(shownUnstaged ?? []) },
+                { label: '⇊ stage all', title: 'Stage all', disabled: actions.busy, run: () => stage(shownUnstaged ?? []) },
               ]}
               actions={[
                 {
@@ -239,12 +244,12 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
             />
             <ChangeList
               title="Staged"
-              files={staged.files}
+              files={shownStaged}
               selected={picked?.side === 'index' ? picked.path : null}
               onSelect={(f) => setPicked({ side: 'index', path: f.path })}
               onOpen={(f) => unstage([f])}
               mode={mode}
-              all={[{ label: '⇈ unstage all', title: 'Unstage all', disabled: actions.busy, run: () => unstage(staged.files ?? []) }]}
+              all={[{ label: '⇈ unstage all', title: 'Unstage all', disabled: actions.busy, run: () => unstage(shownStaged ?? []) }]}
               actions={[
                 { label: <Icon name="push" size={12} />, title: 'Unstage (U)', run: (fs) => unstage(fs) },
               ]}
