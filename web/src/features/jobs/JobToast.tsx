@@ -12,7 +12,7 @@ export function JobToast({ job, failed, onOpen, onDismiss }: Props) {
   const title = job.done ? `${job.title}: ${describeOutcome(job.done)}` : job.title
   const detail = failed ? (firstError(job) ?? statusLine(job)) : job.done ? null : statusLine(job)
   return (
-    <Toast tone={tone} title={title} onDismiss={onDismiss} autoHide={job.done && !failed ? 3000 : undefined}>
+    <Toast tone={tone} title={title} onDismiss={onDismiss}>
       <button className={styles.toastBody} title="Show the full output" onClick={onOpen}>
         {detail && <span className={`${styles.detail} ${failed ? styles.error : ''}`}>{detail}</span>}
         {percent !== null && (

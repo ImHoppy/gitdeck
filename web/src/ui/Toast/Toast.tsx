@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../Icon/Icon'
 import { Spinner } from '../Spinner/Spinner'
@@ -30,11 +30,15 @@ function stack(): HTMLDivElement {
 }
 
 export function Toast({ tone, title, children, onDismiss, autoHide }: Props) {
+  const dismiss = useRef(onDismiss)
   useEffect(() => {
-    if (!autoHide || !onDismiss) return
-    const t = setTimeout(onDismiss, autoHide)
+    dismiss.current = onDismiss
+  }, [onDismiss])
+  useEffect(() => {
+    if (!autoHide) return
+    const t = setTimeout(() => dismiss.current?.(), autoHide)
     return () => clearTimeout(t)
-  }, [autoHide, onDismiss])
+  }, [autoHide])
 
   return createPortal(
     <div className={`${styles.toast} ${styles[tone]}`} role={tone === 'bad' ? 'alert' : 'status'}>

@@ -99,3 +99,34 @@
   padding: 0 12px;
   white-space: pre;
 }
+
+.groupRow {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 8px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.groupRow:hover {
+  background: var(--hover);
+}
+
+.groupName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.groupStatus {
+  flex: none;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
