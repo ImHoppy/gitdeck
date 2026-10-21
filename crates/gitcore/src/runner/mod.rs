@@ -10,6 +10,8 @@ use std::{path::Path, sync::Arc};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CommandRecord {
+    /// `git` or `gh`.
+    pub program: &'static str,
     pub cwd: String,
     pub args: Vec<String>,
     pub code: i32,
@@ -73,6 +75,27 @@ pub trait GitRunner: Send + Sync {
                     code: out.code,
                     stderr: String::from_utf8_lossy(&out.stderr).trim().to_string(),
                 })
+            }
+        }
+    }
+}
+
+/// The GitHub CLI, run with the same rules as git: logged, no prompt, a timeout.
+pub trait GhRunner: Send + Sync {
+    fn gh(
+        &self,
+        cwd: &Path,
+        args: &[&str],
+        input: Option<Vec<u8>>,
+    ) -> impl std::future::Future<Output = Result<GitOutput, RunError>> + Send;
+
+    fn gh_ok(&self, cwd: &Path, args: &[&str]) -> impl std::future::Future<Output = Result<Vec<u8>, RunError>> + Send {
+        async move {
+            let out = self.gh(cwd, args, None).await?;
+            if out.ok() {
+                Ok(out.stdout)
+            } else {
+                Err(RunError::Failed { code: out.code, stderr: String::from_utf8_lossy(&out.stderr).trim().to_string() })
             }
         }
     }

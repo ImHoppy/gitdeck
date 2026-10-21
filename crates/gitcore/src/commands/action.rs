@@ -46,6 +46,8 @@ pub enum Action {
     Publish { remote: String, branch: String },
     /// After a rebase or amend; refused when the remote moved since the last fetch.
     ForcePush,
+    /// A rebased PR branch to its remote branch, refused unless that branch is still at `expect`.
+    PushLease { remote: String, branch: String, expect: String },
     PushTags { remote: String },
     PushTag { remote: String, name: String },
     DeleteRemoteTag { remote: String, name: String },
@@ -117,6 +119,12 @@ impl Action {
             Self::StashDrop { index } => v(&["stash", "drop", &stash(index)]),
             Self::Publish { remote, branch } => v(&["push", "--set-upstream", remote, branch]),
             Self::ForcePush => v(&["push", "--force-with-lease", "--force-if-includes"]),
+            Self::PushLease { remote, branch, expect } => v(&[
+                "push",
+                &format!("--force-with-lease=refs/heads/{branch}:{expect}"),
+                remote,
+                &format!("HEAD:refs/heads/{branch}"),
+            ]),
             Self::PushTags { remote } => v(&["push", remote, "--tags"]),
             Self::PushTag { remote, name } => v(&["push", remote, &format!("refs/tags/{name}")]),
             Self::DeleteRemoteTag { remote, name } => v(&["push", remote, "--delete", &format!("refs/tags/{name}")]),
@@ -141,6 +149,7 @@ impl Action {
             Self::DeleteRemoteBranch { .. }
                 | Self::Publish { .. }
                 | Self::ForcePush
+                | Self::PushLease { .. }
                 | Self::PushTags { .. }
                 | Self::PushTag { .. }
                 | Self::DeleteRemoteTag { .. }
@@ -172,6 +181,8 @@ mod tests {
         assert_eq!(a.args(), ["push", "--set-upstream", "origin", "feat/x"]);
         let a: Action = serde_json::from_str(r#"{"kind":"forcePush"}"#).unwrap();
         assert_eq!(a.args(), ["push", "--force-with-lease", "--force-if-includes"]);
+        let a: Action = serde_json::from_str(r#"{"kind":"pushLease","remote":"origin","branch":"feat","expect":"abc"}"#).unwrap();
+        assert_eq!(a.args(), ["push", "--force-with-lease=refs/heads/feat:abc", "origin", "HEAD:refs/heads/feat"]);
         let a: Action = serde_json::from_str(r#"{"kind":"deleteRemoteTag","remote":"origin","name":"v1"}"#).unwrap();
         assert_eq!(a.args(), ["push", "origin", "--delete", "refs/tags/v1"]);
         assert!(a.is_remote());

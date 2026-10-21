@@ -1,4 +1,7 @@
-use super::{env::NO_PROMPT_ENV, CommandRecord, CommandSink, Console, GitOutput, GitRunner, RunError};
+use super::{
+    env::{GH_ENV, NO_PROMPT_ENV},
+    CommandRecord, CommandSink, Console, GhRunner, GitOutput, GitRunner, RunError,
+};
 use std::{
     path::Path,
     process::Stdio,
@@ -94,23 +97,50 @@ impl Default for ProcessRunner {
 
 impl GitRunner for ProcessRunner {
     async fn run(&self, cwd: &Path, args: &[&str]) -> Result<GitOutput, RunError> {
-        self.exec(cwd, args, None).await
+        self.exec(Program::Git, cwd, args, None).await
     }
 
     async fn run_input(&self, cwd: &Path, args: &[&str], input: Vec<u8>) -> Result<GitOutput, RunError> {
-        self.exec(cwd, args, Some(input)).await
+        self.exec(Program::Git, cwd, args, Some(input)).await
+    }
+}
+
+impl GhRunner for ProcessRunner {
+    async fn gh(&self, cwd: &Path, args: &[&str], input: Option<Vec<u8>>) -> Result<GitOutput, RunError> {
+        self.exec(Program::Gh, cwd, args, input).await
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Program {
+    Git,
+    Gh,
+}
+
+impl Program {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Git => "git",
+            Self::Gh => "gh",
+        }
+    }
+
+    /// Inside a job, gh talks to GitHub the whole time, like git's network commands.
+    fn streams(self, args: &[&str]) -> bool {
+        self == Self::Gh || subcommand(args).is_some_and(|c| NETWORK.contains(&c))
     }
 }
 
 impl ProcessRunner {
-    async fn exec(&self, cwd: &Path, args: &[&str], input: Option<Vec<u8>>) -> Result<GitOutput, RunError> {
+    async fn exec(&self, program: Program, cwd: &Path, args: &[&str], input: Option<Vec<u8>>) -> Result<GitOutput, RunError> {
         let lane = if INTERACTIVE.try_with(|_| ()).is_ok() { &self.interactive } else { &self.limit };
         let _permit = lane.acquire().await.expect("semaphore never closed");
         let started = Instant::now();
-        let stream = STREAM.try_with(|s| s.clone()).ok().filter(|_| subcommand(args).is_some_and(|c| NETWORK.contains(&c)));
-        let out = self.spawn(cwd, args, stream, input).await;
+        let stream = STREAM.try_with(|s| s.clone()).ok().filter(|_| program.streams(args));
+        let out = self.spawn(program, cwd, args, stream, input).await;
         if let Some(sink) = &self.sink {
             sink(CommandRecord {
+                program: program.name(),
                 cwd: cwd.to_string_lossy().into_owned(),
                 args: args.iter().map(|a| a.to_string()).collect(),
                 code: out.as_ref().map_or(-1, |o| o.code),
@@ -130,12 +160,16 @@ impl ProcessRunner {
         out
     }
 
-    async fn spawn(&self, cwd: &Path, args: &[&str], stream: Option<OutputSink>, input: Option<Vec<u8>>) -> Result<GitOutput, RunError> {
-        let mut cmd = Command::new(self.git());
-        cmd.args(args)
-            .current_dir(cwd)
-            .envs(NO_PROMPT_ENV.iter().copied())
-            .stdin(if input.is_some() { Stdio::piped() } else { Stdio::null() })
+    async fn spawn(&self, program: Program, cwd: &Path, args: &[&str], stream: Option<OutputSink>, input: Option<Vec<u8>>) -> Result<GitOutput, RunError> {
+        let mut cmd = match program {
+            Program::Git => Command::new(self.git()),
+            Program::Gh => Command::new("gh"),
+        };
+        cmd.args(args).current_dir(cwd).envs(NO_PROMPT_ENV.iter().copied());
+        if program == Program::Gh {
+            cmd.envs(GH_ENV.iter().copied());
+        }
+        cmd.stdin(if input.is_some() { Stdio::piped() } else { Stdio::null() })
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
@@ -149,8 +183,8 @@ impl ProcessRunner {
             });
         }
         if let Some(sink) = stream {
-            sink(format!("$ git {}
-", args.join(" ")).as_bytes());
+            sink(format!("$ {} {}
+", program.name(), args.join(" ")).as_bytes());
             return self.drain(child, sink).await;
         }
         let out = tokio::time::timeout(self.timeout, child.wait_with_output())

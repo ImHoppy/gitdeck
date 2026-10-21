@@ -1,0 +1,37 @@
+query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
+  viewer { login }
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      id
+      viewerCanUpdate
+      reviewThreads(first: 100) {
+        nodes {
+          id isResolved isOutdated path line originalLine startLine diffSide viewerCanResolve viewerCanUnresolve viewerCanReply
+          comments(first: 100) {
+            nodes {
+              id body createdAt updatedAt viewerCanUpdate viewerCanDelete diffHunk
+              author { login }
+              pullRequestReview { id }
+              reactionGroups { content reactors { totalCount } }
+            }
+          }
+        }
+      }
+      timelineItems(first: 100, after: $endCursor, itemTypes: [ISSUE_COMMENT, PULL_REQUEST_REVIEW, PULL_REQUEST_COMMIT, HEAD_REF_FORCE_PUSHED_EVENT, MERGED_EVENT, CLOSED_EVENT, REOPENED_EVENT, READY_FOR_REVIEW_EVENT, CONVERT_TO_DRAFT_EVENT]) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          __typename
+          ... on IssueComment { id body createdAt updatedAt viewerCanUpdate viewerCanDelete author { login } reactionGroups { content reactors { totalCount } } }
+          ... on PullRequestReview { id body state createdAt updatedAt submittedAt viewerCanUpdate viewerCanDelete author { login } reactionGroups { content reactors { totalCount } } }
+          ... on PullRequestCommit { commit { oid messageHeadline authoredDate author { name user { login } } } }
+          ... on HeadRefForcePushedEvent { createdAt actor { login } beforeCommit { oid } afterCommit { oid } }
+          ... on MergedEvent { createdAt actor { login } commit { oid } }
+          ... on ClosedEvent { createdAt actor { login } }
+          ... on ReopenedEvent { createdAt actor { login } }
+          ... on ReadyForReviewEvent { createdAt actor { login } }
+          ... on ConvertToDraftEvent { createdAt actor { login } }
+        }
+      }
+    }
+  }
+}
