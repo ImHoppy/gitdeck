@@ -46,7 +46,11 @@
 .clear {
   flex: none;
   display: flex;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
   padding: 3px;
+  line-height: 0;
   border: none;
   border-radius: 3px;
   background: none;
