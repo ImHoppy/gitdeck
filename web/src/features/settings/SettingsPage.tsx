@@ -2,6 +2,7 @@ import { Select } from '../../ui/Select/Select'
 import { type ReactNode, useEffect, useState } from 'react'
 import { commitInWindow, setCommitInWindow } from '../../lib/commitWindow'
 import { repoWindowOnDoubleClick, setRepoWindowOnDoubleClick } from '../../lib/repoWindow'
+import { pullsInWindow, setPullsInWindow } from '../../lib/pullsWindow'
 import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { GitConfigSection } from './GitConfigSection'
 import { PathRow } from './PathRow'
@@ -17,6 +18,7 @@ type Props<S extends string, P extends string> = {
   fetchInterval: Choice<string> | null
   keepRunning: { value: boolean; onChange: (on: boolean) => void } | null
   githubAvatars: { value: boolean; onChange: (on: boolean) => void } | null
+  githubPrs: { value: boolean; onChange: (on: boolean) => void } | null
   version: string | null
   git: { path: string | null; version: string | null; onSave: (path: string) => Promise<string | null> } | null
   editor: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
@@ -26,9 +28,10 @@ type Props<S extends string, P extends string> = {
   onClose: () => void
 }
 
-export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
+export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, githubPrs, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
   const [repoWindow, setRepoWindow] = useState(repoWindowOnDoubleClick)
+  const [pullsWindow, setPullsWindow] = useState(pullsInWindow)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -69,6 +72,26 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               onChange={(e) => {
                 setRepoWindow(e.target.checked)
                 setRepoWindowOnDoubleClick(e.target.checked)
+              }}
+            />
+          </Row>
+        </Section>
+        <Section title="GitHub">
+          <Row label="Pull requests, through the host's own gh login (gh auth login on the host; no token is stored)">
+            <input
+              type="checkbox"
+              disabled={!githubPrs}
+              checked={githubPrs?.value ?? false}
+              onChange={(e) => githubPrs?.onChange(e.target.checked)}
+            />
+          </Row>
+          <Row label="Open pull requests in a window (Ctrl+Shift+P, PR pills, Create pull request)">
+            <input
+              type="checkbox"
+              checked={pullsWindow}
+              onChange={(e) => {
+                setPullsWindow(e.target.checked)
+                setPullsInWindow(e.target.checked)
               }}
             />
           </Row>

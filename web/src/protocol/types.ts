@@ -116,6 +116,7 @@ export type RepoAction =
   | { kind: 'recordPointers'; paths: string[] }
   | { kind: 'publish'; remote: string; branch: string }
   | { kind: 'forcePush' }
+  | { kind: 'pushLease'; remote: string; branch: string; expect: string }
   | { kind: 'pushTags'; remote: string }
   | { kind: 'pushTag'; remote: string; name: string }
   | { kind: 'deleteRemoteTag'; remote: string; name: string }
@@ -128,7 +129,7 @@ export type RepoAction =
 
 export type Stash = { index: number; sha: string; time: number; message: string }
 
-export type CommandRecord = { cwd: string; args: string[]; code: number; millis: number; at: number; output?: string }
+export type CommandRecord = { program: 'git' | 'gh'; cwd: string; args: string[]; code: number; millis: number; at: number; output?: string }
 
 export type JobUpdate = {
   id: number

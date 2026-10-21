@@ -38,10 +38,19 @@ import { StartPage } from '../features/start'
 import { Jobs } from '../features/jobs'
 import { Opening } from './Opening'
 import { useOpenParam } from './useOpenParam'
+import { ModeToggle } from './ModeToggle'
+import { PullsWindow } from './PullsWindow'
+import { usePullsMode } from './usePullsMode'
+import { PullRequestsView } from '../features/pull-requests'
+import { openWindow } from './windows'
 
 export function App() {
   const params = new URLSearchParams(location.search)
   const commitId = params.get('commit')
+  if (params.get('pulls')) {
+    const pr = Number(params.get('pr')) || null
+    return <PullsWindow workspace={params.get('ws') ?? ''} repoId={Number(params.get('repo'))} pr={pr} prRepo={params.get('prRepo')} />
+  }
   const reflog = params.get('reflog')
   if (reflog) return <ReflogWindow repoId={Number(reflog)} workspace={params.get('ws') ?? ''} />
   const history = params.get('history')
@@ -145,6 +154,24 @@ function Browse() {
   const tree = useTreeCommands()
   const theme = useTheme()
   const server = useServerInfo()
+  const revealRepo = useCallback(() => setShowRepo(true), [])
+  const pulls = usePullsMode({ workspace, selectedId, settingKey: server.info?.githubPrs, revealRepo })
+  const [pullsVisited, setPullsVisited] = useState(false)
+  const toggle = pulls.availability.status?.enabled ? (
+    <ModeToggle
+      mode={pulls.mode}
+      unread={pulls.unread}
+      onMode={(m) => {
+        if (m === 'pulls') setPullsVisited(true)
+        pulls.setMode(m)
+      }}
+    />
+  ) : null
+  const prPath = (repoId: number) => workspace?.repos.find((r) => r.id === repoId)?.path ?? null
+  const openPulls = (next: Parameters<typeof pulls.open>[0]) => {
+    setPullsVisited(true)
+    pulls.open(next)
+  }
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
@@ -259,8 +286,41 @@ function Browse() {
         {workspace && sync.moved.length > 0 && (
           <SubmoduleUpdateDialog moved={sync.moved} repos={workspace.repos} onAnswer={sync.answerMoved} />
         )}
+        {(pullsVisited || pulls.mode === 'pulls') && (
+          <div className={pulls.mode === 'pulls' ? styles.modePane : styles.hiddenPane}>
+            <PullRequestsView
+              workspace={workspace}
+              availability={pulls.availability}
+              place={pulls.place}
+              push={pulls.push}
+              replace={pulls.replace}
+              currentRepoId={selectedId}
+              lead={toggle}
+              pop={{
+                title: 'Open the pull requests in their own window',
+                run: () => {
+                  if (selectedId !== null) openWindow({ kind: 'pulls', repo: selectedId, pr: pulls.place.pr ?? undefined, prRepo: pulls.place.prRepo ?? undefined }, workspace.name)
+                  pulls.setMode('history')
+                },
+              }}
+              onShowInHistory={pulls.showInHistory}
+            />
+          </div>
+        )}
+        <div className={pulls.mode === 'pulls' ? styles.hiddenPane : styles.modePane}>
         {selected?.initialized && !selected.excluded ? (
           <RepoView key={selected.id} repo={selected} workspace={workspace.name} onBack={narrow ? () => setShowRepo(false) : undefined}
+            lead={toggle}
+            prs={
+              pulls.availability.ready && pulls.link
+                ? {
+                    list: pulls.prs,
+                    remote: pulls.link.remote,
+                    open: (pr) => openPulls({ repo: prPath(selected.id), pr, prRepo: pulls.link?.repo ?? null, tab: 'conversation', create: null }),
+                    create: (branch) => openPulls({ repo: prPath(selected.id), pr: null, prRepo: null, create: branch }),
+                  }
+                : null
+            }
             onPush={(id) => void sync.sync(id, 'push')}
             pull={{
               action: sync.pullAction,
@@ -270,8 +330,9 @@ function Browse() {
             }}
           />
         ) : (
-          <div className={styles.message}>Select a repo in the tree.</div>
+          <div className={styles.message}>{toggle} Select a repo in the tree.</div>
         )}
+        </div>
       </main>
       {menu && <Menu items={menu.items} at={menu.at} onClose={() => setMenu(null)} />}
       {dialogs.element}
@@ -291,6 +352,7 @@ function Browse() {
           }
           keepRunning={server.info ? { value: server.info.keepRunning, onChange: server.setKeepRunning } : null}
           githubAvatars={server.info ? { value: server.info.githubAvatars, onChange: server.setGithubAvatars } : null}
+          githubPrs={server.info ? { value: server.info.githubPrs, onChange: server.setGithubPrs } : null}
           version={server.info?.version ?? null}
           repoId={selected?.id ?? null}
           editor={server.info ? { path: server.info.editor, onSave: server.setEditor } : null}

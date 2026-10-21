@@ -14,3 +14,9 @@
   left: 0;
   right: 0;
 }
+
+.measured {
+  position: absolute;
+  left: 0;
+  right: 0;
+}

@@ -183,3 +183,46 @@
 .bisectBar span {
   color: var(--fg-muted);
 }
+
+.modePane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* the other mode stays mounted, so switching back keeps its selection and scroll */
+.hiddenPane {
+  display: none;
+}
+
+.pullsWindow {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.modeToggle {
+  display: inline-flex;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.modeToggle button {
+  padding: 0 10px;
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.modeToggle button + button {
+  border-left: 1px solid var(--border-input);
+}
+
+.modeToggle .modeOn {
+  background: var(--selection);
+  color: var(--fg);
+}

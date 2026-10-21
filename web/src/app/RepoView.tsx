@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSessionState } from '../lib/useSessionState'
 import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
@@ -32,7 +32,10 @@ import { Icon } from '../ui/Icon/Icon'
 import { RepoToolbar } from './RepoToolbar'
 import { commitInWindow } from '../lib/commitWindow'
 import { openWindow } from './windows'
+import { prsBySha } from '../features/pull-requests'
+import type { PrSummary } from '../protocol/github'
 import { type GridSelection, HistorySearch, RevisionGrid, type SearchMode, useHistory } from '../features/revision-grid'
+import { useHistoryRequest } from '../lib/historyTarget'
 import { loadSetting, saveSetting } from '../lib/storedSetting'
 import type { DiffTarget, GitRef, HistoryRow, RepoSnapshot } from '../protocol/types'
 import { useDialogs } from '../ui/Dialog/useDialogs'
@@ -55,9 +58,28 @@ function diffTitle(s: GridSelection): string {
 }
 
 type Pull = { action: PullAction; setAction: (a: PullAction) => void; busy: boolean; run: (kind: PullAction) => void }
-type Props = { repo: RepoSnapshot; workspace: string; onBack?: () => void; onPush: (id: number) => void; pull: Pull }
+type Prs = {
+  list: PrSummary[]
+  remote: string
+  open: (number: number) => void
+  create: (branch: string) => void
+}
 
-export function RepoView({ repo, workspace, onBack, onPush, pull }: Props) {
+type Props = {
+  repo: RepoSnapshot
+  workspace: string
+  onBack?: () => void
+  onPush: (id: number) => void
+  pull: Pull
+  /** The History / Pull requests toggle, first in the toolbar. */
+  lead?: ReactNode
+  /** Only when the PR view is available for this repo. */
+  prs?: Prs | null
+}
+
+const SHA = /^[0-9a-f]{7,40}$/
+
+export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: Props) {
   const [filter, setFilter] = useState('')
   const filterBox = useRef<HTMLInputElement>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>(() => loadSetting('searchMode', ['message', 'content'] as const, 'message'))
@@ -147,6 +169,24 @@ export function RepoView({ repo, workspace, onBack, onPush, pull }: Props) {
     setSelection({ kind: 'commit', sha, parents: row?.parents ?? [], subject: row?.subject ?? '' })
   }
 
+  // a branch asked for right after a switch may only show up with the next refs
+  const [wanted, setWanted] = useState<string | null>(null)
+  useHistoryRequest(repo.id, setWanted)
+  useEffect(() => {
+    if (!wanted || !history.info) return
+    const sha = SHA.test(wanted) ? wanted : refs.find((r) => (r.kind === 'branch' || r.kind === 'remote') && r.name === wanted)?.sha
+    if (!sha) return
+    setWanted(null)
+    setTab('commit')
+    void pick(sha)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted, refs, history.info])
+
+  const prList = prs?.list
+  const prRemote = prs?.remote
+  const prHeads = useMemo(() => (prList && prRemote ? prsBySha(prList, refs, prRemote) : undefined), [prList, prRemote, refs])
+  const createPr: MenuItem[] = prs && currentBranch ? ['separator', { key: 'pr', label: 'Create pull request…', icon: 'pr', onSelect: () => prs.create(currentBranch) }] : []
+
   const onCommitMenu = (row: HistoryRow, at: { x: number; y: number }) => {
     const branchesHere = refs.filter((r) => r.kind === 'branch' && r.sha === row.sha && r.name !== currentBranch).map((r) => r.name)
     const interactive: MenuItem = { key: 'rebase-i', label: 'Rebase interactively from here…', icon: 'history', disabled: !currentBranch || row.sha === history.info?.head, onSelect: () => setRebaseBase(row.sha) }
@@ -171,7 +211,8 @@ export function RepoView({ repo, workspace, onBack, onPush, pull }: Props) {
         busy={commands.busy}
         ancestry={ancestry}
         onBack={onBack}
-        onBranchMenu={(at) => setMenu({ items: branchMenu(ctx, refs, history.info?.head ?? null), at })}
+        lead={lead}
+        onBranchMenu={(at) => setMenu({ items: [...branchMenu(ctx, refs, history.info?.head ?? null), ...createPr], at })}
         sync={
           <>
             <PullButton defaultAction={pull.action} disabled={pull.busy} suffix={pull.busy ? <Spinner /> : null} onRun={pull.run} onSetDefault={pull.setAction} />
@@ -179,7 +220,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull }: Props) {
               title={(ahead ? `Push ${ahead} commit${ahead === 1 ? '' : 's'}` : 'Push') + ' (Ctrl+Up)'}
               disabled={pull.busy}
               onClick={() => onPush(repo.id)}
-              menu={pushMenu(ctx, { hasUpstream: ahead != null, ahead: ahead ?? 0, push: () => onPush(repo.id) })}
+              menu={[...pushMenu(ctx, { hasUpstream: ahead != null, ahead: ahead ?? 0, push: () => onPush(repo.id) }), ...createPr]}
             >
               <Icon name="push" />
               {ahead ? ` ${ahead}` : ''}
@@ -267,6 +308,8 @@ export function RepoView({ repo, workspace, onBack, onPush, pull }: Props) {
               scrollTo={scrollTo}
               onScrollTo={setScrollTo}
               highlighted={highlighted}
+              prs={prHeads}
+              onOpenPr={prs?.open}
             />
           </div>
           <Resizer axis="y" onDrag={(d) => bottomHeight.drag(-d)} onDone={bottomHeight.save} />

@@ -1,0 +1,394 @@
+.detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.empty {
+  padding: 16px;
+  color: var(--fg-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conversation {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline {
+  flex: 1;
+  min-height: 0;
+}
+
+.entry {
+  padding: 6px 12px;
+}
+
+.indent {
+  padding-left: 28px;
+}
+
+.replyBox {
+  flex: none;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  border-radius: 6px 6px 0 0;
+}
+
+.cardHead button {
+  height: 20px;
+}
+
+.compact {
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.compact .cardHead {
+  border: none;
+  background: none;
+  padding-bottom: 0;
+}
+
+.body {
+  padding: 8px 12px;
+}
+
+.time {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.good {
+  color: var(--ahead);
+}
+
+.bad {
+  color: var(--danger);
+}
+
+.pending {
+  color: var(--dirty);
+}
+
+.merged {
+  color: #8250df;
+}
+
+.reactions {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px 8px;
+}
+
+.reaction {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.event {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 28px;
+  color: var(--fg-muted);
+  font-size: 12.5px;
+}
+
+.event strong {
+  color: var(--fg);
+}
+
+.sha {
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: var(--hover);
+  color: var(--accent);
+  font: 12px ui-monospace, 'Cascadia Code', Consolas, monospace;
+  cursor: pointer;
+}
+
+.thread {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.resolved {
+  opacity: 0.75;
+}
+
+.threadHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-panel);
+  border-radius: 6px 6px 0 0;
+}
+
+.threadHead button {
+  height: 20px;
+}
+
+.threadToggle {
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.threadPath {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: 12px ui-monospace, 'Cascadia Code', Consolas, monospace;
+  cursor: pointer;
+}
+
+.tag {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+.snippet {
+  margin: 0;
+  padding: 4px 0;
+  overflow-x: auto;
+  border-top: 1px solid var(--border);
+  font: 12px/1.45 ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.snippet > div {
+  padding: 0 8px;
+  white-space: pre;
+}
+
+.add {
+  background: var(--diff-add);
+}
+
+.del {
+  background: var(--diff-del);
+}
+
+.replyOpen {
+  width: calc(100% - 16px);
+  margin: 6px 8px 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--fg-muted);
+  font: inherit;
+  text-align: left;
+  cursor: text;
+}
+
+.files {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.fileList {
+  flex: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.diffSide {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.diffBody {
+  flex: 1;
+  min-height: 0;
+}
+
+.bubble {
+  min-width: 18px;
+  height: 15px;
+  padding: 0 3px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  line-height: 15px;
+  cursor: pointer;
+}
+
+.bubbleDone {
+  background: var(--fg-muted);
+}
+
+.bubbleMine {
+  outline: 2px solid var(--dirty);
+}
+
+.addLine {
+  width: 16px;
+  height: 15px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  line-height: 15px;
+  cursor: pointer;
+  opacity: 0.2;
+}
+
+.addLine:hover {
+  opacity: 1;
+}
+
+.lineComments {
+  flex: none;
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+
+.lineBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.lineHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pendingComment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px dashed var(--dirty);
+  border-radius: 6px;
+}
+
+.pendingComment > :nth-child(2) {
+  flex: 1;
+}
+
+.listTab {
+  flex: 1;
+  min-height: 0;
+}
+
+.commitRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: var(--hover);
+}
+
+.commitText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code {
+  font: 12px ui-monospace, 'Cascadia Code', Consolas, monospace;
+  color: var(--fg-muted);
+}
+
+.checks {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.checksHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.checkName {
+  flex: 1;
+  min-width: 0;
+}
+
+.check a {
+  color: var(--accent);
+  text-decoration: none;
+}

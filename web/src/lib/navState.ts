@@ -13,15 +13,17 @@ function subscribe(onChange: () => void) {
 
 const snapshot = () => history.state as Record<string, unknown> | null
 
-function write(key: string, value: unknown, push: boolean) {
-  const state = { ...snapshot(), [key]: value }
+function write(values: Record<string, unknown>, push: boolean) {
+  const state = { ...snapshot(), ...values }
   if (push) history.pushState(state, '', location.href)
   else history.replaceState(state, '', location.href)
   window.dispatchEvent(new Event(CHANGE))
 }
 
-export const navPush = (key: string, value: unknown) => write(key, value, true)
-export const navReplace = (key: string, value: unknown) => write(key, value, false)
+export const navPush = (key: string, value: unknown) => write({ [key]: value }, true)
+export const navReplace = (key: string, value: unknown) => write({ [key]: value }, false)
+/** Several keys in one history entry, so one Back restores them all (a jump to another repo's PR). */
+export const navPushMany = (values: Record<string, unknown>) => write(values, true)
 export const navBack = () => history.back()
 export const navForward = () => history.forward()
 

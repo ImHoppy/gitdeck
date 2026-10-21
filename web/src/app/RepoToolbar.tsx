@@ -12,6 +12,7 @@ type Props = {
   busy: boolean
   ancestry: boolean
   onBack?: () => void
+  lead?: ReactNode
   onBranchMenu: (at: At) => void
   /** Pull and push of this repo, next to its branch. */
   sync: ReactNode
@@ -24,7 +25,7 @@ type Props = {
   children: ReactNode
 }
 
-export function RepoToolbar({ repo, busy, ancestry, onBack, onBranchMenu, sync, onMoreMenu, onCommit, onStash, onStats, onAncestry, children }: Props) {
+export function RepoToolbar({ repo, busy, ancestry, onBack, lead, onBranchMenu, sync, onMoreMenu, onCommit, onStash, onStats, onAncestry, children }: Props) {
   const head = repo.state?.head
   const status = repo.state?.status
   const changes = (status?.staged ?? 0) + (status?.unstaged ?? 0) + (status?.untracked ?? 0)
@@ -32,6 +33,7 @@ export function RepoToolbar({ repo, busy, ancestry, onBack, onBranchMenu, sync, 
 
   return (
     <div className={styles.toolbar}>
+      {lead}
       {onBack && (
         <IconButton title="Back to the repositories" onClick={onBack}>
           <Icon name="folder" /> Repos

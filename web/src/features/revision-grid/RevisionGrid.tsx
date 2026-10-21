@@ -28,9 +28,14 @@ type Props = {
   scrollTo: number | null
   onScrollTo: (index: number) => void
   highlighted: ReadonlySet<number> | null
+  /** Open PRs whose head is a commit, by SHA. */
+  prs?: ReadonlyMap<string, PrMark[]>
+  onOpenPr?: (number: number) => void
 }
 
-export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, onOpenCommit, onOpenCommits, scrollTo, onScrollTo, highlighted }: Props) {
+export type PrMark = { number: number; title: string; isDraft: boolean }
+
+export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, onCommitMenu, onOpenCommit, onOpenCommits, scrollTo, onScrollTo, highlighted, prs, onOpenPr }: Props) {
   const head = repo.state?.head
   const pills = useMemo(() => pillsBySha(info.refs, head?.kind === 'branch' ? head.name : null), [info.refs, head])
   const [range, setRange] = useState<[number, number]>([0, 0])
@@ -110,6 +115,8 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
       <CommitRow
         row={row}
         pills={pills.get(row.sha) ?? []}
+        prs={prs?.get(row.sha)}
+        onOpenPr={onOpenPr}
         tracking={trackingText}
         dim={highlighted !== null && !highlighted.has(i - ARTIFICIAL)}
         sameAuthor={author !== null && row.email.toLowerCase() === author}

@@ -6,6 +6,7 @@ export type WindowKind =
   | { kind: 'history'; repo: number; path: string }
   | { kind: 'stats'; repo: number }
   | { kind: 'reflog'; repo: number }
+  | { kind: 'pulls'; repo: number; pr?: number; prRepo?: string }
 
 const SIZE: Record<WindowKind['kind'], string> = {
   commit: 'width=1100,height=720',
@@ -14,6 +15,7 @@ const SIZE: Record<WindowKind['kind'], string> = {
   history: 'width=1300,height=850',
   stats: 'width=1100,height=850',
   reflog: 'width=1100,height=800',
+  pulls: 'width=1400,height=900',
 }
 
 export function openWindow(w: WindowKind, workspace: string) {
@@ -32,6 +34,14 @@ export function openWindow(w: WindowKind, workspace: string) {
     q.set('base', w.base)
     q.set('count', String(w.count))
     name += w.newest + w.base
+  }
+  if (w.kind === 'pulls') {
+    q.set('pulls', '1')
+    if (w.pr) q.set('pr', String(w.pr))
+    if (w.prRepo) q.set('prRepo', w.prRepo)
+    // one PR window per workspace: opening it again focuses it
+    window.open(`/?${q}`, `pulls-${workspace}`, `popup,${SIZE.pulls}`)?.focus()
+    return
   }
   if (w.kind === 'history') {
     q.set('history', w.path)

@@ -6,6 +6,7 @@ import type { HistoryRow } from '../../protocol/types'
 import { GraphCell } from './GraphCell'
 import { RefPill } from './RefPill'
 import type { Pill } from './refPills'
+import type { PrMark } from './RevisionGrid'
 import styles from './RevisionGrid.module.css'
 
 type Props = {
@@ -22,9 +23,11 @@ type Props = {
   onSelect: (mods?: Mods) => void
   onContextMenu: (at: { x: number; y: number }) => void
   onOpen?: () => void
+  prs?: PrMark[]
+  onOpenPr?: (number: number) => void
 }
 
-export function CommitRow({ row, pills, tracking, isHead, selected, dim, sameAuthor, graphWidth, height, onSelect, onContextMenu, onOpen }: Props) {
+export function CommitRow({ row, pills, tracking, isHead, selected, dim, sameAuthor, graphWidth, height, onSelect, onContextMenu, onOpen, prs, onOpenPr }: Props) {
   return (
     <div
       className={`${styles.row} ${selected ? styles.selected : ''} ${dim ? styles.dim : ''} ${sameAuthor ? styles.sameAuthor : ''}`}
@@ -45,6 +48,19 @@ export function CommitRow({ row, pills, tracking, isHead, selected, dim, sameAut
       <span className={styles.message}>
         {pills.map((p) => (
           <RefPill key={`${p.kind}:${p.name}`} pill={p} tracking={p.kind === 'branch' && p.head ? tracking : undefined} />
+        ))}
+        {prs?.map((pr) => (
+          <button
+            key={pr.number}
+            className={`${styles.pill} ${styles.prPill}`}
+            title={`${pr.isDraft ? 'Draft PR' : 'PR'} #${pr.number}: ${pr.title}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpenPr?.(pr.number)
+            }}
+          >
+            #{pr.number}
+          </button>
         ))}
         <span className={styles.subject}>{row.subject}</span>
         {row.bodyHint && <span className={styles.body}>{row.bodyHint}</span>}

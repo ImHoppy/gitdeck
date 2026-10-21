@@ -31,7 +31,7 @@ export function OutputPanel({ records, cwd }: { records: CommandRecord[]; cwd: s
                 <span className={styles.time}>{new Date(r.at * 1000).toLocaleTimeString()}</span>
                 <span className={styles.ms}>{r.millis} ms</span>
                 <span className={styles.code}>{r.code}</span>
-                <span>git {r.args.join(' ')}</span>
+                <span>{r.program ?? 'git'} {r.args.join(' ')}</span>
               </div>
             )
           }}
@@ -39,7 +39,7 @@ export function OutputPanel({ records, cwd }: { records: CommandRecord[]; cwd: s
       </div>
       {opened?.output && (
         <pre className={styles.output}>
-          <span className={styles.outputHead}>git {opened.args.join(' ')}</span>
+          <span className={styles.outputHead}>{opened.program ?? 'git'} {opened.args.join(' ')}</span>
           {'\n'}
           {opened.output}
         </pre>

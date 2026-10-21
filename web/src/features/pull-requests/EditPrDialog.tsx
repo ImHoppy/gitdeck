@@ -1,0 +1,45 @@
+import { useState } from 'react'
+import { Dialog } from '../../ui/Dialog/Dialog'
+import { IconButton } from '../../ui/IconButton/IconButton'
+import type { MarkdownLinks } from '../../ui/Markdown/links'
+import { MarkdownText } from '../../ui/Markdown/MarkdownText'
+import { MarkdownEditor } from '../../ui/MarkdownEditor/MarkdownEditor'
+import styles from './PullRequests.module.css'
+
+type Props = {
+  title: string
+  body: string
+  links: MarkdownLinks
+  onAttach: (files: File[]) => Promise<string[]>
+  onSave: (title: string, body: string) => Promise<boolean>
+  onCancel: () => void
+}
+
+export function EditPrDialog({ title: initialTitle, body: initialBody, links, onAttach, onSave, onCancel }: Props) {
+  const [title, setTitle] = useState(initialTitle)
+  const [body, setBody] = useState(initialBody)
+  const [saving, setSaving] = useState(false)
+  const save = async () => {
+    setSaving(true)
+    if (!(await onSave(title.trim(), body))) setSaving(false)
+  }
+  return (
+    <Dialog
+      title="Edit the pull request"
+      actions={
+        <>
+          <IconButton title="Cancel" onClick={onCancel}>Cancel</IconButton>
+          <IconButton title="Save on GitHub" disabled={saving || !title.trim()} onClick={() => void save()}>Save</IconButton>
+        </>
+      }
+    >
+      <div className={`${styles.form} ${styles.wide}`}>
+        <label className={styles.field}>
+          Title
+          <input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+        </label>
+        <MarkdownEditor value={body} onChange={setBody} onSubmit={() => void save()} onAttach={onAttach} rows={12} preview={(t) => <MarkdownText text={t} links={links} />} />
+      </div>
+    </Dialog>
+  )
+}

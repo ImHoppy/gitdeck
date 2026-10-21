@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { type ReactNode, useMemo, useRef } from 'react'
 import { parseDiff } from '../../lib/diffLines'
 import { longPress } from '../../lib/longPress'
 import { useHighlight } from '../../lib/useHighlight'
@@ -16,9 +16,11 @@ type Props = {
   selected?: ReadonlySet<number>
   onSelect?: (lines: Set<number>) => void
   onContextMenu?: (line: number, at: { x: number; y: number }) => void
+  /** A narrow column before the line numbers (review threads, "add a comment"). */
+  gutter?: (line: number) => ReactNode
 }
 
-export function DiffViewer({ patch, path, selected, onSelect, onContextMenu }: Props) {
+export function DiffViewer({ patch, path, selected, onSelect, onContextMenu, gutter }: Props) {
   const lines = useMemo(() => parseDiff(patch), [patch])
   const texts = useMemo(() => lines.map((l) => (l.kind === 'meta' || l.kind === 'hunk' ? '' : l.text)), [lines])
   const html = useHighlight(path, texts)
@@ -127,12 +129,14 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu }: P
           if (l.kind === 'meta' || l.kind === 'hunk') {
             return (
               <div className={cls} {...handlers(i)}>
+                {gutter && <span className={styles.gutter} />}
                 {l.text}
               </div>
             )
           }
           return (
             <div className={cls} {...handlers(i)}>
+              {gutter && <span className={styles.gutter}>{gutter(i)}</span>}
               <span className={styles.no}>{l.oldNo ?? ''}</span>
               <span className={styles.no}>{l.newNo ?? ''}</span>
               <span className={styles.sign}>{l.kind === 'add' ? '+' : l.kind === 'del' ? '-' : ' '}</span>

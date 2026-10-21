@@ -33,6 +33,9 @@ const PATHS = {
   editor: 'M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5M9 2.5 7 13.5',
   diff: 'M4.5 2v6M1.5 5h6M8.5 11h6M5 14 11 2',
   history: 'M8 4.5V8l2.5 1.5M2 8a6 6 0 1 0 1.8-4.3M2 2v3h3',
+  pr: 'M4.5 4.5v7M4.5 1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM4.5 11.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM11.5 11.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM11.5 11.5V6a2 2 0 0 0-2-2H7M8.5 2.5 7 4l1.5 1.5',
+  comment: 'M2 3h12v8H7l-3 2.5V11H2z',
+  back: 'M10 3 5 8l5 5',
 } as const
 
 export type IconName = keyof typeof PATHS
