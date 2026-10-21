@@ -24,6 +24,7 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu }: P
   const html = useHighlight(path, texts)
   const all = useMemo(() => lines.map((l) => l.text), [lines])
   const find = useDiffFind(all)
+  const widest = useMemo(() => all.reduce((w, t) => Math.max(w, t.replace(/	/g, '        ').length), 0), [all])
   const anchor = useRef<number | null>(null)
   const dragging = useRef(false)
 
@@ -82,6 +83,7 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu }: P
   return (
     <div
       className={`${styles.viewer} ${onSelect ? styles.selectable : ''}`}
+      style={{ '--widest': `${widest}ch` } as React.CSSProperties}
       tabIndex={-1}
       // line clicks prevent the default (no text selection), which would also keep focus away
       onMouseDownCapture={(e) => e.currentTarget.focus({ preventScroll: true })}

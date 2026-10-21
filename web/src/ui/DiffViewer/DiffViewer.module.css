@@ -12,6 +12,7 @@
 
 .line {
   display: flex;
+  min-width: calc(var(--widest, 0px) + 124px);
   height: 100%;
   white-space: pre;
 }
