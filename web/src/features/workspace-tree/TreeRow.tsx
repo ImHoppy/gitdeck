@@ -9,18 +9,20 @@ type Props = {
   selected?: boolean
   onToggle: () => void
   onClick?: () => void
+  onDoubleClick?: () => void
   onContextMenu?: (at: { x: number; y: number }) => void
   children: ReactNode
 }
 
 const INDENT_PX = 14
 
-export function TreeRow({ depth, expanded, selected, onToggle, onClick, onContextMenu, children }: Props) {
+export function TreeRow({ depth, expanded, selected, onToggle, onClick, onDoubleClick, onContextMenu, children }: Props) {
   return (
     <div
       className={`${styles.row} ${selected ? styles.selected : ''}`}
       style={{ paddingLeft: depth * INDENT_PX }}
       onClick={onClick ?? onToggle}
+      onDoubleClick={onDoubleClick}
       {...(onContextMenu ? longPress(onContextMenu) : {})}
       onContextMenu={
         onContextMenu &&

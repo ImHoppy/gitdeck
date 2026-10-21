@@ -1,6 +1,7 @@
 import { Select } from '../../ui/Select/Select'
 import { type ReactNode, useEffect, useState } from 'react'
 import { commitInWindow, setCommitInWindow } from '../../lib/commitWindow'
+import { repoWindowOnDoubleClick, setRepoWindowOnDoubleClick } from '../../lib/repoWindow'
 import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { GitConfigSection } from './GitConfigSection'
 import { PathRow } from './PathRow'
@@ -27,6 +28,7 @@ type Props<S extends string, P extends string> = {
 
 export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
+  const [repoWindow, setRepoWindow] = useState(repoWindowOnDoubleClick)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -57,6 +59,16 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               onChange={(e) => {
                 setCommitWindow(e.target.checked)
                 setCommitInWindow(e.target.checked)
+              }}
+            />
+          </Row>
+          <Row label="Double-click a repo to open it in a new window">
+            <input
+              type="checkbox"
+              checked={repoWindow}
+              onChange={(e) => {
+                setRepoWindow(e.target.checked)
+                setRepoWindowOnDoubleClick(e.target.checked)
               }}
             />
           </Row>

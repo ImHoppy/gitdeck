@@ -25,6 +25,7 @@ import { Toast } from '../ui/Toast/Toast'
 import { pickFolder } from '../lib/pickFolder'
 import { loadLastRepo, saveLastRepo } from '../lib/lastRepo'
 import { useNavState } from '../lib/navState'
+import { openRepoWindow, repoWindowOnDoubleClick } from '../lib/repoWindow'
 import styles from './App.module.css'
 import { CommitDetailWindow } from './CommitDetailWindow'
 import { CommitWindow } from './CommitWindow'
@@ -187,6 +188,7 @@ function Browse() {
             workspace={workspace}
             selectedId={selectedId}
             onSelect={pickRepo}
+            onOpen={(repo) => repoWindowOnDoubleClick() && openRepoWindow(repo.path)}
             onRefresh={() => open(workspace.name, true)}
             picker={<>
               <IconButton title="Close the project and go back to the start page" onClick={closeProject}>

@@ -12,11 +12,12 @@ type Props = {
   depth: number
   selectedId: number | null
   onSelect: (repoId: number) => void
+  onOpen?: (repo: RepoSnapshot) => void
   actions?: (repo: RepoSnapshot) => ReactNode
   onRepoMenu?: (repo: RepoSnapshot, at: { x: number; y: number }) => void
 }
 
-export function TreeNodeView({ node, depth, selectedId, onSelect, actions, onRepoMenu }: Props) {
+export function TreeNodeView({ node, depth, selectedId, onSelect, onOpen, actions, onRepoMenu }: Props) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children.length > 0
   const toggle = () => setExpanded((e) => !e)
@@ -53,6 +54,7 @@ export function TreeNodeView({ node, depth, selectedId, onSelect, actions, onRep
         selected={node.kind === 'repo' && node.repo.id === selectedId}
         onToggle={toggle}
         onClick={node.kind === 'repo' ? () => onSelect(node.repo.id) : undefined}
+        onDoubleClick={node.kind === 'repo' && onOpen ? () => onOpen(node.repo) : undefined}
         onContextMenu={node.kind === 'repo' && onRepoMenu ? (at) => onRepoMenu(node.repo, at) : undefined}
       >
         {label}
@@ -60,7 +62,7 @@ export function TreeNodeView({ node, depth, selectedId, onSelect, actions, onRep
       </TreeRow>
       {expanded &&
         node.children.map((child) => (
-          <TreeNodeView key={child.key} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} actions={actions} onRepoMenu={onRepoMenu} />
+          <TreeNodeView key={child.key} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} onOpen={onOpen} actions={actions} onRepoMenu={onRepoMenu} />
         ))}
     </>
   )
