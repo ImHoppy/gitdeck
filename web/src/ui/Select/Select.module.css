@@ -34,3 +34,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* in a form, beside text inputs: their height and width */
+.field {
+  height: 26px;
+  width: 100%;
+  justify-content: space-between;
+}

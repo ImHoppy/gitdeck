@@ -306,21 +306,15 @@
   font-size: 16px;
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 360px;
-}
-
-.form.wide {
+.wide {
   width: min(900px, 80vw);
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.createFields {
+  max-width: 900px;
+}
+
+.grow {
   flex: 1;
 }
 

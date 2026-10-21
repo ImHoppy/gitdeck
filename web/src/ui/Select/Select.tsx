@@ -8,9 +8,11 @@ type Props<T extends string> = {
   onChange: (value: T) => void
   title?: string
   className?: string
+  /** Sized like the text inputs of a form. */
+  field?: boolean
 }
 
-export function Select<T extends string>({ value, options, onChange, title, className }: Props<T>) {
+export function Select<T extends string>({ value, options, onChange, title, className, field }: Props<T>) {
   const ref = useRef<HTMLButtonElement>(null)
   const [at, setAt] = useState<DOMRect | null>(null)
   const current = options.find(([v]) => v === value)?.[1] ?? value
@@ -20,7 +22,7 @@ export function Select<T extends string>({ value, options, onChange, title, clas
       <button
         ref={ref}
         type="button"
-        className={`${styles.select} ${at ? styles.open : ''} ${className ?? ''}`}
+        className={`${styles.select} ${field ? styles.field : ''} ${at ? styles.open : ''} ${className ?? ''}`}
         title={title}
         aria-haspopup="menu"
         onClick={() => setAt(at ? null : (ref.current?.getBoundingClientRect() ?? null))}

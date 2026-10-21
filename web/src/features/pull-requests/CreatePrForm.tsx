@@ -2,6 +2,7 @@ import { IconButton } from '../../ui/IconButton/IconButton'
 import { MarkdownText } from '../../ui/Markdown/MarkdownText'
 import { MarkdownEditor } from '../../ui/MarkdownEditor/MarkdownEditor'
 import { prLinks, type RefHandlers } from './prLinks'
+import dialog from '../../ui/Dialog/Dialog.module.css'
 import styles from './PullRequests.module.css'
 import { useCreatePr } from './useCreatePr'
 import { useDraft } from './useDraft'
@@ -31,18 +32,18 @@ export function CreatePrForm({ repoId, repo, head, headIsCurrent, handlers, onCr
   return (
     <div className={styles.create}>
       <h2>New pull request</h2>
-      <div className={styles.form}>
+      <div className={`${dialog.fields} ${styles.createFields}`}>
         <div className={styles.row2}>
-          <label className={styles.field}>
+          <label className={`${dialog.field} ${styles.grow}`}>
             Merge
             <input value={form.head} onChange={(e) => setForm({ ...form, head: e.target.value })} />
           </label>
-          <label className={styles.field}>
+          <label className={`${dialog.field} ${styles.grow}`}>
             into
             <input value={form.base} placeholder="default branch" onChange={(e) => setForm({ ...form, base: e.target.value })} />
           </label>
         </div>
-        <label className={styles.field}>
+        <label className={dialog.field}>
           Title
           <input value={form.title} autoFocus onChange={(e) => setForm({ ...form, title: e.target.value })} />
         </label>

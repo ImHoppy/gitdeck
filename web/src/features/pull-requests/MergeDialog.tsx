@@ -4,6 +4,7 @@ import { Dialog } from '../../ui/Dialog/Dialog'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { Select } from '../../ui/Select/Select'
 import { defaultSquash, mergeBlocked, type SquashMessage } from './mergeBlocked'
+import dialog from '../../ui/Dialog/Dialog.module.css'
 import styles from './PullRequests.module.css'
 
 type Props = {
@@ -36,25 +37,25 @@ export function MergeDialog({ detail, info, localBranch, onMerge, onCancel }: Pr
         </>
       }
     >
-      <div className={styles.form}>
+      <div className={dialog.fields}>
         <div>
           {detail.headRefName} → {detail.baseRefName}, {detail.commits.length} commit{detail.commits.length === 1 ? '' : 's'}
         </div>
         {methods.length === 0 ? (
           <div className={styles.warn}>This repo allows only merge commits; gitdeck keeps history linear, so merge it on GitHub.</div>
         ) : (
-          <label className={styles.field}>
+          <label className={dialog.field}>
             Method
-            <Select value={method} options={methods} onChange={setMethod} />
+            <Select field value={method} options={methods} onChange={setMethod} />
           </label>
         )}
         {method === 'squash' && (
           <>
-            <label className={styles.field}>
+            <label className={dialog.field}>
               Commit message
               <input value={message.subject} onChange={(e) => setMessage({ ...message, subject: e.target.value })} />
             </label>
-            <label className={styles.field}>
+            <label className={dialog.field}>
               Extended description
               <textarea rows={6} value={message.body} placeholder="Add an optional extended description…" onChange={(e) => setMessage({ ...message, body: e.target.value })} />
             </label>

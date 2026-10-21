@@ -4,6 +4,7 @@ import { IconButton } from '../../ui/IconButton/IconButton'
 import type { MarkdownLinks } from '../../ui/Markdown/links'
 import { MarkdownText } from '../../ui/Markdown/MarkdownText'
 import { MarkdownEditor } from '../../ui/MarkdownEditor/MarkdownEditor'
+import dialog from '../../ui/Dialog/Dialog.module.css'
 import styles from './PullRequests.module.css'
 
 type Props = {
@@ -33,8 +34,8 @@ export function EditPrDialog({ title: initialTitle, body: initialBody, links, on
         </>
       }
     >
-      <div className={`${styles.form} ${styles.wide}`}>
-        <label className={styles.field}>
+      <div className={`${dialog.fields} ${styles.wide}`}>
+        <label className={dialog.field}>
           Title
           <input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
         </label>
