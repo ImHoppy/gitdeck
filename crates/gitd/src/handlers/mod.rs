@@ -92,6 +92,7 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "server.keepRunning" => meta::keep_running(app, serde_json::from_value(params)?).await,
         "server.setAvatars" => meta::set_avatars(app, serde_json::from_value(params)?).await,
         "server.setGit" => meta::set_git(app, serde_json::from_value(params)?).await,
+        "server.setFetchInterval" => meta::set_fetch_interval(app, serde_json::from_value(params)?).await,
         "commands.recent" => meta::commands(app),
         "jobs.list" => meta::jobs(app).await,
         "tree.list" => files::list(app, serde_json::from_value(params)?).await,

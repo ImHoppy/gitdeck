@@ -14,6 +14,7 @@ type Props<S extends string, P extends string> = {
   theme: Choice<Theme>
   submodules: Choice<S>
   pullAction: Choice<P>
+  fetchInterval: Choice<string> | null
   keepRunning: { value: boolean; onChange: (on: boolean) => void } | null
   githubAvatars: { value: boolean; onChange: (on: boolean) => void } | null
   version: string | null
@@ -25,7 +26,7 @@ type Props<S extends string, P extends string> = {
   onClose: () => void
 }
 
-export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, keepRunning, githubAvatars, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
+export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -66,6 +67,11 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
           <Row label="After a pull moves submodule pointers">
             <ChoiceSelect choice={submodules} />
           </Row>
+          {fetchInterval && (
+            <Row label="Auto fetch this project">
+              <ChoiceSelect choice={fetchInterval} />
+            </Row>
+          )}
         </Section>
         {git && (
           <Section title="Git">

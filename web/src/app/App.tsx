@@ -187,7 +187,10 @@ function Browse() {
                   <Icon name="pin" />
                   {server.info?.keepRunning ? ' kept' : ''}
                 </IconButton>
-                <IconButton title="Settings" onClick={() => setSettingsOpen(true)}>
+                <IconButton title="Settings" onClick={() => {
+                  server.reload()
+                  setSettingsOpen(true)
+                }}>
                   <Icon name="settings" />
                 </IconButton>
               </>
@@ -255,6 +258,11 @@ function Browse() {
             onChange: sync.setChoice,
             options: [['ask', 'Ask every time'], ['always', 'Always update'], ['never', 'Never update']],
           }}
+          fetchInterval={
+            server.info?.fetchInterval != null
+              ? { value: String(server.info.fetchInterval), onChange: (v) => server.setFetchInterval(Number(v)), options: fetchOptions(server.info.fetchInterval) }
+              : null
+          }
           keepRunning={server.info ? { value: server.info.keepRunning, onChange: server.setKeepRunning } : null}
           githubAvatars={server.info ? { value: server.info.githubAvatars, onChange: server.setGithubAvatars } : null}
           version={server.info?.version ?? null}
@@ -270,3 +278,10 @@ function Browse() {
 }
 
 const samePath = (a: string, b: string) => a.replaceAll('\\', '/').toLowerCase() === b.replaceAll('\\', '/').toLowerCase()
+
+const FETCH_MINUTES = [0, 1, 2, 5, 10, 15, 30, 60]
+
+function fetchOptions(current: number): [string, string][] {
+  const all = FETCH_MINUTES.includes(current) ? FETCH_MINUTES : [...FETCH_MINUTES, current].sort((a, b) => a - b)
+  return all.map((m) => [String(m), m === 0 ? 'Off' : m === 1 ? 'Every minute' : `Every ${m} minutes`])
+}

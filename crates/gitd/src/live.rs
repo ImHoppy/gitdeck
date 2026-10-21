@@ -14,13 +14,16 @@ pub struct LiveWorkspace {
     pub hub: Arc<Hub>,
     _watcher: RepoWatcher,
     refresher: JoinHandle<()>,
-    fetcher: JoinHandle<()>,
+    fetcher: Option<JoinHandle<()>>,
+    clients: Arc<AtomicUsize>,
 }
 
 impl Drop for LiveWorkspace {
     fn drop(&mut self) {
         self.refresher.abort();
-        self.fetcher.abort();
+        if let Some(f) = &self.fetcher {
+            f.abort();
+        }
     }
 }
 
@@ -33,9 +36,21 @@ impl LiveWorkspace {
         let (tx, rx) = mpsc::unbounded_channel();
         let watcher = RepoWatcher::start(targets, tx)?;
         let refresher = tokio::spawn(refresh_loop(rx, hub.clone()));
-        let fetcher = tokio::spawn(autofetch::run(hub.clone(), fetch_interval, clients));
-        Ok(Self { name, hub, _watcher: watcher, refresher, fetcher })
+        let fetcher = fetcher(&hub, fetch_interval, &clients);
+        Ok(Self { name, hub, _watcher: watcher, refresher, fetcher, clients })
     }
+
+    /// A zero interval turns auto fetch off.
+    pub fn set_fetch_interval(&mut self, interval: Duration) {
+        if let Some(f) = self.fetcher.take() {
+            f.abort();
+        }
+        self.fetcher = fetcher(&self.hub, interval, &self.clients);
+    }
+}
+
+fn fetcher(hub: &Arc<Hub>, interval: Duration, clients: &Arc<AtomicUsize>) -> Option<JoinHandle<()>> {
+    (!interval.is_zero()).then(|| tokio::spawn(autofetch::run(hub.clone(), interval, clients.clone())))
 }
 
 async fn refresh_loop(mut changed: mpsc::UnboundedReceiver<Vec<RepoId>>, hub: Arc<Hub>) {

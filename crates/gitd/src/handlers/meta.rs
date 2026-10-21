@@ -7,6 +7,8 @@ use std::path::PathBuf;
 
 pub async fn info(app: &AppState) -> anyhow::Result<Value> {
     let configured = app.config.lock().unwrap().git.clone();
+    let live = app.live.lock().await.as_ref().map(|l| l.name.clone());
+    let fetch_interval = live.and_then(|n| app.config.lock().unwrap().workspace(&n).map(|w| w.fetch_interval_minutes));
     Ok(json!({
         "keepRunning": app.lifecycle.keep_running(),
         "version": env!("CARGO_PKG_VERSION"),
@@ -15,6 +17,7 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
         "githubAvatars": app.config.lock().unwrap().github_avatars,
         "editor": app.config.lock().unwrap().editor.clone(),
         "fileManager": app.config.lock().unwrap().file_manager.clone(),
+        "fetchInterval": fetch_interval,
     }))
 }
 
@@ -52,6 +55,23 @@ pub async fn set_git(app: &AppState, p: GitParams) -> anyhow::Result<Value> {
         let mut config = app.config.lock().unwrap();
         config.git = path;
         config.save(&app.config_path)?;
+    }
+    info(app).await
+}
+
+#[derive(Deserialize)]
+pub struct FetchIntervalParams {
+    minutes: u64,
+}
+
+pub async fn set_fetch_interval(app: &AppState, p: FetchIntervalParams) -> anyhow::Result<Value> {
+    {
+        let mut live = app.live.lock().await;
+        let Some(live) = live.as_mut() else { bail!("no project open") };
+        let mut config = app.config.lock().unwrap();
+        config.set_fetch_interval(&live.name, p.minutes);
+        config.save(&app.config_path)?;
+        live.set_fetch_interval(std::time::Duration::from_secs(p.minutes * 60));
     }
     info(app).await
 }

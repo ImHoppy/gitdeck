@@ -81,6 +81,12 @@ impl Config {
         self.workspaces.iter().find(|w| w.name == name)
     }
 
+    pub fn set_fetch_interval(&mut self, name: &str, minutes: u64) {
+        if let Some(w) = self.workspaces.iter_mut().find(|w| w.name == name) {
+            w.fetch_interval_minutes = minutes;
+        }
+    }
+
     /// Turns the nested-repo scan of root `path` in workspace `name` on or off.
     pub fn set_nested(&mut self, name: &str, path: &Path, on: bool) -> bool {
         let Some(ws) = self.workspaces.iter_mut().find(|w| w.name == name) else { return false };

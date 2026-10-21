@@ -2,14 +2,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { setAvatarsEnabled } from '../../lib/avatarSource'
 import { gitd } from '../../protocol/client'
 
-export type ServerInfo = { keepRunning: boolean; version: string; git: string | null; gitVersion: string | null; githubAvatars: boolean; editor: string | null; fileManager: string | null }
+export type ServerInfo = { keepRunning: boolean; version: string; git: string | null; gitVersion: string | null; githubAvatars: boolean; editor: string | null; fileManager: string | null; fetchInterval: number | null }
 
 export function useServerInfo() {
   const [info, setInfo] = useState<ServerInfo | null>(null)
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     gitd.call<ServerInfo>('server.info').then(setInfo, () => setInfo(null))
   }, [])
+
+  useEffect(reload, [reload])
 
   useEffect(() => setAvatarsEnabled(info?.githubAvatars ?? false), [info])
 
@@ -48,5 +50,9 @@ export function useServerInfo() {
     }
   }, [])
 
-  return { info, setKeepRunning, setGit, setGithubAvatars, setEditor, setFileManager }
+  const setFetchInterval = useCallback((minutes: number) => {
+    gitd.call<ServerInfo>('server.setFetchInterval', { minutes }).then(setInfo, () => {})
+  }, [])
+
+  return { info, reload, setFetchInterval, setKeepRunning, setGit, setGithubAvatars, setEditor, setFileManager }
 }
