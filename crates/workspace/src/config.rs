@@ -9,6 +9,9 @@ pub struct Config {
     /// Fetch commit authors' pictures from GitHub (the one third-party call, off by default).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub github_avatars: bool,
+    /// The pull request view, through the host's own `gh` login (off by default).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub github_prs: bool,
     /// Editor for conflicts and "open in editor": a command on PATH or a full path; unset is `code`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,

@@ -5,11 +5,14 @@ pub mod config;
 pub mod discovery;
 pub mod fetch_log;
 pub mod history;
+pub mod pr_branch;
+pub mod pr_switch;
 pub mod registry;
 pub mod scheduler;
 pub mod stage_lines;
 pub mod state;
 pub mod sync;
+pub mod throttle;
 pub mod tracked;
 pub mod watch;
 
