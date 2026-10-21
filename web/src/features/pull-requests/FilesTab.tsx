@@ -7,7 +7,7 @@ import { DiffViewer } from '../../ui/DiffViewer/DiffViewer'
 import type { MarkdownLinks } from '../../ui/Markdown/links'
 import { Resizer } from '../../ui/Resizer/Resizer'
 import { Spinner } from '../../ui/Spinner/Spinner'
-import { FileList, useDiffFiles, usePatch } from '../diff'
+import { FileList, ImagePreview, isImage, useDiffFiles, usePatch } from '../diff'
 import styles from './Conversation.module.css'
 import { LineComments } from './LineComments'
 import type { PendingReview } from './usePendingReview'
@@ -39,7 +39,8 @@ export function FilesTab({ repoId, detail, target, threads, review, links, actio
   const { files, error } = useDiffFiles(repoId, target)
   const [picked, setPicked] = useState<string | null>(initialPath)
   const file: ChangedFile | null = files?.find((f) => f.path === picked) ?? files?.[0] ?? null
-  const patch = usePatch(repoId, target, file, detail.headRefOid)
+  const picture = !!file && isImage(file.path)
+  const patch = usePatch(repoId, target, picture ? null : file, detail.headRefOid)
   const lines = useMemo(() => (patch?.patch ? parseDiff(patch.patch.text) : []), [patch])
   const onFile = useMemo(() => (file ? threadsAt(threads, file.path) : new Map<string, ReviewThread[]>()), [threads, file])
   const pendingHere = review.pending.filter((p) => p.path === file?.path)
@@ -66,8 +67,9 @@ export function FilesTab({ repoId, detail, target, threads, review, links, actio
       <Resizer axis="x" onDrag={listWidth.drag} onDone={listWidth.save} />
       <div className={styles.diffSide}>
         <div className={styles.diffBody}>
+          {picture && file && <ImagePreview repoId={repoId} file={file} target={target} />}
           {patch?.error && <div className={styles.empty}>{patch.error}</div>}
-          {patch?.patch && file && (
+          {!picture && patch?.patch && file && (
             <DiffViewer
               patch={patch.patch.text}
               path={file.path}
