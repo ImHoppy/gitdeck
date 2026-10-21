@@ -152,7 +152,8 @@ impl ProcessRunner {
     async fn drain(&self, mut child: tokio::process::Child, sink: OutputSink) -> Result<GitOutput, RunError> {
         let (mut so, mut se) = (child.stdout.take().expect("piped"), child.stderr.take().expect("piped"));
         let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
-        let (mut ob, mut eb) = ([0u8; 8192], [0u8; 8192]);
+        // on the heap: inline buffers would make every future that awaits a git call 16 KB bigger
+        let (mut ob, mut eb) = (vec![0u8; 8192], vec![0u8; 8192]);
         let (mut out_open, mut err_open) = (true, true);
         while out_open || err_open {
             let read = tokio::time::timeout(self.timeout, async {
