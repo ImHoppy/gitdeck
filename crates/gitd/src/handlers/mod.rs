@@ -22,7 +22,7 @@ pub fn is_read(method: &str) -> bool {
     method.starts_with("log.")
         || method.starts_with("diff.")
         || method.starts_with("file.")
-        || matches!(method, "remote.list" | "reflog.list" | "worktree.list" | "conflict.list" | "repo.stats" | "commit.body" | "commit.lastMessage" | "tree.list" | "stash.list" | "repo.conflicts")
+        || matches!(method, "project.open" | "workspace.open" | "remote.list" | "reflog.list" | "worktree.list" | "conflict.list" | "repo.stats" | "commit.body" | "commit.lastMessage" | "tree.list" | "stash.list" | "repo.conflicts")
 }
 
 pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Result<Value> {
