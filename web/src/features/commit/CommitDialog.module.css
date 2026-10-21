@@ -35,6 +35,10 @@
   gap: 4px;
 }
 
+.headerTools > button {
+  padding: 3px 8px;
+}
+
 .body {
   flex: 1;
   min-height: 0;
