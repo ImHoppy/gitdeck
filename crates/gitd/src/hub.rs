@@ -158,9 +158,20 @@ impl Hub {
     }
 
     pub async fn write_git(&self, id: RepoId, args: Vec<String>) -> anyhow::Result<GitOutput> {
+        self.write_git_input(id, args, None).await
+    }
+
+    /// `write_git` with `input` fed to git's stdin.
+    pub async fn write_git_input(&self, id: RepoId, args: Vec<String>, input: Option<Vec<u8>>) -> anyhow::Result<GitOutput> {
         let entry = self.entry(id)?;
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
-        let out = self.scheduler.write(id, self.runner.run(&entry.path, &args)).await;
+        let job = async {
+            match input {
+                Some(input) => self.runner.run_input(&entry.path, &args, input).await,
+                None => self.runner.run(&entry.path, &args).await,
+            }
+        };
+        let out = self.scheduler.write(id, job).await;
         self.mark_written(id);
         self.publish(id).await;
         let out = out?;

@@ -51,6 +51,14 @@ pub trait GitRunner: Send + Sync {
         args: &[&str],
     ) -> impl std::future::Future<Output = Result<GitOutput, RunError>> + Send;
 
+    /// Like `run`, with `input` written to git's stdin.
+    fn run_input(
+        &self,
+        cwd: &Path,
+        args: &[&str],
+        input: Vec<u8>,
+    ) -> impl std::future::Future<Output = Result<GitOutput, RunError>> + Send;
+
     fn run_ok(
         &self,
         cwd: &Path,

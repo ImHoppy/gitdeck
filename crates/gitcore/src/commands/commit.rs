@@ -1,17 +1,21 @@
-pub fn stage_args(paths: &[String]) -> Vec<String> {
+use super::pathspec::FROM_STDIN;
+
+/// Paths come on stdin (`pathspec::stdin`).
+pub fn stage_args() -> Vec<String> {
     // -A also records deletions of the given paths
-    let mut a: Vec<String> = ["add", "-A", "--"].map(String::from).to_vec();
-    a.extend(paths.iter().cloned());
+    let mut a: Vec<String> = ["add", "-A"].map(String::from).to_vec();
+    a.extend(FROM_STDIN.map(String::from));
     a
 }
 
-pub fn unstage_args(paths: &[String], unborn: bool) -> Vec<String> {
+/// Paths come on stdin (`pathspec::stdin`).
+pub fn unstage_args(unborn: bool) -> Vec<String> {
     let mut a: Vec<String> = if unborn {
-        ["rm", "--cached", "-r", "-q", "--"].map(String::from).to_vec()
+        ["rm", "--cached", "-r", "-q"].map(String::from).to_vec()
     } else {
-        ["reset", "-q", "HEAD", "--"].map(String::from).to_vec()
+        ["reset", "-q", "HEAD"].map(String::from).to_vec()
     };
-    a.extend(paths.iter().cloned());
+    a.extend(FROM_STDIN.map(String::from));
     a
 }
 
@@ -38,8 +42,8 @@ mod tests {
 
     #[test]
     fn builds_args() {
-        assert_eq!(stage_args(&["a b".into()]), ["add", "-A", "--", "a b"]);
-        assert_eq!(unstage_args(&["x".into()], false), ["reset", "-q", "HEAD", "--", "x"]);
+        assert_eq!(stage_args(), ["add", "-A", "--pathspec-from-file=-", "--pathspec-file-nul"]);
+        assert_eq!(unstage_args(false), ["reset", "-q", "HEAD", "--pathspec-from-file=-", "--pathspec-file-nul"]);
         assert_eq!(commit_args("msg", true, false), ["commit", "--cleanup=strip", "-m", "msg", "--amend"]);
         assert_eq!(commit_args("msg", false, true), ["commit", "--cleanup=strip", "-m", "msg", "--signoff"]);
     }

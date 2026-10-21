@@ -54,9 +54,7 @@ pub struct PathsParams {
 
 pub async fn stage(app: &AppState, p: PathsParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
-    for c in pathspec::chunks(&p.paths) {
-        hub.write_git(p.id, commit::stage_args(c)).await?;
-    }
+    hub.write_git_input(p.id, commit::stage_args(), Some(pathspec::stdin(&p.paths))).await?;
     Ok(Value::Null)
 }
 
@@ -73,8 +71,8 @@ pub struct DiscardParams {
 
 pub async fn discard(app: &AppState, p: DiscardParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
-    for c in pathspec::chunks(&p.paths) {
-        hub.write_git(p.id, discard::restore_args(c)).await?;
+    if !p.paths.is_empty() {
+        hub.write_git_input(p.id, discard::restore_args(), Some(pathspec::stdin(&p.paths))).await?;
     }
     for c in pathspec::chunks(&p.untracked) {
         hub.write_git(p.id, discard::clean_args(c)).await?;
@@ -86,9 +84,7 @@ pub async fn unstage(app: &AppState, p: PathsParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let entry = hub.entry(p.id)?;
     let unborn = matches!(state::load(&hub.runner, &entry.path).await?.head, Head::Unborn { .. });
-    for c in pathspec::chunks(&p.paths) {
-        hub.write_git(p.id, commit::unstage_args(c, unborn)).await?;
-    }
+    hub.write_git_input(p.id, commit::unstage_args(unborn), Some(pathspec::stdin(&p.paths))).await?;
     Ok(Value::Null)
 }
 

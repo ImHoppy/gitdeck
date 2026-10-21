@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, RwLock},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Semaphore;
 use tokio::process::Command;
 
@@ -94,11 +94,21 @@ impl Default for ProcessRunner {
 
 impl GitRunner for ProcessRunner {
     async fn run(&self, cwd: &Path, args: &[&str]) -> Result<GitOutput, RunError> {
+        self.exec(cwd, args, None).await
+    }
+
+    async fn run_input(&self, cwd: &Path, args: &[&str], input: Vec<u8>) -> Result<GitOutput, RunError> {
+        self.exec(cwd, args, Some(input)).await
+    }
+}
+
+impl ProcessRunner {
+    async fn exec(&self, cwd: &Path, args: &[&str], input: Option<Vec<u8>>) -> Result<GitOutput, RunError> {
         let lane = if INTERACTIVE.try_with(|_| ()).is_ok() { &self.interactive } else { &self.limit };
         let _permit = lane.acquire().await.expect("semaphore never closed");
         let started = Instant::now();
         let stream = STREAM.try_with(|s| s.clone()).ok().filter(|_| subcommand(args).is_some_and(|c| NETWORK.contains(&c)));
-        let out = self.spawn(cwd, args, stream).await;
+        let out = self.spawn(cwd, args, stream, input).await;
         if let Some(sink) = &self.sink {
             sink(CommandRecord {
                 cwd: cwd.to_string_lossy().into_owned(),
@@ -119,21 +129,25 @@ impl GitRunner for ProcessRunner {
         }
         out
     }
-}
 
-impl ProcessRunner {
-    async fn spawn(&self, cwd: &Path, args: &[&str], stream: Option<OutputSink>) -> Result<GitOutput, RunError> {
+    async fn spawn(&self, cwd: &Path, args: &[&str], stream: Option<OutputSink>, input: Option<Vec<u8>>) -> Result<GitOutput, RunError> {
         let mut cmd = Command::new(self.git());
         cmd.args(args)
             .current_dir(cwd)
             .envs(NO_PROMPT_ENV.iter().copied())
-            .stdin(Stdio::null())
+            .stdin(if input.is_some() { Stdio::piped() } else { Stdio::null() })
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
         #[cfg(windows)]
         cmd.creation_flags(CREATE_NO_WINDOW);
-        let child = cmd.spawn()?;
+        let mut child = cmd.spawn()?;
+        if let (Some(input), Some(mut stdin)) = (input, child.stdin.take()) {
+            // written alongside the reads so a full stdout pipe can't deadlock git
+            tokio::spawn(async move {
+                let _ = stdin.write_all(&input).await;
+            });
+        }
         if let Some(sink) = stream {
             sink(format!("$ git {}
 ", args.join(" ")).as_bytes());

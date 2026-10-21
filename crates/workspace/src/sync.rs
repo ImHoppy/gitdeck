@@ -163,6 +163,10 @@ mod tests {
     }
 
     impl GitRunner for Fake {
+        async fn run_input(&self, cwd: &Path, args: &[&str], _input: Vec<u8>) -> Result<GitOutput, RunError> {
+            self.run(cwd, args).await
+        }
+
         async fn run(&self, _cwd: &Path, args: &[&str]) -> Result<GitOutput, RunError> {
             let cmd = *args.iter().find(|a| !a.starts_with('-') && !a.contains('=')).unwrap();
             self.calls.lock().unwrap().push(cmd.to_string());
