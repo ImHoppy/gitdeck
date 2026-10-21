@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSessionState } from '../lib/useSessionState'
 import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
 import { CommitInfo } from '../features/commit-info'
@@ -122,7 +123,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull }: Props) {
   const openCommit = () => (commitInWindow() ? openWindow({ kind: 'commit', repo: repo.id }, workspace) : setCommitting(true))
   const openFileHistory = (path: string) => openWindow({ kind: 'history', repo: repo.id, path }, workspace)
   const highlighted = ancestry && lineage && lineage.sha === selectedSha ? lineage.rows : null
-  const [tab, setTab] = useState<'commit' | 'diff' | 'files' | 'output'>('commit')
+  const [tab, setTab] = useSessionState<'commit' | 'diff' | 'files' | 'output'>('repoView.tab', 'commit')
   const commandLog = useCommandLog()
   const refsWidth = usePaneSize('refs', 150, 100, 500)
   const bottomHeight = usePaneSize('bottom', 300, 100, 2000)
