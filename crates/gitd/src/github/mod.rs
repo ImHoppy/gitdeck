@@ -34,6 +34,12 @@ const READY_TTL: Duration = Duration::from_secs(10 * 60);
 const NOT_READY_TTL: Duration = Duration::from_secs(20);
 const BACKGROUND_GAP: Duration = Duration::from_secs(120);
 const MANUAL_GAP: Duration = Duration::from_secs(5);
+/// GitHub gives up on a heavy list query (the checks of 100 PRs) now and then; the next try usually works.
+const RETRY_AFTER: Duration = Duration::from_secs(2);
+
+fn gateway_timeout(stderr: &str) -> bool {
+    stderr.contains("HTTP 502") || stderr.contains("HTTP 504")
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +49,10 @@ pub struct PrList {
     pub prs: Vec<PrSummary>,
     /// Unix seconds of the answer.
     pub at: u64,
+    /// How many PRs were asked for; the page asks for more as it scrolls to the end.
+    pub limit: u32,
+    /// Every PR in this state is in the list (fewer came back than asked for).
+    pub complete: bool,
 }
 
 pub struct Github {
@@ -154,17 +164,31 @@ impl Github {
     }
 
     /// The cached list while the throttle holds, else a fresh one, pushed to every page when it changed.
-    pub async fn list(&self, runner: &ProcessRunner, cwd: &Path, repo: &GithubRepo, state: ListState, manual: bool) -> anyhow::Result<PrList> {
+    /// `limit` asks for a longer list (the page scrolled to its end); without one the list keeps
+    /// the length it has, so a background refresh never shortens what someone scrolled through.
+    pub async fn list(&self, runner: &ProcessRunner, cwd: &Path, repo: &GithubRepo, state: ListState, manual: bool, limit: Option<u32>) -> anyhow::Result<PrList> {
         let k = key(repo);
         let cached = self.cached_list(repo, state);
-        let allowed = lock(&self.throttle).take(&format!("{k}:{state:?}"), Instant::now(), manual);
+        let known = cached.as_ref().map_or(pr_list::PAGE, |c| c.limit);
+        let limit = limit.unwrap_or(known).clamp(pr_list::PAGE, pr_list::MAX_LIMIT).max(known);
+        let longer = cached.as_ref().is_some_and(|c| limit > c.limit && !c.complete);
+        let allowed = lock(&self.throttle).take(&format!("{k}:{state:?}"), Instant::now(), manual || longer);
         if let (false, Some(cached)) = (allowed, &cached) {
             return Ok(cached.clone());
         }
-        let args = pr_list::args(repo, state);
+        let args = pr_list::args(repo, state, limit);
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
-        let out = runner.gh_ok(cwd, &args).await.map_err(gh_error)?;
-        let list = PrList { repo: repo.slug(), state, prs: pr_list::parse(&out)?, at: now_secs() };
+        let out = match runner.gh_ok(cwd, &args).await {
+            Err(RunError::Failed { stderr, .. }) if gateway_timeout(&stderr) => {
+                tokio::time::sleep(RETRY_AFTER).await;
+                runner.gh_ok(cwd, &args).await
+            }
+            out => out,
+        }
+        .map_err(gh_error)?;
+        let prs = pr_list::parse(&out)?;
+        let complete = (prs.len() as u32) < limit;
+        let list = PrList { repo: repo.slug(), state, prs, at: now_secs(), limit, complete };
         let changed = cached.is_none_or(|c| serde_json::to_value(&c.prs).ok() != serde_json::to_value(&list.prs).ok());
         lock(&self.lists).insert((k, state), list.clone());
         if changed {
@@ -202,7 +226,7 @@ impl Github {
             for path in paths {
                 let Some((_, repo)) = gh.remote_of(&runner, &path, false).await else { continue };
                 if seen.insert(key(&repo)) {
-                    let _ = gh.list(&runner, &path, &repo, ListState::Open, false).await;
+                    let _ = gh.list(&runner, &path, &repo, ListState::Open, false, None).await;
                 }
             }
         });

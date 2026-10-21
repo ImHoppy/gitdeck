@@ -32,7 +32,7 @@ export type PrSummary = {
   reviewRequests: string[]
 }
 
-export type PrList = { repo: string; state: ListState; prs: PrSummary[]; at: number }
+export type PrList = { repo: string; state: ListState; prs: PrSummary[]; at: number; limit: number; complete: boolean }
 
 export type PrCommit = { oid: string; headline: string; authoredDate: string; author: string }
 

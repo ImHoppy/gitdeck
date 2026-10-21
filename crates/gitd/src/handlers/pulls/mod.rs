@@ -94,11 +94,14 @@ pub struct ListParams {
     /// The user asked: only a short throttle applies.
     #[serde(default)]
     refresh: bool,
+    /// More PRs than the list has: the page scrolled to its end.
+    #[serde(default)]
+    limit: Option<u32>,
 }
 
 pub async fn list(app: &AppState, p: ListParams) -> anyhow::Result<Value> {
     let r = resolve(app, &p.target).await?;
-    Ok(serde_json::to_value(app.github.list(&app.runner, &r.cwd, &r.repo, p.state, p.refresh).await?)?)
+    Ok(serde_json::to_value(app.github.list(&app.runner, &r.cwd, &r.repo, p.state, p.refresh, p.limit).await?)?)
 }
 
 #[derive(Deserialize)]

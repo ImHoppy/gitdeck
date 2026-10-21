@@ -48,7 +48,7 @@ async fn finish(app: &AppState, r: &Resolved, outcome: &SyncOutcome, draft: Opti
         if let Some(Ok(dir)) = draft.map(|d| drafts::dir(&drafts::root(), d)) {
             let _ = tokio::fs::remove_dir_all(dir).await;
         }
-        let _ = app.github.list(&app.runner, &r.cwd, &r.repo, ListState::Open, true).await;
+        let _ = app.github.list(&app.runner, &r.cwd, &r.repo, ListState::Open, true, None).await;
     }
 }
 

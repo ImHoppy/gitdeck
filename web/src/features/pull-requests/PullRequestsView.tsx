@@ -10,6 +10,7 @@ import { filterPrs, type Scope } from './filter'
 import { PrDetailPane } from './PrDetailPane'
 import { refCard, type RefHandlers } from './prLinks'
 import { PrList } from './PrList'
+import { PrPager } from './PrPager'
 import { ALL_REPOS, type PullsPlace } from './prNav'
 import { PrToolbar } from './PrToolbar'
 import { PrUnavailable } from './PrUnavailable'
@@ -141,8 +142,10 @@ export function PullRequestsView({ workspace, availability, place, push, replace
               empty={prs.loading ? 'Loading…' : `No ${state} pull requests${scope !== 'all' || filter ? ' here' : ''}.`}
               checkedOut={(pr) => !pr.isCrossRepository && pr.repoId !== null && currentBranch(pr.repoId) === pr.headRefName}
               onSelect={(pr, move) => (move ? replace : push)({ ...place, pr: pr.number, prRepo: pr.repo, create: null })}
+              key={prs.page}
               onEnter={() => detailRef.current?.focus()}
             />
+            <PrPager page={prs.page} pages={prs.pages} hasNext={prs.hasNext} loading={prs.loading} onPage={prs.goTo} />
           </div>
         )}
         {!narrow && <Resizer axis="x" onDrag={listWidth.drag} onDone={listWidth.save} />}

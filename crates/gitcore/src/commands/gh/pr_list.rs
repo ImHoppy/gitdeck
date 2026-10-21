@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 const FIELDS: &str = "number,title,author,headRefName,baseRefName,headRefOid,isDraft,state,reviewDecision,\
 statusCheckRollup,updatedAt,isCrossRepository,headRepositoryOwner,url,reviewRequests";
 
-pub const LIMIT: u32 = 100;
+/// One page: what the list asks for first, and what each scroll to its end adds.
+pub const PAGE: u32 = 100;
+/// gh has no cursor, only `--limit`: past this, a list is cut short.
+pub const MAX_LIMIT: u32 = 1000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,7 +18,7 @@ pub enum ListState {
     Merged,
 }
 
-pub fn args(repo: &GithubRepo, state: ListState) -> Vec<String> {
+pub fn args(repo: &GithubRepo, state: ListState, limit: u32) -> Vec<String> {
     let state = match state {
         ListState::Open => "open",
         ListState::Closed => "closed",
@@ -23,7 +26,7 @@ pub fn args(repo: &GithubRepo, state: ListState) -> Vec<String> {
     };
     let mut a = vec!["pr".to_string(), "list".into()];
     a.extend(repo_flag(repo));
-    a.extend(["--state".into(), state.into(), "--limit".into(), LIMIT.to_string(), "--json".into(), FIELDS.into()]);
+    a.extend(["--state".into(), state.into(), "--limit".into(), limit.min(MAX_LIMIT).to_string(), "--json".into(), FIELDS.into()]);
     a
 }
 
@@ -135,8 +138,9 @@ mod tests {
     #[test]
     fn args_name_the_repo_and_state() {
         let repo = GithubRepo { owner: "a".into(), name: "b".into() };
-        let a = args(&repo, ListState::Merged);
-        assert_eq!(&a[..6], ["pr", "list", "-R", "a/b", "--state", "merged"]);
+        let a = args(&repo, ListState::Merged, 200);
+        assert_eq!(&a[..8], ["pr", "list", "-R", "a/b", "--state", "merged", "--limit", "200"]);
+        assert_eq!(args(&repo, ListState::Open, 5000)[7], "1000");
     }
 
     #[test]

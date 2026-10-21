@@ -52,7 +52,7 @@ pub async fn create(app: &AppState, p: CreateParams) -> anyhow::Result<Value> {
         if let Some(Ok(dir)) = p.draft.as_deref().map(|d| drafts::dir(&drafts::root(), d)) {
             let _ = tokio::fs::remove_dir_all(dir).await;
         }
-        let _ = app.github.list(&app.runner, &r.cwd, &r.repo, ListState::Open, true).await;
+        let _ = app.github.list(&app.runner, &r.cwd, &r.repo, ListState::Open, true, None).await;
     }
     let number = *number.lock().unwrap_or_else(|e| e.into_inner());
     Ok(json!({ "outcome": outcome, "number": number }))
