@@ -68,7 +68,9 @@ export function useHistory(repoId: number | null, filter = '', content = false, 
           })
           .catch((e: Error) => {
             pending.current.delete(page)
-            if (e.message === 'stale') open()
+            if (e.message !== 'stale') return
+            key.current = null
+            open()
           })
       }
     },
