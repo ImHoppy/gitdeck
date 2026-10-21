@@ -19,7 +19,8 @@ export function PullsWindow({ workspace: wsName, repoId, pr, prRepo }: Props) {
     void open(wsName)
   }, [open, wsName])
   const server = useServerInfo()
-  const availability = usePrStatus(`${wsName}:${String(server.info?.githubPrs)}`)
+  // asked once the workspace is live here: gitd lists the GitHub repos of the open workspace
+  const availability = usePrStatus(`${workspace?.name}:${String(server.info?.githubPrs)}`)
   const [place] = useNavState<PullsPlace>(PULLS_KEY, NO_PULLS)
   const startPath = workspace?.repos.find((r) => r.id === repoId)?.path ?? null
 
