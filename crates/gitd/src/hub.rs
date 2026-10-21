@@ -23,6 +23,9 @@ pub struct Hub {
     written: std::sync::Mutex<HashMap<RepoId, std::time::Instant>>,
 }
 
+/// The write queue of PRs outside the workspace, which have no repo of their own.
+pub const EXTERNAL: RepoId = RepoId::MAX;
+
 /// How long after a write the watcher's echo of it (the index file changing) is expected.
 const WRITE_ECHO: std::time::Duration = std::time::Duration::from_secs(2);
 
@@ -155,6 +158,13 @@ impl Hub {
         self.mark_written(id);
         self.publish(id).await;
         out
+    }
+
+    /// A GitHub write (comment, review, merge…): a job with its toast and output, after this
+    /// repo's other writes.
+    pub async fn gh_write(&self, id: Option<RepoId>, title: String, job: impl std::future::Future<Output = SyncOutcome>) -> SyncOutcome {
+        let key = id.unwrap_or(EXTERNAL);
+        self.scheduler.write(key, self.jobs.run(key, title, false, job)).await
     }
 
     pub async fn write_git(&self, id: RepoId, args: Vec<String>) -> anyhow::Result<GitOutput> {

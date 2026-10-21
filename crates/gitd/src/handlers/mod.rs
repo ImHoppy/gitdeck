@@ -7,6 +7,7 @@ mod interactive;
 mod log;
 mod meta;
 mod project;
+mod pulls;
 pub mod repo;
 mod stats;
 mod tools;
@@ -22,6 +23,7 @@ pub fn is_read(method: &str) -> bool {
     method.starts_with("log.")
         || method.starts_with("diff.")
         || method.starts_with("file.")
+        || matches!(method, "pr.status" | "pr.repos" | "pr.list" | "pr.view" | "pr.checks" | "pr.timeline" | "pr.repoInfo" | "pr.card" | "pr.findRepo" | "pr.switchedFrom")
         || matches!(method, "project.open" | "workspace.open" | "remote.list" | "reflog.list" | "worktree.list" | "conflict.list" | "repo.stats" | "commit.body" | "commit.lastMessage" | "tree.list" | "stash.list" | "repo.conflicts")
 }
 
@@ -99,6 +101,28 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "file.show" => files::show(app, serde_json::from_value(params)?).await,
         "file.blame" => files::blame(app, serde_json::from_value(params)?).await,
         "repo.sync" => repo::sync(app, serde_json::from_value(params)?).await,
+        "server.setGithubPrs" => meta::set_github_prs(app, serde_json::from_value(params)?).await,
+        "pr.status" => pulls::status(app, serde_json::from_value(params)?).await,
+        "pr.repos" => pulls::repos(app, serde_json::from_value(params)?).await,
+        "pr.list" => pulls::list(app, serde_json::from_value(params)?).await,
+        "pr.findRepo" => pulls::find_repo(app, serde_json::from_value(params)?).await,
+        "pr.view" => pulls::detail::view(app, serde_json::from_value(params)?).await,
+        "pr.checks" => pulls::detail::checks(app, serde_json::from_value(params)?).await,
+        "pr.timeline" => pulls::detail::timeline(app, serde_json::from_value(params)?).await,
+        "pr.repoInfo" => pulls::detail::repo_info(app, serde_json::from_value(params)?).await,
+        "pr.card" => pulls::detail::card(app, serde_json::from_value(params)?).await,
+        "pr.fetch" => pulls::detail::fetch(app, serde_json::from_value(params)?).await,
+        "pr.comment" => pulls::write::comment(app, serde_json::from_value(params)?).await,
+        "pr.edit" => pulls::write::edit(app, serde_json::from_value(params)?).await,
+        "pr.mutate" => pulls::write::mutate(app, serde_json::from_value(params)?).await,
+        "pr.state" => pulls::write::state(app, serde_json::from_value(params)?).await,
+        "pr.merge" => pulls::write::merge(app, serde_json::from_value(params)?).await,
+        "pr.discardDraft" => pulls::write::discard_draft(app, serde_json::from_value(params)?).await,
+        "pr.create" => pulls::create::create(app, serde_json::from_value(params)?).await,
+        "pr.switch" => pulls::switch::switch(app, serde_json::from_value(params)?).await,
+        "pr.switchBack" => pulls::switch::switch_back(app, serde_json::from_value(params)?).await,
+        "pr.switchedFrom" => pulls::switch::switched_from(app, serde_json::from_value(params)?).await,
+        "ui.navigate" => pulls::navigate(app, serde_json::from_value(params)?),
         _ => Err(anyhow!("unknown method {method}")),
     }
 }

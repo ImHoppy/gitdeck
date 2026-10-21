@@ -15,6 +15,7 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
         "git": configured,
         "gitVersion": git_version(app).await,
         "githubAvatars": app.config.lock().unwrap().github_avatars,
+        "githubPrs": app.github.enabled(),
         "editor": app.config.lock().unwrap().editor.clone(),
         "fileManager": app.config.lock().unwrap().file_manager.clone(),
         "fetchInterval": fetch_interval,
@@ -87,6 +88,16 @@ pub async fn set_avatars(app: &AppState, p: AvatarsParams) -> anyhow::Result<Val
         config.github_avatars = p.on;
         config.save(&app.config_path)?;
     }
+    info(app).await
+}
+
+pub async fn set_github_prs(app: &AppState, p: AvatarsParams) -> anyhow::Result<Value> {
+    {
+        let mut config = app.config.lock().unwrap();
+        config.github_prs = p.on;
+        config.save(&app.config_path)?;
+    }
+    app.github.set_enabled(p.on);
     info(app).await
 }
 

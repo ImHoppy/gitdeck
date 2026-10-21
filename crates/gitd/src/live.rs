@@ -1,4 +1,4 @@
-use crate::{autofetch, hub::Hub};
+use crate::{autofetch::{self, AfterFetch}, hub::Hub};
 use std::{
     sync::{atomic::AtomicUsize, Arc},
     time::Duration,
@@ -16,6 +16,7 @@ pub struct LiveWorkspace {
     refresher: JoinHandle<()>,
     fetcher: Option<JoinHandle<()>>,
     clients: Arc<AtomicUsize>,
+    after_fetch: AfterFetch,
 }
 
 impl Drop for LiveWorkspace {
@@ -32,12 +33,19 @@ impl LiveWorkspace {
         self._watcher.ignore_list()
     }
 
-    pub fn start(name: String, hub: Arc<Hub>, targets: Vec<WatchTarget>, fetch_interval: Duration, clients: Arc<AtomicUsize>) -> notify::Result<Self> {
+    pub fn start(
+        name: String,
+        hub: Arc<Hub>,
+        targets: Vec<WatchTarget>,
+        fetch_interval: Duration,
+        clients: Arc<AtomicUsize>,
+        after_fetch: AfterFetch,
+    ) -> notify::Result<Self> {
         let (tx, rx) = mpsc::unbounded_channel();
         let watcher = RepoWatcher::start(targets, tx)?;
         let refresher = tokio::spawn(refresh_loop(rx, hub.clone()));
-        let fetcher = fetcher(&hub, fetch_interval, &clients);
-        Ok(Self { name, hub, _watcher: watcher, refresher, fetcher, clients })
+        let fetcher = fetcher(&hub, fetch_interval, &clients, &after_fetch);
+        Ok(Self { name, hub, _watcher: watcher, refresher, fetcher, clients, after_fetch })
     }
 
     /// A zero interval turns auto fetch off.
@@ -45,12 +53,12 @@ impl LiveWorkspace {
         if let Some(f) = self.fetcher.take() {
             f.abort();
         }
-        self.fetcher = fetcher(&self.hub, interval, &self.clients);
+        self.fetcher = fetcher(&self.hub, interval, &self.clients, &self.after_fetch);
     }
 }
 
-fn fetcher(hub: &Arc<Hub>, interval: Duration, clients: &Arc<AtomicUsize>) -> Option<JoinHandle<()>> {
-    (!interval.is_zero()).then(|| tokio::spawn(autofetch::run(hub.clone(), interval, clients.clone())))
+fn fetcher(hub: &Arc<Hub>, interval: Duration, clients: &Arc<AtomicUsize>, after: &AfterFetch) -> Option<JoinHandle<()>> {
+    (!interval.is_zero()).then(|| tokio::spawn(autofetch::run(hub.clone(), interval, clients.clone(), after.clone())))
 }
 
 async fn refresh_loop(mut changed: mpsc::UnboundedReceiver<Vec<RepoId>>, hub: Arc<Hub>) {

@@ -25,6 +25,7 @@ pub struct AppState {
     pub live: Mutex<Option<LiveWorkspace>>,
     pub lifecycle: Lifecycle,
     pub commands: Arc<CommandLog>,
+    pub github: Arc<crate::github::Github>,
 }
 
 impl AppState {
@@ -36,13 +37,14 @@ impl AppState {
 
 const EVENT_BUFFER: usize = 256;
 
-type Shared = Arc<AppState>;
+pub type Shared = Arc<AppState>;
 
 pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let dir = cli::config_dir();
     let config_path = args.config.unwrap_or_else(|| dir.join("config.toml"));
     let config = Config::load(&config_path)?;
     let git = config.git.clone();
+    let github_prs = config.github_prs;
     let token = auth::load_or_create(&dir)?;
     let open = args.open.as_deref().map(|p| std::path::absolute(p).unwrap_or_else(|_| p.to_path_buf()));
     let url = browser::login_url(&args.bind, &token, open.as_deref());
@@ -70,10 +72,11 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
             runner.set_git(git);
             runner
         },
-        events,
+        events: events.clone(),
         live: Mutex::new(None),
         lifecycle: Lifecycle::new(Duration::from_secs(args.grace), args.keep),
         commands,
+        github: Arc::new(crate::github::Github::new(github_prs, events.clone())),
     });
 
     let router = Router::new()
@@ -82,6 +85,13 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         .route("/window", get(window))
         .route("/avatar", get(avatar))
         .route("/blob", get(blob))
+        .route("/api/gh/image", get(crate::github::http::image))
+        .route(
+            "/api/gh/draft",
+            get(crate::github::http::draft_file)
+                .post(crate::github::http::draft_upload)
+                .layer(axum::extract::DefaultBodyLimit::max(crate::github::drafts::MAX_BYTES)),
+        )
         .fallback(get(web))
         .with_state(app.clone());
 
@@ -103,7 +113,7 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn authorized(app: &AppState, headers: &HeaderMap) -> bool {
+pub fn authorized(app: &AppState, headers: &HeaderMap) -> bool {
     let cookie = headers.get(header::COOKIE).and_then(|v| v.to_str().ok());
     auth::cookie_matches(cookie, &app.token)
 }
