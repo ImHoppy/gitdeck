@@ -26,7 +26,7 @@ export function useOpenParam(
     if (holder) {
       pick(holder.id)
       url.searchParams.delete('open')
-      history.replaceState(null, '', url)
+      history.replaceState(history.state, '', url)
     } else if (!tried.current) {
       tried.current = true
       gitd.call<string>('project.open', { path }).then(openWorkspace, (e: Error) => onError(e.message))

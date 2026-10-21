@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ConflictPanel,
   hasConflicts,
@@ -24,6 +24,7 @@ import { Menu, type MenuItem } from '../ui/Menu/Menu'
 import { Toast } from '../ui/Toast/Toast'
 import { pickFolder } from '../lib/pickFolder'
 import { loadLastRepo, saveLastRepo } from '../lib/lastRepo'
+import { useNavState } from '../lib/navState'
 import styles from './App.module.css'
 import { CommitDetailWindow } from './CommitDetailWindow'
 import { CommitWindow } from './CommitWindow'
@@ -71,31 +72,52 @@ function Browse() {
   const dialogs = useDialogs()
   const treeWidth = usePaneSize('tree', 340, 200, 700)
   const narrow = useNarrow()
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  // by path: ids change on every discovery
+  const [place, pushPlace, replacePlace] = useNavState<Place>('browse', NOWHERE)
+  const go = useCallback(
+    (next: Place) => {
+      if (next.project !== place.project || next.repo !== place.repo) pushPlace(next)
+    },
+    [place, pushPlace],
+  )
+  const selectedId =
+    workspace && place.repo && workspace.name === place.project
+      ? (workspace.repos.find((r) => samePath(r.path, place.repo!))?.id ?? null)
+      : null
   const [showRepo, setShowRepo] = useState(false)
-  const pickRepo = useCallback((id: number) => {
-    setSelectedId(id)
-    setShowRepo(true)
-  }, [])
+  const pickRepo = useCallback(
+    (id: number) => {
+      const repo = workspace?.repos.find((r) => r.id === id)
+      if (!workspace || !repo) return
+      go({ project: workspace.name, repo: repo.path })
+      setShowRepo(true)
+    },
+    [workspace, go],
+  )
   const [openError, setOpenError] = useState<string | null>(null)
   useOpenParam(workspace, pickRepo, open, setOpenError)
-  // back where you left the project; a project of one repo opens straight into it, like Git Extensions
-  const openProject = useCallback(
-    async (name: string) => {
-      const ws = await open(name)
-      if (!ws) return
-      const last = loadLastRepo(name)
-      const repo = ws.repos.find((r) => r.path === last) ?? (ws.repos.length === 1 ? ws.repos[0] : undefined)
-      if (repo) pickRepo(repo.id)
-      else setSelectedId(null)
-    },
-    [open, pickRepo],
-  )
-  const closeProject = () => {
-    close()
-    setSelectedId(null)
-    setShowRepo(false)
-  }
+  const shownProject = useRef<string | null>(null)
+  shownProject.current = workspace?.name ?? null
+  useEffect(() => {
+    const { project, repo } = place
+    if (project === shownProject.current) return
+    if (!project) {
+      close()
+      setShowRepo(false)
+      return
+    }
+    void open(project).then((ws) => {
+      if (!ws || repo) return
+      const last = loadLastRepo(project)
+      const found = ws.repos.find((r) => r.path === last) ?? (ws.repos.length === 1 ? ws.repos[0] : undefined)
+      if (!found) return
+      replacePlace({ project, repo: found.path })
+      setShowRepo(true)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place.project])
+  const openProject = async (name: string) => go({ project: name, repo: null })
+  const closeProject = () => go(NOWHERE)
   const shown = selectedId !== null && workspace?.repos.some((r) => r.id === selectedId)
   useEffect(() => {
     // RepoView names the repo while one is open
@@ -107,7 +129,9 @@ function Browse() {
     const path = await dialogs.prompt('Add a repository', 'Folder of a git repository (its submodules come along)', '', pickFolder)
     if (!path) return
     const name = await dialogs.prompt('Workspace', 'Add it to workspace (an existing name or a new one)', workspace?.name ?? 'default')
-    if (name) await addRoot(name, path)
+    if (!name) return
+    await addRoot(name, path)
+    go({ project: name, repo: name === place.project ? place.repo : null })
   }
   const sync = useSync(dialogs.confirm)
   const selected = workspace?.repos.find((r) => r.id === selectedId)
@@ -127,7 +151,7 @@ function Browse() {
     setMenu({
       at,
       items: treeMenu(repo, {
-        open: setSelectedId,
+        open: pickRepo,
         sync: (id, kind) => void sync.sync(id, kind),
         reveal: (id, what) => void tree.reveal(id, what),
         openInEditor: (id) => void tree.openInEditor(id),
@@ -226,7 +250,7 @@ function Browse() {
           <SyncSummary
             summary={sync.summary}
             repos={workspace.repos}
-            onSelect={setSelectedId}
+            onSelect={pickRepo}
             onDismiss={sync.dismiss}
           />
         )}
@@ -276,6 +300,10 @@ function Browse() {
     </div>
   )
 }
+
+type Place = { project: string | null; repo: string | null }
+
+const NOWHERE: Place = { project: null, repo: null }
 
 const samePath = (a: string, b: string) => a.replaceAll('\\', '/').toLowerCase() === b.replaceAll('\\', '/').toLowerCase()
 
