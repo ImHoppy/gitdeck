@@ -110,11 +110,24 @@ export function FileList({ files, selected, onSelect, onOpen, mode = 'list', act
     ? flattenPathTree(tree, collapsed)
     : files.map((f) => ({ node: { kind: 'leaf', name: f.path, path: f.path, item: f }, depth: 0 }))
 
+  const at = rows.findIndex((r) => r.node.kind === 'leaf' && r.node.path === selected)
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const step = { ArrowDown: 1, ArrowUp: -1 }[e.key]
+    if (step === undefined) return
+    e.preventDefault()
+    for (let i = at + step; i >= 0 && i < rows.length; i += step) {
+      const { node } = rows[i]
+      if (node.kind === 'leaf') return onSelect(node.item)
+    }
+  }
+
   return (
-    <div className={styles.files}>
+    <div className={styles.files} tabIndex={0} onKeyDown={onKeyDown}>
       <VirtualList
         count={rows.length}
         rowHeight={ROW_HEIGHT}
+        scrollTo={at < 0 ? null : at}
         renderRow={(i) => {
           const { node, depth } = rows[i]
           if (node.kind === 'leaf') return fileRow(node.item, node.name, depth)
