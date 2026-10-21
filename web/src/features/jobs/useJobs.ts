@@ -4,7 +4,6 @@ import type { JobUpdate } from '../../protocol/types'
 import { mergeJob } from './jobLines'
 
 const SHOW_AFTER_MS = 1500
-const BACKGROUND_SHOW_AFTER_MS = 10_000
 
 export type Job = JobUpdate & { shown: boolean; dismissed: boolean }
 
@@ -34,12 +33,12 @@ export function useJobs(openId: number | null) {
         const old = all.get(u.id)
         const merged = mergeJob(old, u)
         const bad = failed(merged)
-        const shown = merged.done ? bad && ((old?.shown ?? false) || !merged.background) : (old?.shown ?? false)
-        if (!old && !merged.done) {
+        const shown = merged.done ? bad : (old?.shown ?? false)
+        if (!old && !merged.done && !merged.background) {
           const t = setTimeout(() => {
             timers.delete(t)
             patch(u.id, (j) => (j.done ? j : { ...j, shown: true }))
-          }, u.background ? BACKGROUND_SHOW_AFTER_MS : SHOW_AFTER_MS)
+          }, SHOW_AFTER_MS)
           timers.add(t)
         }
         const next = new Map(all)
