@@ -95,6 +95,10 @@ pub async fn set_file_manager(app: &AppState, p: EditorParams) -> anyhow::Result
     info(app).await
 }
 
+pub async fn jobs(app: &AppState) -> anyhow::Result<Value> {
+    Ok(serde_json::to_value(super::repo::hub(app).await?.jobs.list())?)
+}
+
 pub fn commands(app: &AppState) -> anyhow::Result<Value> {
     Ok(serde_json::to_value(app.commands.recent())?)
 }

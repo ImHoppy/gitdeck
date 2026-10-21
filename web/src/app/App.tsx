@@ -33,6 +33,7 @@ import { ReflogWindow } from './ReflogWindow'
 import { StatsWindow } from './StatsWindow'
 import { RepoView } from './RepoView'
 import { StartPage } from '../features/start'
+import { Jobs } from '../features/jobs'
 import { Opening } from './Opening'
 import { useOpenParam } from './useOpenParam'
 
@@ -217,6 +218,7 @@ function Browse() {
             onRebase={(action) => sync.rebase(selected.id, action)}
           />
         )}
+        <Jobs />
         {workspace && sync.summary && (
           <SyncSummary
             summary={sync.summary}

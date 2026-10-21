@@ -93,6 +93,7 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "server.setAvatars" => meta::set_avatars(app, serde_json::from_value(params)?).await,
         "server.setGit" => meta::set_git(app, serde_json::from_value(params)?).await,
         "commands.recent" => meta::commands(app),
+        "jobs.list" => meta::jobs(app).await,
         "tree.list" => files::list(app, serde_json::from_value(params)?).await,
         "file.show" => files::show(app, serde_json::from_value(params)?).await,
         "file.blame" => files::blame(app, serde_json::from_value(params)?).await,

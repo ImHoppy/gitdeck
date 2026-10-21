@@ -127,7 +127,18 @@ export type RepoAction =
 
 export type Stash = { index: number; sha: string; time: number; message: string }
 
-export type CommandRecord = { cwd: string; args: string[]; code: number; millis: number; at: number }
+export type CommandRecord = { cwd: string; args: string[]; code: number; millis: number; at: number; output?: string }
+
+export type JobUpdate = {
+  id: number
+  repoId: number
+  title: string
+  background: boolean
+  from: number
+  lines: string[]
+  current: string
+  done: SyncOutcome | null
+}
 
 export type CommitDetails = {
   sha: string

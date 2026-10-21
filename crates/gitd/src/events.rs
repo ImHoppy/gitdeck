@@ -1,4 +1,4 @@
-use crate::snapshot::RepoSnapshot;
+use crate::{jobs::JobUpdate, snapshot::RepoSnapshot};
 use gitcore::CommandRecord;
 use serde::Serialize;
 
@@ -7,4 +7,5 @@ use serde::Serialize;
 pub enum Event {
     RepoState(RepoSnapshot),
     CommandLog(CommandRecord),
+    Job(JobUpdate),
 }

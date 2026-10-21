@@ -15,6 +15,7 @@ mod events;
 mod explorer;
 mod handlers;
 mod histories;
+mod jobs;
 mod icon;
 mod hub;
 mod launcher;

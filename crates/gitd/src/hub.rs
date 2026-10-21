@@ -1,4 +1,4 @@
-use crate::{events::Event, histories::Histories, snapshot::RepoSnapshot};
+use crate::{events::Event, histories::Histories, jobs::Jobs, snapshot::RepoSnapshot};
 use futures::future::join_all;
 use gitcore::{commands::gitlinks, GitOutput, GitRunner, ProcessRunner};
 use serde::Serialize;
@@ -15,6 +15,7 @@ pub struct Hub {
     pub runner: ProcessRunner,
     pub entries: HashMap<RepoId, RepoEntry>,
     pub histories: Histories,
+    pub jobs: Jobs,
     events: broadcast::Sender<Event>,
     scheduler: Scheduler,
     fetch_log: FetchLog,
@@ -44,6 +45,7 @@ impl Hub {
         Self {
             runner,
             entries: entries.iter().map(|e| (e.id, e.clone())).collect(),
+            jobs: Jobs::new(events.clone()),
             events,
             histories: Histories::default(),
             scheduler: Scheduler::default(),
@@ -120,13 +122,18 @@ impl Hub {
     }
 
     pub async fn sync(&self, id: RepoId, kind: SyncKind) -> RepoResult {
+        self.sync_job(id, kind, false).await
+    }
+
+    async fn sync_job(&self, id: RepoId, kind: SyncKind, background: bool) -> RepoResult {
         let Some(entry) = self.entries.get(&id) else {
             return RepoResult::of(id, SyncOutcome::Failed { message: format!("no repo {id}") });
         };
         let pulls = matches!(kind, SyncKind::Pull | SyncKind::Sync);
         let job = async {
             let before = if pulls { sync::gitlinks(&self.runner, &entry.path).await } else { Vec::new() };
-            let outcome = sync::run(&self.runner, &entry.path, kind).await;
+            let title = format!("{kind:?} {}", entry.name);
+            let outcome = self.jobs.run(id, title, background, sync::run(&self.runner, &entry.path, kind)).await;
             let moved = match outcome {
                 SyncOutcome::Done | SyncOutcome::UpToDate if pulls => {
                     gitlinks::moved(&before, &sync::gitlinks(&self.runner, &entry.path).await)
@@ -188,7 +195,7 @@ impl Hub {
     }
 
     pub async fn fetch(&self, ids: Vec<RepoId>) -> Vec<RepoResult> {
-        join_all(ids.into_iter().map(|id| self.sync(id, SyncKind::Fetch))).await
+        join_all(ids.into_iter().map(|id| self.sync_job(id, SyncKind::Fetch, true))).await
     }
 
     pub async fn sync_all(&self, kind: SyncKind) -> Vec<RepoResult> {

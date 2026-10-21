@@ -44,3 +44,27 @@
   width: 24px;
   text-align: right;
 }
+
+.openable {
+  cursor: pointer;
+}
+
+.openable:hover {
+  background: var(--hover);
+}
+
+.output {
+  flex: none;
+  max-height: 45%;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  font: 12px/18px ui-monospace, Consolas, monospace;
+  white-space: pre-wrap;
+  color: var(--danger);
+}
+
+.outputHead {
+  color: var(--fg-muted);
+}

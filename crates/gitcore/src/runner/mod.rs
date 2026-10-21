@@ -1,7 +1,9 @@
+mod console;
 mod env;
 mod process;
 
-pub use process::{interactive, ProcessRunner};
+pub use console::Console;
+pub use process::{interactive, streamed, OutputSink, ProcessRunner};
 
 use serde::Serialize;
 use std::{path::Path, sync::Arc};
@@ -13,6 +15,8 @@ pub struct CommandRecord {
     pub code: i32,
     pub millis: u64,
     pub at: u64,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub output: String,
 }
 
 pub type CommandSink = Arc<dyn Fn(CommandRecord) + Send + Sync>;

@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-pub const FETCH_ARGS: &[&str] = &["fetch", "--all", "--prune", "--no-recurse-submodules"];
+pub const FETCH_ARGS: &[&str] = &["fetch", "--progress", "--all", "--prune", "--no-recurse-submodules"];
 
 pub const PULL_ARGS: &[&str] = &[
     "-c",
@@ -8,10 +8,11 @@ pub const PULL_ARGS: &[&str] = &[
     "pull",
     "--rebase",
     "--autostash",
+    "--progress",
     "--no-recurse-submodules",
 ];
 
-pub const PUSH_ARGS: &[&str] = &["push", "--recurse-submodules=check"];
+pub const PUSH_ARGS: &[&str] = &["push", "--progress", "--recurse-submodules=check"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]

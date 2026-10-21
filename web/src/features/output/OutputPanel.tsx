@@ -7,6 +7,7 @@ const ROW = 18
 
 export function OutputPanel({ records, cwd }: { records: CommandRecord[]; cwd: string | null }) {
   const [onlyThisRepo, setOnlyThisRepo] = useState(true)
+  const [opened, setOpened] = useState<CommandRecord | null>(null)
   const shown = onlyThisRepo && cwd ? records.filter((r) => r.cwd === cwd) : records
   return (
     <div className={styles.panel}>
@@ -22,7 +23,11 @@ export function OutputPanel({ records, cwd }: { records: CommandRecord[]; cwd: s
           renderRow={(i) => {
             const r = shown[i]
             return (
-              <div className={`${styles.row} ${r.code !== 0 ? styles.failed : ''}`} title={r.cwd}>
+              <div
+                className={`${styles.row} ${r.code !== 0 ? styles.failed : ''} ${r.output ? styles.openable : ''}`}
+                title={r.output ? 'Click to show the output' : r.cwd}
+                onClick={() => r.output && setOpened(opened === r ? null : r)}
+              >
                 <span className={styles.time}>{new Date(r.at * 1000).toLocaleTimeString()}</span>
                 <span className={styles.ms}>{r.millis} ms</span>
                 <span className={styles.code}>{r.code}</span>
@@ -32,6 +37,13 @@ export function OutputPanel({ records, cwd }: { records: CommandRecord[]; cwd: s
           }}
         />
       </div>
+      {opened?.output && (
+        <pre className={styles.output}>
+          <span className={styles.outputHead}>git {opened.args.join(' ')}</span>
+          {'\n'}
+          {opened.output}
+        </pre>
+      )}
     </div>
   )
 }
