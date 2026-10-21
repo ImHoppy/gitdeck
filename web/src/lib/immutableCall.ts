@@ -19,7 +19,7 @@ function open(): Promise<IDBDatabase | null> {
   return db
 }
 
-async function get<T>(key: string): Promise<T | undefined> {
+export async function cacheGet<T>(key: string): Promise<T | undefined> {
   const d = await open()
   if (!d) return undefined
   return new Promise((resolve) => {
@@ -29,7 +29,7 @@ async function get<T>(key: string): Promise<T | undefined> {
   })
 }
 
-async function put(key: string, value: unknown) {
+export async function cachePut(key: string, value: unknown) {
   const d = await open()
   try {
     d?.transaction(STORE, 'readwrite').objectStore(STORE).put(value, key)
@@ -46,9 +46,9 @@ export function immutableKey(method: string, params: object): string {
 /** For answers fixed by commit ids (bodies, trees, A..B diffs): served from IndexedDB after the first call. */
 export async function immutableCall<T>(method: string, params: object): Promise<T> {
   const key = immutableKey(method, params)
-  const hit = await get<T>(key)
+  const hit = await cacheGet<T>(key)
   if (hit !== undefined) return hit
   const value = await gitd.call<T>(method, params)
-  void put(key, value)
+  void cachePut(key, value)
   return value
 }

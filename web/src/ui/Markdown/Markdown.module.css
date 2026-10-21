@@ -1,0 +1,264 @@
+.markdown {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.empty {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote,
+.markdown details,
+.markdown .tableBox,
+.markdown .code {
+  margin: 0 0 10px;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 16px 0 8px;
+  line-height: 1.25;
+}
+
+.markdown h1 {
+  font-size: 1.6em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown h2 {
+  font-size: 1.35em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown h3 {
+  font-size: 1.15em;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 1em;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 22px;
+}
+
+.markdown li + li {
+  margin-top: 2px;
+}
+
+.tasks {
+  list-style: none;
+  padding-left: 4px !important;
+}
+
+.task {
+  margin: 0 6px 0 0;
+  vertical-align: -1px;
+}
+
+.markdown blockquote {
+  padding: 0 12px;
+  border-left: 3px solid var(--border);
+  color: var(--fg-muted);
+}
+
+.markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 14px 0;
+}
+
+.markdown a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.markdown a:hover {
+  text-decoration: underline;
+}
+
+.markdown code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--hover);
+  font: 12px/1.4 ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.code {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  overflow-x: auto;
+}
+
+.code code {
+  padding: 0;
+  background: none;
+  white-space: pre;
+}
+
+.suggestion {
+  padding: 0;
+}
+
+.suggestionHead {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.added {
+  padding: 0 10px;
+  background: var(--diff-add);
+}
+
+.sign {
+  display: inline-block;
+  width: 14px;
+  color: var(--fg-muted);
+}
+
+.tableBox {
+  overflow-x: auto;
+}
+
+.markdown table {
+  border-collapse: collapse;
+}
+
+.markdown th,
+.markdown td {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+}
+
+.markdown th {
+  background: var(--bg-panel);
+  font-weight: 600;
+}
+
+.markdown details {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.markdown summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.media {
+  max-width: min(100%, 900px);
+  max-height: 600px;
+  height: auto;
+  border-radius: 4px;
+  cursor: zoom-in;
+  vertical-align: middle;
+}
+
+.missing {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.mention {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.sha {
+  padding: 0 3px;
+  border: none;
+  border-radius: 4px;
+  background: var(--hover);
+  color: var(--accent);
+  font: 12px ui-monospace, 'Cascadia Code', Consolas, monospace;
+  cursor: pointer;
+}
+
+.refBox {
+  position: relative;
+}
+
+.ref {
+  font-weight: 500;
+}
+
+.card {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  line-height: 1.35;
+}
+
+.cardState {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 11px;
+}
+
+.open {
+  background: #1f883d;
+}
+
+.closed {
+  background: #cf222e;
+}
+
+.merged {
+  background: #8250df;
+}
+
+.draft {
+  background: #6e7781;
+}
+
+.cardMeta {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.footnotes {
+  margin-top: 12px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--fg-muted);
+}

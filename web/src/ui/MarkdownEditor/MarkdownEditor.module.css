@@ -1,0 +1,85 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background: var(--bg-input);
+  min-width: 0;
+}
+
+.editor:focus-within {
+  border-color: var(--focus);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.bar > button {
+  padding: 3px 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.bar > .active {
+  border-bottom-color: var(--accent);
+  color: var(--fg);
+}
+
+.bar > .attach {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: none;
+}
+
+.bar > .attach:hover {
+  color: var(--fg);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.text {
+  width: 100%;
+  min-height: 60px;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 0 6px 6px;
+  resize: vertical;
+  font: 12.5px/1.5 ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.preview {
+  min-height: 60px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 8px 10px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-top: 1px solid var(--border);
+}
+
+.hint {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 12px;
+}
