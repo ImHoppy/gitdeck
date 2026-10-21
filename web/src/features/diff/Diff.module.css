@@ -193,3 +193,9 @@
   margin: 4px 0;
   padding: 0 6px;
 }
+
+.binarySize {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+}

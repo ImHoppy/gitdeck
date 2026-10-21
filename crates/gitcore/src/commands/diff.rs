@@ -116,9 +116,40 @@ pub fn parse_untracked(out: &[u8]) -> Vec<ChangedFile> {
         .collect()
 }
 
+fn is_null_sha(s: &str) -> bool {
+    s.bytes().all(|b| b == b'0')
+}
+
+pub fn binary_blobs(patch: &str) -> Option<(Option<String>, Option<String>)> {
+    let mut blobs = None;
+    for line in patch.lines() {
+        if let Some(rest) = line.strip_prefix("index ") {
+            let range = rest.split(' ').next().unwrap_or("");
+            if let Some((a, b)) = range.split_once("..") {
+                let side = |s: &str| (!is_null_sha(s)).then(|| s.to_string());
+                blobs = Some((side(a), side(b)));
+            }
+        } else if line.starts_with("Binary files ") || line == "GIT binary patch" {
+            return Some(blobs.unwrap_or((None, None)));
+        } else if line.starts_with("@@") {
+            return None;
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn finds_binary_blobs() {
+        let added = "diff --git a/x b/x\nnew file mode 100644\nindex 000000000..143179968\nBinary files /dev/null and b/x differ\n";
+        assert_eq!(binary_blobs(added), Some((None, Some("143179968".into()))));
+        let modified = "diff --git a/x b/x\nindex 1a2b..3c4d 100644\nBinary files a/x and b/x differ\n";
+        assert_eq!(binary_blobs(modified), Some((Some("1a2b".into()), Some("3c4d".into()))));
+        assert_eq!(binary_blobs("diff --git a/x b/x\nindex 1..2 100644\n--- a/x\n+++ b/x\n@@ -1 +1 @@\n"), None);
+    }
 
     #[test]
     fn parses_name_status_with_renames() {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
+import { formatBytes } from '../../lib/formatBytes'
 import styles from './ImagePreview.module.css'
 
 const IMAGE = /\.(png|jpe?g|gif|webp|bmp|ico|svg|avif)$/i
@@ -15,18 +16,6 @@ function revisions(target: DiffTarget): [string | null, string] {
 
 const url = (repoId: number, rev: string, path: string) =>
   `/blob?${new URLSearchParams({ repo: String(repoId), rev, path })}`
-
-const UNITS = ['B', 'KB', 'MB']
-
-function formatBytes(bytes: number): string {
-  let n = Math.abs(bytes)
-  let unit = 0
-  while (n >= 1024 && unit < UNITS.length - 1) {
-    n /= 1024
-    unit++
-  }
-  return `${unit ? n.toFixed(1) : n} ${UNITS[unit]}`
-}
 
 /** The image's file size, from the browser's record of the request (no second fetch). */
 function fileSize(src: string): number | null {

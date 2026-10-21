@@ -1,6 +1,7 @@
 pub mod action;
 pub mod ahead_behind;
 pub mod blame;
+pub mod cat_file;
 pub mod clone;
 pub mod commit;
 pub mod config;

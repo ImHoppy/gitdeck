@@ -89,7 +89,8 @@ export type ChangeKind =
 
 export type ChangedFile = { path: string; oldPath: string | null; kind: ChangeKind }
 
-export type Patch = { text: string; diffId: string }
+export type BinarySizes = { old: number | null; new: number | null }
+export type Patch = { text: string; diffId: string; binary: BinarySizes | null }
 
 export type ResetMode = 'soft' | 'mixed' | 'hard'
 

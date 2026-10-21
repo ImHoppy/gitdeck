@@ -1,5 +1,8 @@
 use gitcore::{
-    commands::diff::{self, ChangedFile, DiffTarget, PatchOptions},
+    commands::{
+        cat_file,
+        diff::{self, ChangeKind, ChangedFile, DiffTarget, PatchOptions},
+    },
     GitRunner, RunError,
 };
 use serde::Serialize;
@@ -13,6 +16,30 @@ use std::{
 pub struct Patch {
     pub text: String,
     pub diff_id: String,
+    pub binary: Option<BinarySizes>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BinarySizes {
+    pub old: Option<u64>,
+    pub new: Option<u64>,
+}
+
+async fn blob_size<R: GitRunner>(runner: &R, path: &Path, blob: Option<&str>) -> Option<u64> {
+    let args = cat_file::size_args(blob?);
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    cat_file::parse_size(&runner.run_ok(path, &args).await.ok()?)
+}
+
+async fn binary_sizes<R: GitRunner>(runner: &R, path: &Path, target: &DiffTarget, file: &ChangedFile, text: &str) -> Option<BinarySizes> {
+    let (old, new) = diff::binary_blobs(text)?;
+    let old = blob_size(runner, path, old.as_deref()).await;
+    let new = if *target == DiffTarget::Worktree && file.kind != ChangeKind::Deleted {
+        tokio::fs::metadata(path.join(&file.path)).await.ok().map(|m| m.len())
+    } else {
+        blob_size(runner, path, new.as_deref()).await
+    };
+    Some(BinarySizes { old, new })
 }
 
 pub async fn files<R: GitRunner>(runner: &R, path: &Path, target: &DiffTarget, content: Option<&str>) -> Result<Vec<ChangedFile>, RunError> {
@@ -43,7 +70,8 @@ pub async fn patch<R: GitRunner>(
         return Err(RunError::Failed { code: out.code, stderr: String::from_utf8_lossy(&out.stderr).trim().to_string() });
     }
     let text = String::from_utf8_lossy(&out.stdout).into_owned();
-    Ok(Patch { diff_id: diff_id(&text), text })
+    let binary = binary_sizes(runner, path, target, file, &text).await;
+    Ok(Patch { diff_id: diff_id(&text), text, binary })
 }
 
 pub fn diff_id(text: &str) -> String {

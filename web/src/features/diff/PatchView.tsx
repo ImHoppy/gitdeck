@@ -8,6 +8,7 @@ import { parseDiff } from '../../lib/diffLines'
 import styles from './Diff.module.css'
 import { type LineMode, useLineStaging } from './useLineStaging'
 import { useRepoTools } from '../repo-actions'
+import { BinarySize } from './BinarySize'
 
 const EMPTY: Set<number> = new Set()
 
@@ -97,6 +98,7 @@ export function PatchView({ repoId, file, patch, side }: Props) {
           {staging.error && <span className={styles.error}>{staging.error}</span>}
         </div>
       )}
+      {patch.binary && <BinarySize sizes={patch.binary} />}
       <div className={styles.patchBody}>
         <DiffViewer
           patch={patch.text}
