@@ -28,12 +28,14 @@ export function JobConsole({ job, failed, onClose }: Props) {
           {job.done ? null : <Spinner />}
           <strong className={styles.headTitle}>{job.title}</strong>
           {job.done && <span className={failed ? styles.error : styles.muted}>{describeOutcome(job.done)}</span>}
-          <IconButton title="Copy the output" onClick={() => void navigator.clipboard.writeText(rows.join('\n'))}>
-            Copy
-          </IconButton>
-          <IconButton title="Close (Esc)" onClick={onClose}>
-            <Icon name="close" size={12} />
-          </IconButton>
+          <span className={styles.headTools}>
+            <IconButton title="Copy the output" onClick={() => void navigator.clipboard.writeText(rows.join('\n'))}>
+              <Icon name="copy" size={12} />
+            </IconButton>
+            <IconButton title="Close (Esc)" onClick={onClose}>
+              <Icon name="close" size={12} />
+            </IconButton>
+          </span>
         </div>
         <div className={styles.lines}>
           <VirtualList
