@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useStatusItem } from '../../lib/statusBar'
 import type { JobUpdate } from '../../protocol/types'
 import { JobConsole } from './JobConsole'
 import { JobGroupToast } from './JobGroupToast'
@@ -15,6 +16,20 @@ export function Jobs() {
   const single = grouped ? jobs.visible.filter((j) => j.done) : jobs.visible
   const [kept, setKept] = useState<JobUpdate | null>(null)
   const open = (openId === null ? undefined : jobs.get(openId)) ?? kept
+  const all = jobs.visible.filter((j) => !j.done)
+  useStatusItem(
+    all.length
+      ? {
+          id: 'jobs',
+          side: 'right',
+          order: 20,
+          tone: 'busy',
+          text: all.length === 1 ? all[0].title : `${all.length} jobs`,
+          title: `${all.map((j) => j.title).join(', ')} (click: output)`,
+          onClick: () => setOpenId(all[0].id),
+        }
+      : null,
+  )
 
   return (
     <>

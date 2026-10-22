@@ -1,10 +1,10 @@
 import type { CommandResult } from '../features/repo-actions'
 import { Toast } from '../ui/Toast/Toast'
 
-type Props = { busy: boolean; last: CommandResult | null; onDismiss: () => void }
+/** A command's result; while it runs, the status bar says so. */
+type Props = { last: CommandResult | null; onDismiss: () => void }
 
-export function CommandStatus({ busy, last, onDismiss }: Props) {
-  if (busy) return <Toast tone="busy" title="Running…" />
+export function CommandStatus({ last, onDismiss }: Props) {
   if (!last) return null
   const o = last.outcome
   const text =

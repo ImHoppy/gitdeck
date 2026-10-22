@@ -25,7 +25,7 @@ import {
 import { RemotesDialog } from '../features/remotes'
 import { WorktreesDialog } from '../features/worktrees'
 import { Toast } from '../ui/Toast/Toast'
-import { PullButton, type PullAction } from '../features/sync'
+import { PULL_ACTIONS, PullButton, type PullAction } from '../features/sync'
 import { SplitButton } from '../ui/SplitButton/SplitButton'
 import { Spinner } from '../ui/Spinner/Spinner'
 import { Icon } from '../ui/Icon/Icon'
@@ -45,6 +45,7 @@ import { usePaneSize } from '../lib/usePaneSize'
 import { Menu, type MenuItem } from '../ui/Menu/Menu'
 import styles from './App.module.css'
 import { CommandStatus } from './CommandStatus'
+import { useRepoStatus } from './useRepoStatus'
 
 function diffTarget(s: GridSelection): DiffTarget {
   if (s.kind === 'commit') return { kind: 'commit', sha: s.sha, parent: s.parents[0] ?? null }
@@ -187,6 +188,14 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
   const prHeads = useMemo(() => (prList && prRemote ? prsBySha(prList, refs, prRemote) : undefined), [prList, prRemote, refs])
   const createPr: MenuItem[] = prs && currentBranch ? ['separator', { key: 'pr', label: 'Create pull request…', icon: 'pr', onSelect: () => prs.create(currentBranch) }] : []
 
+  useRepoStatus({
+    repo,
+    onBranchMenu: (at) => setMenu({ items: [...branchMenu(ctx, refs, history.info?.head ?? null), ...createPr], at }),
+    pull: { busy: pull.busy, label: PULL_ACTIONS.find((a) => a.kind === pull.action)?.label ?? 'pull', run: () => pull.run(pull.action) },
+    onCommit: openCommit,
+    busy: commands.busy,
+  })
+
   const onCommitMenu = (row: HistoryRow, at: { x: number; y: number }) => {
     const branchesHere = refs.filter((r) => r.kind === 'branch' && r.sha === row.sha && r.name !== currentBranch).map((r) => r.name)
     const interactive: MenuItem = { key: 'rebase-i', label: 'Rebase interactively from here…', icon: 'history', disabled: !currentBranch || row.sha === history.info?.head, onSelect: () => setRebaseBase(row.sha) }
@@ -256,7 +265,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
             saveSetting('searchMode', m)
           }}
         />
-        <CommandStatus busy={commands.busy} last={commands.last} onDismiss={commands.clear} />
+        <CommandStatus last={commands.last} onDismiss={commands.clear} />
       </RepoToolbar>
       {repo.state?.bisecting && (
         <div className={styles.bisectBar}>

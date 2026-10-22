@@ -1,0 +1,66 @@
+.bar {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  height: var(--status-bar-height);
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: 12px;
+  user-select: none;
+}
+
+.side {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.right {
+  justify-content: flex-end;
+}
+
+.item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 320px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+}
+
+button.item {
+  cursor: pointer;
+}
+
+button.item:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.good {
+  color: var(--ahead);
+}
+
+.bad {
+  color: var(--danger);
+}
+
+.warn {
+  color: var(--dirty);
+}
+
+.busy {
+  color: var(--fg);
+}

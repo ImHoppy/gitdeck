@@ -1,0 +1,45 @@
+import type { PrAvailability } from '../features/pull-requests'
+import type { useServerInfo } from '../features/settings'
+import { useStatusItem } from '../lib/statusBar'
+
+type Deps = {
+  server: ReturnType<typeof useServerInfo>
+  onSettings: () => void
+  /** The PR view's gh status; null until a project is open. */
+  prs: PrAvailability | null
+  onPulls: () => void
+}
+
+export function useAppStatus({ server, onSettings, prs, onPulls }: Deps) {
+  const info = server.info
+  useStatusItem({ id: 'settings', side: 'left', order: 100, icon: 'settings', title: 'Settings', onClick: onSettings })
+  useStatusItem(
+    info
+      ? {
+          id: 'keep-running',
+          side: 'left',
+          order: 90,
+          icon: 'pin',
+          text: info.keepRunning ? 'kept' : undefined,
+          title: info.keepRunning ? 'gitd keeps running with no window open (click: stop after the last window)' : 'gitd stops after the last window closes (click: keep it running)',
+          tone: info.keepRunning ? 'good' : 'normal',
+          onClick: () => server.setKeepRunning(!info.keepRunning),
+        }
+      : null,
+  )
+  const gh = prs?.status?.enabled ? prs.status.gh : null
+  useStatusItem(
+    gh
+      ? {
+          id: 'github',
+          side: 'right',
+          order: 10,
+          icon: 'pr',
+          text: gh.kind === 'ready' ? gh.login : gh.kind === 'missing' ? 'no gh' : gh.kind === 'loggedOut' ? 'gh logged out' : 'gh error',
+          title: gh.kind === 'ready' ? `GitHub through gh, as ${gh.login} (click: pull requests)` : 'GitHub is unavailable: run `gh auth login` on the host (click: details)',
+          tone: gh.kind === 'ready' ? 'normal' : 'warn',
+          onClick: onPulls,
+        }
+      : null,
+  )
+}

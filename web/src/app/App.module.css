@@ -226,3 +226,22 @@
   background: var(--selection);
   color: var(--fg);
 }
+
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.shellBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shellBody > .layout {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}

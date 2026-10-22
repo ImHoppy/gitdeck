@@ -41,6 +41,8 @@ import { useOpenParam } from './useOpenParam'
 import { ModeToggle } from './ModeToggle'
 import { PullsWindow } from './PullsWindow'
 import { usePullsMode } from './usePullsMode'
+import { Shell } from './Shell'
+import { useAppStatus } from './useAppStatus'
 import { PullRequestsView } from '../features/pull-requests'
 import { openWindow } from './windows'
 
@@ -173,6 +175,18 @@ function Browse() {
     pulls.open(next)
   }
   const [settingsOpen, setSettingsOpen] = useState(false)
+  useAppStatus({
+    server,
+    onSettings: () => {
+      server.reload()
+      setSettingsOpen(true)
+    },
+    prs: workspace ? pulls.availability : null,
+    onPulls: () => {
+      setPullsVisited(true)
+      pulls.setMode('pulls')
+    },
+  })
   const [menu, setMenu] = useState<{ items: MenuItem[]; at: { x: number; y: number } } | null>(null)
 
   const onRepoMenu = (repo: RepoSnapshot, at: { x: number; y: number }) =>
@@ -194,20 +208,48 @@ function Browse() {
       }),
     })
 
+  const settings = settingsOpen ? (
+    <SettingsPage
+      theme={{ value: theme.theme, onChange: theme.setTheme, options: [['auto', 'Follow the system'], ['light', 'Light'], ['dark', 'Dark']] }}
+      pullAction={{ value: sync.pullAction, onChange: sync.setPullAction, options: PULL_ACTIONS.map((a) => [a.kind, a.label]) }}
+      submodules={{
+        value: sync.choice,
+        onChange: sync.setChoice,
+        options: [['ask', 'Ask every time'], ['always', 'Always update'], ['never', 'Never update']],
+      }}
+      fetchInterval={
+        server.info?.fetchInterval != null
+          ? { value: String(server.info.fetchInterval), onChange: (v) => server.setFetchInterval(Number(v)), options: fetchOptions(server.info.fetchInterval) }
+          : null
+      }
+      keepRunning={server.info ? { value: server.info.keepRunning, onChange: server.setKeepRunning } : null}
+      githubAvatars={server.info ? { value: server.info.githubAvatars, onChange: server.setGithubAvatars } : null}
+      githubPrs={server.info ? { value: server.info.githubPrs, onChange: server.setGithubPrs } : null}
+      version={server.info?.version ?? null}
+      repoId={selected?.id ?? null}
+      editor={server.info ? { path: server.info.editor, onSave: server.setEditor } : null}
+      fileManager={server.info ? { path: server.info.fileManager, onSave: server.setFileManager } : null}
+      git={server.info ? { path: server.info.git, version: server.info.gitVersion, onSave: server.setGit } : null}
+      onClose={() => setSettingsOpen(false)}
+    />
+  ) : null
+
   // `?open=` is resolved to a project first: the start page would only flash by meanwhile
   if (!workspace && (opening || (new URLSearchParams(location.search).has('open') && !openError && !error))) {
     return <Opening name={opening} />
   }
   if (!workspace) {
     return (
-      <>
+      <Shell>
         <StartPage onOpen={openProject} version={server.info?.version ?? null} />
         {(openError ?? error) && <Toast tone="bad" title={openError ?? error} onDismiss={() => setOpenError(null)} />}
-      </>
+        {settings}
+      </Shell>
     )
   }
 
   return (
+    <Shell>
     <div className={`${styles.layout} ${narrow ? styles.narrow : ''} ${repoOpen ? styles.repoOpen : ''}`}>
       <aside className={styles.left} style={narrow ? undefined : { width: treeWidth.size }}>
         {workspace ? (
@@ -232,20 +274,6 @@ function Browse() {
                   onSetPullAction={sync.setPullAction}
                   onRunAll={sync.syncAll}
                 />
-                <IconButton
-                  title={server.info?.keepRunning ? 'gitd keeps running with no window open' : 'gitd stops after the last window closes'}
-                  disabled={!server.info}
-                  onClick={() => server.setKeepRunning(!server.info?.keepRunning)}
-                >
-                  <Icon name="pin" />
-                  {server.info?.keepRunning ? ' kept' : ''}
-                </IconButton>
-                <IconButton title="Settings" onClick={() => {
-                  server.reload()
-                  setSettingsOpen(true)
-                }}>
-                  <Icon name="settings" />
-                </IconButton>
               </>
             }
             actions={(repo) => (
@@ -336,32 +364,9 @@ function Browse() {
       </main>
       {menu && <Menu items={menu.items} at={menu.at} onClose={() => setMenu(null)} />}
       {dialogs.element}
-      {settingsOpen && (
-        <SettingsPage
-          theme={{ value: theme.theme, onChange: theme.setTheme, options: [['auto', 'Follow the system'], ['light', 'Light'], ['dark', 'Dark']] }}
-          pullAction={{ value: sync.pullAction, onChange: sync.setPullAction, options: PULL_ACTIONS.map((a) => [a.kind, a.label]) }}
-          submodules={{
-            value: sync.choice,
-            onChange: sync.setChoice,
-            options: [['ask', 'Ask every time'], ['always', 'Always update'], ['never', 'Never update']],
-          }}
-          fetchInterval={
-            server.info?.fetchInterval != null
-              ? { value: String(server.info.fetchInterval), onChange: (v) => server.setFetchInterval(Number(v)), options: fetchOptions(server.info.fetchInterval) }
-              : null
-          }
-          keepRunning={server.info ? { value: server.info.keepRunning, onChange: server.setKeepRunning } : null}
-          githubAvatars={server.info ? { value: server.info.githubAvatars, onChange: server.setGithubAvatars } : null}
-          githubPrs={server.info ? { value: server.info.githubPrs, onChange: server.setGithubPrs } : null}
-          version={server.info?.version ?? null}
-          repoId={selected?.id ?? null}
-          editor={server.info ? { path: server.info.editor, onSave: server.setEditor } : null}
-          fileManager={server.info ? { path: server.info.fileManager, onSave: server.setFileManager } : null}
-          git={server.info ? { path: server.info.git, version: server.info.gitVersion, onSave: server.setGit } : null}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
     </div>
+    {settings}
+    </Shell>
   )
 }
 
