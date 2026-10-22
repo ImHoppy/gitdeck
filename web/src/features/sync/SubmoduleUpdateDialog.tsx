@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { RepoResult, RepoSnapshot } from '../../protocol/types'
 import { Dialog } from '../../ui/Dialog/Dialog'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 
 type Props = {
   moved: RepoResult[]
@@ -21,12 +21,12 @@ export function SubmoduleUpdateDialog({ moved, repos, onAnswer }: Props) {
             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember my
             choice
           </label>
-          <IconButton title="Leave submodules where they are" onClick={() => onAnswer(false, remember)}>
+          <Button title="Leave submodules where they are" onClick={() => onAnswer(false, remember)}>
             Not now
-          </IconButton>
-          <IconButton title="git submodule update --init --recursive" onClick={() => onAnswer(true, remember)}>
+          </Button>
+          <Button primary title="git submodule update --init --recursive" onClick={() => onAnswer(true, remember)}>
             Update
-          </IconButton>
+          </Button>
         </>
       }
     >

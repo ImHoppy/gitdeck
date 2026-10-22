@@ -1,5 +1,5 @@
 import { Dialog } from '../../ui/Dialog/Dialog'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 
 type Props = { branch: string; separate: string; onPick: (choice: 'useExisting' | 'separate' | null) => void }
 
@@ -10,9 +10,9 @@ export function ClashDialog({ branch, separate, onPick }: Props) {
       title="Branch name taken"
       actions={
         <>
-          <IconButton title="Do nothing" onClick={() => onPick(null)}>Cancel</IconButton>
-          <IconButton title={`Switch to ${branch} as it is`} onClick={() => onPick('useExisting')}>Use {branch}</IconButton>
-          <IconButton title={`A new branch ${separate} from the PR head`} onClick={() => onPick('separate')}>Create {separate}</IconButton>
+          <Button title="Do nothing" onClick={() => onPick(null)}>Cancel</Button>
+          <Button title={`Switch to ${branch} as it is`} onClick={() => onPick('useExisting')}>Use {branch}</Button>
+          <Button title={`A new branch ${separate} from the PR head`} onClick={() => onPick('separate')}>Create {separate}</Button>
         </>
       }
     >

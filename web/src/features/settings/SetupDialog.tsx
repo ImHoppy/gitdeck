@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Dialog } from '../../ui/Dialog/Dialog'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 import { HostFlags } from './HostFlags'
 import { type Choice, ChoiceSelect, Row, Section } from './SettingRows'
 import styles from './SettingsPage.module.css'
@@ -32,17 +32,17 @@ export function SetupDialog({ theme, server, onDone }: Props) {
           <span className={styles.stepCount}>
             Step {step + 1} of {STEPS.length}
           </span>
-          <IconButton title="Close the setup; everything is in Settings later" onClick={onDone}>
+          <Button title="Close the setup; everything is in Settings later" onClick={onDone}>
             Skip
-          </IconButton>
+          </Button>
           {step > 0 && (
-            <IconButton title="Previous step" onClick={() => setStep(step - 1)}>
+            <Button title="Previous step" onClick={() => setStep(step - 1)}>
               Back
-            </IconButton>
+            </Button>
           )}
-          <IconButton title={last ? 'Finish the setup' : 'Next step'} onClick={() => (last ? onDone() : setStep(step + 1))}>
+          <Button primary title={last ? 'Finish the setup' : 'Next step'} onClick={() => (last ? onDone() : setStep(step + 1))}>
             {last ? 'Done' : 'Next'}
-          </IconButton>
+          </Button>
         </>
       }
     >

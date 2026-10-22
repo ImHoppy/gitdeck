@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Dialog } from '../../ui/Dialog/Dialog'
 import dialog from '../../ui/Dialog/Dialog.module.css'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 import { BrowseButton } from '../../ui/Dialog/BrowseButton'
 import { pickFolder } from '../../lib/pickFolder'
 
@@ -30,12 +30,12 @@ export function CloneDialog({ dirName, onClone, onCancel }: Props) {
       title="Clone a repository"
       actions={
         <>
-          <IconButton title="Cancel" onClick={onCancel}>
+          <Button title="Cancel" onClick={onCancel}>
             Cancel
-          </IconButton>
-          <IconButton title="Clone" disabled={!url.trim() || !target} onClick={() => onClone(url.trim(), target)}>
+          </Button>
+          <Button primary title="Clone" disabled={!url.trim() || !target} onClick={() => onClone(url.trim(), target)}>
             Clone
-          </IconButton>
+          </Button>
         </>
       }
     >

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Dialog } from '../../ui/Dialog/Dialog'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 import type { MarkdownLinks } from '../../ui/Markdown/links'
 import { MarkdownText } from '../../ui/Markdown/MarkdownText'
 import { MarkdownEditor } from '../../ui/MarkdownEditor/MarkdownEditor'
@@ -29,8 +29,8 @@ export function EditPrDialog({ title: initialTitle, body: initialBody, links, on
       title="Edit the pull request"
       actions={
         <>
-          <IconButton title="Cancel" onClick={onCancel}>Cancel</IconButton>
-          <IconButton title="Save on GitHub" disabled={saving || !title.trim()} onClick={() => void save()}>Save</IconButton>
+          <Button title="Cancel" onClick={onCancel}>Cancel</Button>
+          <Button primary title="Save on GitHub" disabled={saving || !title.trim()} onClick={() => void save()}>Save</Button>
         </>
       }
     >

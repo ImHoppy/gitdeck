@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { pickFolder } from '../../lib/pickFolder'
 import { gitd } from '../../protocol/client'
+import { Button } from '../../ui/Button/Button'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { PanelDialog } from '../../ui/Panel/PanelDialog'
 import { Spinner } from '../../ui/Spinner/Spinner'
@@ -48,9 +49,9 @@ export function WorktreesDialog({ repoId, cmd, branches, onOpen, onClose }: Prop
       title="Worktrees"
       onClose={onClose}
       actions={
-        <IconButton title="Check out a branch in another folder" onClick={() => void add()}>
+        <Button title="Check out a branch in another folder" onClick={() => void add()}>
           + Add
-        </IconButton>
+        </Button>
       }
     >
       {error && <p className="empty">{error}</p>}

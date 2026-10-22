@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useState } from 'react'
-import { IconButton } from '../IconButton/IconButton'
+import { Button } from '../Button/Button'
 import { BrowseButton } from './BrowseButton'
 import { Dialog } from './Dialog'
 import styles from './Dialog.module.css'
@@ -49,12 +49,12 @@ export function useDialogs() {
         title={open.title}
         actions={
           <>
-            <IconButton title="Cancel" onClick={() => close(open.resolve, false)}>
+            <Button title="Cancel" onClick={() => close(open.resolve, false)}>
               Cancel
-            </IconButton>
-            <IconButton title={open.ok} onClick={() => close(open.resolve, true)}>
+            </Button>
+            <Button primary title={open.ok} onClick={() => close(open.resolve, true)}>
               {open.ok}
-            </IconButton>
+            </Button>
           </>
         }
       >
@@ -68,12 +68,12 @@ export function useDialogs() {
         title={open.title}
         actions={
           <>
-            <IconButton title="Cancel" onClick={() => close(open.resolve, null)}>
+            <Button title="Cancel" onClick={() => close(open.resolve, null)}>
               Cancel
-            </IconButton>
-            <IconButton title="OK" disabled={!open.value.trim() && !open.allowEmpty} onClick={submit}>
+            </Button>
+            <Button primary title="OK" disabled={!open.value.trim() && !open.allowEmpty} onClick={submit}>
               OK
-            </IconButton>
+            </Button>
           </>
         }
       >

@@ -4,6 +4,7 @@ import { Toast } from '../../ui/Toast/Toast'
 import { useRepoTools } from '../repo-actions'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
 import { Icon } from '../../ui/Icon/Icon'
+import { Button } from '../../ui/Button/Button'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { useDialogs } from '../../ui/Dialog/useDialogs'
@@ -265,12 +266,12 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
             </div>
             <div className={styles.compose}>
               <div className={styles.buttons}>
-                <button className={styles.primary} title="Commit (Ctrl+Enter)" disabled={!canCommit} onClick={() => void commit(false)}>
+                <Button primary title="Commit (Ctrl+Enter)" disabled={!canCommit} onClick={() => void commit(false)}>
                   <Icon name="commit" size={13} /> {verb}
-                </button>
-                <button title="Commit, then push (Ctrl+Shift+Enter)" disabled={!canCommit} onClick={() => void commit(true)}>
+                </Button>
+                <Button title="Commit, then push (Ctrl+Shift+Enter)" disabled={!canCommit} onClick={() => void commit(true)}>
                   <Icon name="push" size={13} /> {verb} &amp; push
-                </button>
+                </Button>
                 <label>
                   <input type="checkbox" checked={amend} onChange={(e) => void toggleAmend(e.target.checked)} /> Amend
                 </label>

@@ -1,4 +1,5 @@
 import type { Commands } from '../repo-actions'
+import { Button } from '../../ui/Button/Button'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { PanelDialog } from '../../ui/Panel/PanelDialog'
 import { Spinner } from '../../ui/Spinner/Spinner'
@@ -23,9 +24,9 @@ export function RemotesDialog({ repoId, cmd, onClose }: Props) {
       title="Remotes"
       onClose={onClose}
       actions={
-        <IconButton title="Add a remote" onClick={() => void add()}>
+        <Button title="Add a remote" onClick={() => void add()}>
           + Add
-        </IconButton>
+        </Button>
       }
     >
       {error && <p className="empty">{error}</p>}

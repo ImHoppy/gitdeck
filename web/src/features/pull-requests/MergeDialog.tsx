@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { MergeMethod, PrDetail, RepoInfo } from '../../protocol/github'
 import { Dialog } from '../../ui/Dialog/Dialog'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 import { Select } from '../../ui/Select/Select'
 import { defaultSquash, mergeBlocked, type SquashMessage } from './mergeBlocked'
 import dialog from '../../ui/Dialog/Dialog.module.css'
@@ -30,10 +30,10 @@ export function MergeDialog({ detail, info, localBranch, onMerge, onCancel }: Pr
       title={`Merge #${detail.number}?`}
       actions={
         <>
-          <IconButton title="Cancel" onClick={onCancel}>Cancel</IconButton>
-          <IconButton title={blocked ?? 'Merge on GitHub'} disabled={!!blocked || methods.length === 0 || (method === 'squash' && !message.subject.trim())} onClick={() => onMerge(method, deleteBranch, method === 'squash' ? message : null)}>
+          <Button title="Cancel" onClick={onCancel}>Cancel</Button>
+          <Button primary title={blocked ?? 'Merge on GitHub'} disabled={!!blocked || methods.length === 0 || (method === 'squash' && !message.subject.trim())} onClick={() => onMerge(method, deleteBranch, method === 'squash' ? message : null)}>
             {methods.find(([m]) => m === method)?.[1] ?? 'Merge'}
-          </IconButton>
+          </Button>
         </>
       }
     >
