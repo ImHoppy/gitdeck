@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect } from 'react'
 import { NO_PULLS, placeIn, PULLS_KEY, type PullsPlace, PullRequestsView, usePrStatus } from '../features/pull-requests'
 import { useServerInfo } from '../features/settings'
 import { useWorkspace } from '../features/workspace-tree'
@@ -44,7 +44,6 @@ export function PullsWindow({ workspace: wsName, repoId, pr, prRepo }: Props) {
     },
     [workspace, wsName],
   )
-  const pop = useMemo(() => ({ title: 'Back into the main window (closes this one)', run: () => window.close() }), [])
 
   if (!workspace) return <div className={styles.message}>{error ?? 'Loading…'}</div>
   return (
@@ -56,7 +55,6 @@ export function PullsWindow({ workspace: wsName, repoId, pr, prRepo }: Props) {
         push={(next) => navPush(PULLS_KEY, { ...next, project: wsName })}
         replace={(next) => navReplace(PULLS_KEY, { ...next, project: wsName })}
         currentRepoId={repoId}
-        pop={pop}
         onShowInHistory={showInHistory}
       />
     </div>

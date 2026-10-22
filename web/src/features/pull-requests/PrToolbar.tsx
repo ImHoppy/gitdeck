@@ -21,7 +21,8 @@ type Props = {
   loading: boolean
   onRefresh: () => void
   onNew: (() => void) | null
-  pop: { title: string; run: () => void }
+  /** Moves the view into a window of its own; absent in that window. */
+  pop?: { title: string; run: () => void }
 }
 
 const SCOPES: [Scope, string][] = [
@@ -59,9 +60,11 @@ export function PrToolbar({ lead, repos, repo, onRepo, state, onState, scope, on
           <Icon name="add" /> New PR
         </IconButton>
       )}
-      <IconButton title={pop.title} onClick={pop.run}>
-        <Icon name="popout" />
-      </IconButton>
+      {pop && (
+        <IconButton title={pop.title} onClick={pop.run}>
+          <Icon name="popout" />
+        </IconButton>
+      )}
     </div>
   )
 }

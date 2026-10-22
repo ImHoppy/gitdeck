@@ -32,7 +32,7 @@ type Props = {
   /** The repo shown in the main window, picked when the view has none yet. */
   currentRepoId: number | null
   lead?: ReactNode
-  pop: { title: string; run: () => void }
+  pop?: { title: string; run: () => void }
   onShowInHistory: (repoId: number, rev: string) => void
 }
 
