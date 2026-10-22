@@ -1,19 +1,26 @@
 use crate::{autostart, explorer, file_manager, server::AppState};
 use anyhow::bail;
-use gitcore::GitRunner;
+use gitcore::{
+    commands::version::{self, Support},
+    GitRunner,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub async fn info(app: &AppState) -> anyhow::Result<Value> {
     let configured = app.config.lock().unwrap().git.clone();
     let live = app.live.lock().await.as_ref().map(|l| l.name.clone());
     let fetch_interval = live.and_then(|n| app.config.lock().unwrap().workspace(&n).map(|w| w.fetch_interval_minutes));
+    let version_out = app.runner.run_ok(Path::new("."), version::ARGS).await.ok();
     Ok(json!({
         "keepRunning": app.lifecycle.keep_running(),
         "version": env!("CARGO_PKG_VERSION"),
         "git": configured,
-        "gitVersion": git_version(app).await,
+        "gitVersion": version_out.as_ref().map(|o| String::from_utf8_lossy(o).trim().to_string()),
+        "gitSupport": version_out.as_deref().and_then(version::parse).map(version::support),
+        "gitMinimum": version::display(version::MINIMUM),
+        "gitPatched": version::display(version::PATCHED),
         "githubAvatars": app.config.lock().unwrap().github_avatars,
         "githubPrs": app.github.enabled(),
         "editor": app.config.lock().unwrap().editor.clone(),
@@ -27,8 +34,21 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
     }))
 }
 
+/// Opening or creating repositories needs the git commands gitdeck runs: refuse a git older than that.
+pub async fn require_git(app: &AppState) -> anyhow::Result<()> {
+    let out = app.runner.run_ok(Path::new("."), version::ARGS).await.ok();
+    if let Some(v) = out.as_deref().and_then(version::parse).filter(|v| version::support(*v) == Support::TooOld) {
+        bail!(
+            "git {} is too old: gitdeck needs git {} or newer (update git, or set another git executable in Settings)",
+            version::display(v),
+            version::display(version::MINIMUM)
+        );
+    }
+    Ok(())
+}
+
 async fn git_version(app: &AppState) -> Option<String> {
-    let out = app.runner.run_ok(std::path::Path::new("."), &["--version"]).await.ok()?;
+    let out = app.runner.run_ok(Path::new("."), version::ARGS).await.ok()?;
     Some(String::from_utf8_lossy(&out).trim().to_string())
 }
 

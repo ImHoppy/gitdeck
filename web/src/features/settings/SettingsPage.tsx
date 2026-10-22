@@ -4,6 +4,7 @@ import { repoWindowOnDoubleClick, setRepoWindowOnDoubleClick } from '../../lib/r
 import { pullsInWindow, setPullsInWindow } from '../../lib/pullsWindow'
 import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { GitConfigSection } from './GitConfigSection'
+import type { GitNotice } from './gitNotice'
 import { HostFlags, type Host } from './HostFlags'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { type Choice, ChoiceSelect, Row, Section } from './SettingRows'
@@ -32,7 +33,7 @@ type Props<S extends string, P extends string> = {
   githubAvatars: { value: boolean; onChange: (on: boolean) => void } | null
   githubPrs: { value: boolean; onChange: (on: boolean) => void } | null
   version: string | null
-  git: { path: string | null; version: string | null; onSave: (path: string) => Promise<string | null> } | null
+  git: { path: string | null; version: string | null; notice: GitNotice | null; onSave: (path: string) => Promise<string | null> } | null
   editor: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
   fileManager: { path: string | null; detected: string | null; onSave: (path: string) => Promise<string | null> } | null
   host: Host | null

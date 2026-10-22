@@ -10,7 +10,7 @@ import {
   PULL_ACTIONS,
   useSync,
 } from '../features/sync'
-import { SettingsPage, SetupDialog, type Theme, useServerInfo, useTheme } from '../features/settings'
+import { gitNotice, SettingsPage, SetupDialog, type Theme, useServerInfo, useTheme } from '../features/settings'
 import { treeMenu, useTreeCommands } from '../features/repo-actions'
 import { useWorkspace, WorkspacePicker, WorkspaceTree } from '../features/workspace-tree'
 import { useDialogs } from '../ui/Dialog/useDialogs'
@@ -208,6 +208,7 @@ function Browse() {
       }),
     })
 
+  const git = gitNotice(server.info)
   const themeChoice = { value: theme.theme, onChange: theme.setTheme, options: THEMES }
   const [setupOpen, setSetupOpen] = useState(false)
   const setup =
@@ -247,7 +248,7 @@ function Browse() {
         setSettingsOpen(false)
         setSetupOpen(true)
       }}
-      git={server.info ? { path: server.info.git, version: server.info.gitVersion, onSave: server.setGit } : null}
+      git={server.info ? { path: server.info.git, version: server.info.gitVersion, notice: git, onSave: server.setGit } : null}
       onClose={() => setSettingsOpen(false)}
     />
   ) : null
@@ -259,7 +260,7 @@ function Browse() {
   if (!workspace) {
     return (
       <Shell>
-        <StartPage onOpen={openProject} version={server.info?.version ?? null} />
+        <StartPage onOpen={openProject} version={server.info?.version ?? null} cloneWarning={git?.tone === 'warn' ? git.text : null} />
         {(openError ?? error) && <Toast tone="bad" title={openError ?? error} onDismiss={() => setOpenError(null)} />}
         {settings}
         {setup}

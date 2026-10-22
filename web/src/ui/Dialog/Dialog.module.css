@@ -57,6 +57,12 @@
   overflow-wrap: anywhere;
 }
 
+.warning {
+  color: var(--danger);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .withButton {
   display: flex;
   gap: 6px;

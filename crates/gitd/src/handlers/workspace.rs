@@ -22,6 +22,7 @@ pub struct OpenParams {
 }
 
 pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
+    super::meta::require_git(app).await?;
     let ws = app
         .config
         .lock()

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Dialog } from '../../ui/Dialog/Dialog'
 import { Button } from '../../ui/Button/Button'
+import { gitNotice } from './gitNotice'
 import { HostFlags } from './HostFlags'
 import { type Choice, ChoiceSelect, Row, Section } from './SettingRows'
 import styles from './SettingsPage.module.css'
@@ -59,7 +60,7 @@ export function SetupDialog({ theme, server, onDone }: Props) {
           <>
             <p className={styles.intro}>Leave a field empty to use the default shown under it.</p>
             <ToolPaths
-              git={{ path: info.git, version: info.gitVersion, onSave: server.setGit }}
+              git={{ path: info.git, version: info.gitVersion, notice: gitNotice(info), onSave: server.setGit }}
               editor={{ path: info.editor, onSave: server.setEditor }}
               fileManager={{ path: info.fileManager, detected: info.fileManagerDetected, onSave: server.setFileManager }}
             />

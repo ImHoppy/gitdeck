@@ -28,6 +28,7 @@ pub struct OpenParams {
 
 /// The workspace holding the repo at `path`, adding one named after its folder when none does.
 pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
+    super::meta::require_git(app).await?;
     let out = app.runner.run(&p.path, &["rev-parse", "--show-toplevel"]).await?;
     if !out.ok() {
         bail!("{} is not inside a git repository", p.path.display());
@@ -52,6 +53,7 @@ pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
 }
 
 pub async fn init(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
+    super::meta::require_git(app).await?;
     std::fs::create_dir_all(&p.path).with_context(|| format!("creating {}", p.path.display()))?;
     let args = init::args(&p.path);
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
@@ -66,6 +68,7 @@ pub struct CloneParams {
 }
 
 pub async fn clone(app: &AppState, p: CloneParams) -> anyhow::Result<Value> {
+    super::meta::require_git(app).await?;
     if p.path.exists() && std::fs::read_dir(&p.path)?.next().is_some() {
         bail!("{} already exists and is not empty", p.path.display());
     }

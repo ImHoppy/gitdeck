@@ -1,5 +1,5 @@
 import type { PrAvailability } from '../features/pull-requests'
-import type { useServerInfo } from '../features/settings'
+import { gitNotice, type useServerInfo } from '../features/settings'
 import { useStatusItem } from '../lib/statusBar'
 
 type Deps = {
@@ -26,6 +26,10 @@ export function useAppStatus({ server, onSettings, prs, onPulls }: Deps) {
           onClick: () => server.setKeepRunning(!info.keepRunning),
         }
       : null,
+  )
+  const git = gitNotice(info)
+  useStatusItem(
+    git ? { id: 'git', side: 'left', order: 80, icon: 'alert', text: git.short, title: `${git.text} (click: Settings)`, tone: git.tone, onClick: onSettings } : null,
   )
   const gh = prs?.status?.enabled ? prs.status.gh : null
   useStatusItem(

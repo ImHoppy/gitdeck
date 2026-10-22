@@ -7,13 +7,14 @@ import { pickFolder } from '../../lib/pickFolder'
 
 type Props = {
   dirName: (url: string) => Promise<string>
+  warning: string | null
   onClone: (url: string, path: string) => void
   onCancel: () => void
 }
 
 const join = (dir: string, name: string) => (dir && name ? `${dir.replace(/[\\/]+$/, '')}/${name}` : '')
 
-export function CloneDialog({ dirName, onClone, onCancel }: Props) {
+export function CloneDialog({ dirName, warning, onClone, onCancel }: Props) {
   const [url, setUrl] = useState('')
   const [parent, setParent] = useState('')
   const [name, setName] = useState('')
@@ -62,6 +63,7 @@ export function CloneDialog({ dirName, onClone, onCancel }: Props) {
           />
         </label>
         {target && <span className={dialog.hint}>Clones into {target}</span>}
+        {warning && <span className={dialog.warning}>{warning}</span>}
       </div>
     </Dialog>
   )

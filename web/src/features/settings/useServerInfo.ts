@@ -8,6 +8,9 @@ export type ServerInfo = {
   version: string
   git: string | null
   gitVersion: string | null
+  gitSupport: 'ok' | 'unpatched' | 'tooOld' | null
+  gitMinimum: string
+  gitPatched: string
   githubAvatars: boolean
   githubPrs: boolean
   editor: string | null

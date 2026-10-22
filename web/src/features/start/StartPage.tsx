@@ -9,7 +9,14 @@ import styles from './StartPage.module.css'
 import { useProjects } from './useProjects'
 
 /** Like the Git Extensions dashboard: start actions on the left, recent repositories on the right. */
-export function StartPage({ onOpen: openProject, version }: { onOpen: (name: string) => Promise<void>; version: string | null }) {
+type Props = {
+  onOpen: (name: string) => Promise<void>
+  version: string | null
+  /** The installed git misses a fix that matters when cloning untrusted repositories. */
+  cloneWarning: string | null
+}
+
+export function StartPage({ onOpen: openProject, version, cloneWarning }: Props) {
   const p = useProjects()
   const dialogs = useDialogs()
   const [cloning, setCloning] = useState(false)
@@ -79,6 +86,7 @@ export function StartPage({ onOpen: openProject, version }: { onOpen: (name: str
       {cloning && (
         <CloneDialog
           dirName={p.cloneDirName}
+          warning={cloneWarning}
           onCancel={() => setCloning(false)}
           onClone={(url, path) => {
             setCloning(false)

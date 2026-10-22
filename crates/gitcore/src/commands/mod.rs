@@ -33,3 +33,4 @@ pub mod reflog;
 pub mod remote;
 pub mod worktree;
 pub mod pathspec;
+pub mod version;
