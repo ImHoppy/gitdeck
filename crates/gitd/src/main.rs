@@ -19,6 +19,8 @@ mod handlers;
 mod histories;
 mod jobs;
 mod icon;
+#[cfg(target_os = "linux")]
+mod indicator;
 mod hub;
 mod launcher;
 mod lifecycle;
@@ -29,7 +31,7 @@ mod protocol;
 mod server;
 mod snapshot;
 mod static_files;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 mod tray;
 mod updater;
 mod window;

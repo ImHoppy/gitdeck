@@ -18,6 +18,8 @@ pub enum Request {
     Open(String),
     Title(WindowId, String),
     Zoom(f64),
+    #[cfg(target_os = "macos")]
+    OnMain(Box<dyn FnOnce() + Send>),
 }
 
 static WINDOWS: OnceLock<EventLoopProxy<Request>> = OnceLock::new();
@@ -92,6 +94,8 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                     let _ = webview.zoom(level);
                 }
             }
+            #[cfg(target_os = "macos")]
+            Event::UserEvent(Request::OnMain(work)) => work(),
             Event::UserEvent(Request::Open(url)) => {
                 let (rgba, size) = crate::icon::rgba();
                 let Ok(window) = WindowBuilder::new()
@@ -153,6 +157,14 @@ fn attach(builder: WebViewBuilder<'_>, window: &tao::window::Window) -> wry::Res
 #[cfg(not(target_os = "macos"))]
 pub fn has_display() -> bool {
     cfg!(windows) || std::env::var_os("DISPLAY").is_some() || std::env::var_os("WAYLAND_DISPLAY").is_some()
+}
+
+/// Dropped with `--browser`: there is no window loop then.
+#[cfg(target_os = "macos")]
+pub fn on_main(work: Box<dyn FnOnce() + Send>) {
+    if let Some(proxy) = WINDOWS.get() {
+        let _ = proxy.send_event(Request::OnMain(work));
+    }
 }
 
 /// False when windows were never started, so the caller can fall back to the browser.

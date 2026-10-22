@@ -34,6 +34,15 @@ impl AppState {
         // a held lock means a workspace is being opened: count it as work
         self.live.try_lock().map_or(true, |l| l.as_ref().is_some_and(|l| l.hub.busy()))
     }
+
+    pub fn toggle_keep_running(self: &Arc<Self>, runtime: &tokio::runtime::Handle) {
+        let keep = !self.lifecycle.keep_running();
+        self.lifecycle.set_keep_running(keep);
+        if !keep && self.lifecycle.idle() {
+            let app = self.clone();
+            runtime.spawn(async move { app.lifecycle.wind_down(|| app.busy()).await });
+        }
+    }
 }
 
 const EVENT_BUFFER: usize = 256;
@@ -110,8 +119,10 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     if !args.no_open {
         crate::launcher::show(&url, app_browser);
     }
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     crate::tray::spawn(app.clone(), browser::login_url(&local, &app.token, None));
+    #[cfg(target_os = "linux")]
+    crate::indicator::spawn(app.clone(), browser::login_url(&local, &app.token, None));
     let shutdown = app.clone();
     axum::serve(listener, router)
         .with_graceful_shutdown(async move { shutdown.lifecycle.shutdown.notified().await })

@@ -2,14 +2,24 @@ const SIZE: u32 = 32;
 
 /// The favicon (a branch graph on an accent tile) drawn in code, so no image file has to ship.
 pub fn rgba() -> (Vec<u8>, u32) {
+    draw(|tile, mark| {
+        let mix = |bg: f32, fg: f32| (bg + (fg - bg) * mark) as u8;
+        [mix(0x00 as f32, 255.0), mix(0x78 as f32, 255.0), mix(0xd4 as f32, 255.0), (tile * 255.0) as u8]
+    })
+}
+
+/// The same mark cut out of a black tile, for a macOS menu bar template.
+#[cfg(target_os = "macos")]
+pub fn template() -> (Vec<u8>, u32) {
+    draw(|tile, mark| [0, 0, 0, (tile * (1.0 - mark) * 255.0) as u8])
+}
+
+fn draw(pixel: impl Fn(f32, f32) -> [u8; 4]) -> (Vec<u8>, u32) {
     let mut rgba = Vec::with_capacity((SIZE * SIZE * 4) as usize);
     for y in 0..SIZE {
         for x in 0..SIZE {
             let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
-            let tile = coverage(rounded_rect(px, py, 16.0, 7.0));
-            let mark = coverage(graph(px, py));
-            let mix = |bg: f32, fg: f32| (bg + (fg - bg) * mark) as u8;
-            rgba.extend_from_slice(&[mix(0x00 as f32, 255.0), mix(0x78 as f32, 255.0), mix(0xd4 as f32, 255.0), (tile * 255.0) as u8]);
+            rgba.extend_from_slice(&pixel(coverage(rounded_rect(px, py, 16.0, 7.0)), coverage(graph(px, py))));
         }
     }
     (rgba, SIZE)

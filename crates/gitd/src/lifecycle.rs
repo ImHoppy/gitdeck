@@ -13,18 +13,35 @@ pub struct Lifecycle {
     keep: AtomicBool,
     grace: Duration,
     pub shutdown: Notify,
+    /// Woken whenever a client connects or leaves.
+    pub clients_changed: Notify,
 }
 
 const BUSY_POLL: Duration = Duration::from_secs(1);
 
 impl Lifecycle {
     pub fn new(grace: Duration, keep: bool) -> Self {
-        Self { clients: Arc::new(AtomicUsize::new(0)), keep: AtomicBool::new(keep), grace, shutdown: Notify::new() }
+        Self {
+            clients: Arc::new(AtomicUsize::new(0)),
+            keep: AtomicBool::new(keep),
+            grace,
+            shutdown: Notify::new(),
+            clients_changed: Notify::new(),
+        }
     }
 
     /// The open-page count, shared with work that only makes sense while someone looks (auto fetch).
     pub fn clients(&self) -> Arc<AtomicUsize> {
         self.clients.clone()
+    }
+
+    pub fn idle(&self) -> bool {
+        self.clients.load(Ordering::SeqCst) == 0
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn grace(&self) -> Duration {
+        self.grace
     }
 
     pub fn keep_running(&self) -> bool {
@@ -37,13 +54,21 @@ impl Lifecycle {
 
     pub fn connected(&self) {
         self.clients.fetch_add(1, Ordering::SeqCst);
+        self.clients_changed.notify_waiters();
     }
 
     /// Call when a client leaves; `busy` says whether a job is still running.
     pub async fn disconnected(&self, busy: impl Fn() -> bool) {
-        if self.clients.fetch_sub(1, Ordering::SeqCst) != 1 {
-            return;
+        let last = self.clients.fetch_sub(1, Ordering::SeqCst) == 1;
+        self.clients_changed.notify_waiters();
+        if last {
+            self.wind_down(busy).await;
         }
+    }
+
+    /// Exits after the grace period unless a client came back or "keep running" is on; also used
+    /// when "keep running" is turned off with no client left.
+    pub async fn wind_down(&self, busy: impl Fn() -> bool) {
         loop {
             tokio::time::sleep(self.grace).await;
             if self.clients.load(Ordering::SeqCst) > 0 || self.keep_running() {
@@ -92,6 +117,16 @@ mod tests {
         l.connected();
         leaving.await.unwrap();
         assert!(!exits(&l).await);
+    }
+
+    #[tokio::test]
+    async fn turning_keep_running_off_with_no_client_exits() {
+        let l = Lifecycle::new(GRACE, true);
+        l.connected();
+        l.disconnected(|| false).await;
+        l.set_keep_running(false);
+        l.wind_down(|| false).await;
+        assert!(exits(&l).await);
     }
 
     #[tokio::test]
