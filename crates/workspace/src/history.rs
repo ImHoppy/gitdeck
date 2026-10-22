@@ -37,6 +37,7 @@ pub struct HistoryRow<'a> {
     pub subject: &'a str,
     pub body_hint: &'a str,
     pub multiline: bool,
+    pub notes: &'a str,
     pub graph: &'a graph::Row,
 }
 
@@ -66,11 +67,15 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path, key: HistoryKey, opts: 
 }
 
 impl History {
-    /// Commits whose subject, body, author, email or hash contain `query`, ignoring case.
+    pub fn has_notes(&self) -> bool {
+        self.commits.iter().any(|c| !c.notes.is_empty())
+    }
+
+    /// Commits whose subject, body, notes, author, email or hash contain `query`, ignoring case.
     pub fn filtered(&self, query: &str) -> History {
         let q = query.to_lowercase();
         let hit = |c: &LogCommit| {
-            [&c.subject, &c.body_hint, &c.author, &c.email].iter().any(|f| f.to_lowercase().contains(&q)) || c.sha.starts_with(&q)
+            [&c.subject, &c.body_hint, &c.notes, &c.author, &c.email].iter().any(|f| f.to_lowercase().contains(&q)) || c.sha.starts_with(&q)
         };
         self.keep(|c| hit(c), &format!("{}:{query}", self.key.key))
     }
@@ -102,6 +107,7 @@ impl History {
                     subject: &c.subject,
                     body_hint: &c.body_hint,
                     multiline: c.multiline,
+                    notes: &c.notes,
                     graph: &self.rows[i],
                 }
             })
@@ -149,6 +155,7 @@ mod tests {
             subject: subject.into(),
             body_hint: String::new(),
             multiline: false,
+            notes: String::new(),
         }
     }
 

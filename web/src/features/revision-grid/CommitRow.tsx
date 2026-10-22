@@ -14,6 +14,7 @@ type Props = {
   pills: Pill[]
   tracking?: string
   isHead: boolean
+  showNotes: boolean
   selected: boolean
   dim?: boolean
   /** By the author of the selected commit. */
@@ -27,7 +28,7 @@ type Props = {
   onOpenPr?: (number: number) => void
 }
 
-export function CommitRow({ row, pills, tracking, isHead, selected, dim, sameAuthor, graphWidth, height, onSelect, onContextMenu, onOpen, prs, onOpenPr }: Props) {
+export function CommitRow({ row, pills, tracking, isHead, showNotes, selected, dim, sameAuthor, graphWidth, height, onSelect, onContextMenu, onOpen, prs, onOpenPr }: Props) {
   return (
     <div
       className={`${styles.row} ${selected ? styles.selected : ''} ${dim ? styles.dim : ''} ${sameAuthor ? styles.sameAuthor : ''}`}
@@ -66,6 +67,11 @@ export function CommitRow({ row, pills, tracking, isHead, selected, dim, sameAut
         {row.bodyHint && <span className={styles.body}>{row.bodyHint}</span>}
         {row.multiline && <span className={styles.more}>⋯</span>}
       </span>
+      {showNotes && (
+        <span className={styles.notes} title={row.notes}>
+          {row.notes}
+        </span>
+      )}
       <span className={styles.author}>
         <Avatar name={row.author} email={row.email} />
         <span className={styles.authorName}>{row.author}</span>

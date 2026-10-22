@@ -7,6 +7,7 @@ pub const ARGS: &[&str] = &[
     "refs/heads",
     "refs/remotes",
     "refs/tags",
+    "refs/notes",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

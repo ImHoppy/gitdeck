@@ -47,6 +47,12 @@ export function CommitInfo({ repoId, sha, refs, onPick }: Props) {
         )}
       </dl>
       <pre className={styles.message}>{d.message}</pre>
+      {d.notes && (
+        <>
+          <div className={styles.notesTitle}>Notes</div>
+          <pre className={styles.message}>{d.notes}</pre>
+        </>
+      )}
     </div>
   )
 }

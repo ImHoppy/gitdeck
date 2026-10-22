@@ -24,7 +24,7 @@ pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
     if !p.filter.trim().is_empty() {
         h = hub.histories.filtered(&hub.runner, p.id, &entry.path, p.filter.trim(), p.content).await.context("log not open")?;
     }
-    Ok(json!({ "key": h.key.key, "head": h.key.head, "refs": h.key.refs, "count": h.commits.len() }))
+    Ok(json!({ "key": h.key.key, "head": h.key.head, "refs": h.key.refs, "count": h.commits.len(), "hasNotes": h.has_notes() }))
 }
 
 #[derive(Deserialize)]

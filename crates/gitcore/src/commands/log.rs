@@ -6,7 +6,7 @@ pub const ARGS: &[&str] = &[
     "log",
     "-z",
     "--date-order",
-    "--format=%H%x1f%P%x1f%at%x1f%aN%x1f%aE%x1f%B",
+    "--format=%H%x1f%P%x1f%at%x1f%aN%x1f%aE%x1f%B%x1e%N",
     "--branches",
     "--remotes",
     "--tags",
@@ -41,6 +41,16 @@ pub fn args(opts: LogOptions, branch: Option<&str>) -> Vec<String> {
 }
 
 const BODY_HINT_CHARS: usize = 200;
+const NOTES_SEPARATOR: char = '';
+
+fn one_line(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(BODY_HINT_CHARS).collect()
+}
+
+fn split_notes(field: &str) -> (&str, &str) {
+    let (message, notes) = field.rsplit_once(NOTES_SEPARATOR).unwrap_or((field, ""));
+    (message.trim_end(), notes.trim())
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogCommit {
@@ -52,6 +62,8 @@ pub struct LogCommit {
     pub subject: String,
     pub body_hint: String,
     pub multiline: bool,
+    /// `git notes` on the commit, on one line.
+    pub notes: String,
 }
 
 pub fn parse(out: &[u8]) -> Vec<LogCommit> {
@@ -66,10 +78,9 @@ fn parse_record(rec: &[u8]) -> Option<LogCommit> {
     let author_time = f.next()?.parse().ok()?;
     let author = f.next()?.to_string();
     let email = f.next()?.to_string();
-    let message = f.next().unwrap_or("").trim_end();
+    let (message, notes) = split_notes(f.next().unwrap_or(""));
     let (subject, body) = message.split_once('\n').unwrap_or((message, ""));
     let body = body.trim();
-    let body_hint: String = body.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(BODY_HINT_CHARS).collect();
     Some(LogCommit {
         sha,
         parents,
@@ -78,7 +89,8 @@ fn parse_record(rec: &[u8]) -> Option<LogCommit> {
         email,
         subject: subject.to_string(),
         multiline: !body.is_empty(),
-        body_hint,
+        body_hint: one_line(body),
+        notes: one_line(notes),
     })
 }
 
@@ -128,7 +140,7 @@ pub fn parse_file_history(out: &[u8]) -> Vec<FileCommit> {
 }
 
 pub fn details_args(sha: &str) -> Vec<String> {
-    let format = "--format=%H%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ce%x1f%ct%x1f%P%x1f%B";
+    let format = "--format=%H%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ce%x1f%ct%x1f%P%x1f%B%x1e%N";
     vec!["show".into(), "-s".into(), format.into(), sha.into()]
 }
 
@@ -144,6 +156,7 @@ pub struct CommitDetails {
     pub commit_time: i64,
     pub parents: Vec<String>,
     pub message: String,
+    pub notes: String,
 }
 
 pub fn parse_details(out: &[u8]) -> Option<CommitDetails> {
@@ -152,6 +165,7 @@ pub fn parse_details(out: &[u8]) -> Option<CommitDetails> {
     let [sha, author, author_email, at, committer, committer_email, ct, parents, message] = f.as_slice() else {
         return None;
     };
+    let (message, notes) = split_notes(message);
     Some(CommitDetails {
         sha: sha.trim().into(),
         author: (*author).into(),
@@ -161,7 +175,8 @@ pub fn parse_details(out: &[u8]) -> Option<CommitDetails> {
         committer_email: (*committer_email).into(),
         commit_time: ct.parse().ok()?,
         parents: parents.split(' ').filter(|p| !p.is_empty()).map(str::to_string).collect(),
-        message: message.trim_end().into(),
+        message: message.into(),
+        notes: notes.into(),
     })
 }
 
@@ -181,12 +196,17 @@ body
 
 body");
         assert_eq!(d.commit_time, 20);
+        assert_eq!(d.notes, "");
+        let d = parse_details(b"abcAnna@x10Bobb@x20subject
+ticket 42
+").unwrap();
+        assert_eq!((d.message.as_str(), d.notes.as_str()), ("subject", "ticket 42"));
     }
 
     #[test]
     fn parses_records_with_body_and_merge_parents() {
-        let out = b"aaa\x1fbbb ccc\x1f1700000000\x1fAnn\x1fann@x\x1fadd thing\n\nlong\nbody\n\x00\
-ddd\x1f\x1f1600000000\x1fBob\x1fbob@x\x1froot\n\x00";
+        let out = b"aaa\x1fbbb ccc\x1f1700000000\x1fAnn\x1fann@x\x1fadd thing\n\nlong\nbody\n\x1e\x00\
+ddd\x1f\x1f1600000000\x1fBob\x1fbob@x\x1froot\n\x1ereviewed\nby QA\n\n\x00";
         let commits = parse(out);
         assert_eq!(commits.len(), 2);
         assert_eq!(commits[0].parents, ["bbb", "ccc"]);
@@ -195,6 +215,8 @@ ddd\x1f\x1f1600000000\x1fBob\x1fbob@x\x1froot\n\x00";
         assert!(commits[0].multiline);
         assert_eq!(commits[1].parents, Vec::<String>::new());
         assert!(!commits[1].multiline);
+        assert_eq!(commits[0].notes, "");
+        assert_eq!(commits[1].notes, "reviewed by QA");
     }
 
     #[test]

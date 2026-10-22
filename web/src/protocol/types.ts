@@ -57,7 +57,7 @@ export type RefKind = 'branch' | 'remote' | 'tag'
 
 export type GitRef = { sha: string; kind: RefKind; name: string; upstream: string | null }
 
-export type HistoryInfo = { key: string; head: string | null; refs: GitRef[]; count: number }
+export type HistoryInfo = { key: string; head: string | null; refs: GitRef[]; count: number; hasNotes: boolean }
 
 export type GraphSegment = { from: number | null; to: number | null; color: number }
 
@@ -72,6 +72,7 @@ export type HistoryRow = {
   subject: string
   bodyHint: string
   multiline: boolean
+  notes: string
   graph: GraphRow
 }
 
@@ -152,6 +153,7 @@ export type CommitDetails = {
   commitTime: number
   parents: string[]
   message: string
+  notes: string
 }
 
 export type PatchOptions = { context: number; ignoreWhitespace: boolean }

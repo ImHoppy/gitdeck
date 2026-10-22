@@ -121,6 +121,7 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
         dim={highlighted !== null && !highlighted.has(i - ARTIFICIAL)}
         sameAuthor={author !== null && row.email.toLowerCase() === author}
         isHead={row.sha === info.head}
+        showNotes={info.hasNotes}
         selected={multi ? marks.set.has(i - ARTIFICIAL) : selection?.kind === 'commit' && selection.sha === row.sha}
         graphWidth={graphWidth}
         height={ROW_HEIGHT}
