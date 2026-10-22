@@ -5,6 +5,8 @@ export type PullsTab = 'conversation' | 'commits' | 'files' | 'checks'
  * walk through the PRs followed, a reload reopens the same PR and tab.
  */
 export type PullsPlace = {
+  /** The project this place belongs to: another project opened in the window starts afresh. */
+  project: string | null
   /** The repo selector: a workspace repo path, `*` for all repos, null for the current repo. */
   repo: string | null
   pr: number | null
@@ -17,6 +19,10 @@ export type PullsPlace = {
 
 export const PULLS_KEY = 'pulls'
 
-export const NO_PULLS: PullsPlace = { repo: null, pr: null, prRepo: null, tab: 'conversation', create: null }
+export const NO_PULLS: PullsPlace = { project: null, repo: null, pr: null, prRepo: null, tab: 'conversation', create: null }
 
 export const ALL_REPOS = '*'
+
+/** The place kept in history if it is `project`'s, else nothing selected there. */
+export const placeIn = (stored: PullsPlace, project: string | null): PullsPlace =>
+  stored.project === project ? stored : { ...NO_PULLS, project }

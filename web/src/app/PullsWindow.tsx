@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { NO_PULLS, PULLS_KEY, type PullsPlace, PullRequestsView, usePrStatus } from '../features/pull-requests'
+import { NO_PULLS, placeIn, PULLS_KEY, type PullsPlace, PullRequestsView, usePrStatus } from '../features/pull-requests'
 import { useServerInfo } from '../features/settings'
 import { useWorkspace } from '../features/workspace-tree'
 import { navPush, navReplace, useNavState } from '../lib/navState'
@@ -21,14 +21,15 @@ export function PullsWindow({ workspace: wsName, repoId, pr, prRepo }: Props) {
   const server = useServerInfo()
   // asked once the workspace is live here: gitd lists the GitHub repos of the open workspace
   const availability = usePrStatus(`${workspace?.name}:${String(server.info?.githubPrs)}`)
-  const [place] = useNavState<PullsPlace>(PULLS_KEY, NO_PULLS)
+  const [stored] = useNavState<PullsPlace>(PULLS_KEY, NO_PULLS)
+  const place = placeIn(stored, wsName)
   const startPath = workspace?.repos.find((r) => r.id === repoId)?.path ?? null
 
   useEffect(() => {
     // the first load: the PR asked for in the URL, then history keeps the place across reloads
     if (!startPath || (history.state as Record<string, unknown> | null)?.[PULLS_KEY]) return
-    navReplace(PULLS_KEY, { ...NO_PULLS, repo: startPath, pr, prRepo })
-  }, [startPath, pr, prRepo])
+    navReplace(PULLS_KEY, { ...NO_PULLS, project: wsName, repo: startPath, pr, prRepo })
+  }, [startPath, pr, prRepo, wsName])
 
   useEffect(() => {
     document.title = `Pull requests · ${wsName}`
@@ -52,8 +53,8 @@ export function PullsWindow({ workspace: wsName, repoId, pr, prRepo }: Props) {
         workspace={workspace}
         availability={availability}
         place={place}
-        push={(next) => navPush(PULLS_KEY, next)}
-        replace={(next) => navReplace(PULLS_KEY, next)}
+        push={(next) => navPush(PULLS_KEY, { ...next, project: wsName })}
+        replace={(next) => navReplace(PULLS_KEY, { ...next, project: wsName })}
         currentRepoId={repoId}
         pop={pop}
         onShowInHistory={showInHistory}

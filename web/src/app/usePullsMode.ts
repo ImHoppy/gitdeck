@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { NO_PULLS, PULLS_KEY, type PullsPlace, usePrStatus, usePullRequests } from '../features/pull-requests'
+import { NO_PULLS, placeIn, PULLS_KEY, type PullsPlace, usePrStatus, usePullRequests } from '../features/pull-requests'
 import { requestHistory } from '../lib/historyTarget'
 import { navPushMany, useNavState } from '../lib/navState'
 import { pullsInWindow } from '../lib/pullsWindow'
@@ -26,7 +26,10 @@ type Deps = {
 export function usePullsMode({ workspace, selectedId, settingKey, revealRepo }: Deps) {
   const availability = usePrStatus(`${workspace?.name}:${String(settingKey)}`)
   const [mode, pushMode] = useNavState<MainMode>('mode', 'history')
-  const [place, , replacePlace] = useNavState<PullsPlace>(PULLS_KEY, NO_PULLS)
+  const [stored, , replaceStored] = useNavState<PullsPlace>(PULLS_KEY, NO_PULLS)
+  const project = workspace?.name ?? null
+  const place = useMemo(() => placeIn(stored, project), [stored, project])
+  const replacePlace = useCallback((next: PullsPlace) => replaceStored({ ...next, project }), [replaceStored, project])
   const current = availability.repos.filter((l) => l.id === selectedId)
   // on but not usable (no gh, no login): the view itself says what to do on the host
   const enabled = !!availability.status?.enabled
@@ -36,7 +39,7 @@ export function usePullsMode({ workspace, selectedId, settingKey, revealRepo }: 
   const push = useCallback(
     (next: PullsPlace, repoPath?: string) => {
       const browse = repoPath && workspace ? { browse: { project: workspace.name, repo: repoPath } } : {}
-      navPushMany({ [PULLS_KEY]: next, mode: 'pulls', ...browse })
+      navPushMany({ [PULLS_KEY]: { ...next, project: workspace?.name ?? null }, mode: 'pulls', ...browse })
     },
     [workspace],
   )
@@ -48,7 +51,7 @@ export function usePullsMode({ workspace, selectedId, settingKey, revealRepo }: 
         openWindow({ kind: 'pulls', repo: selectedId, pr: next.pr ?? undefined, prRepo: next.prRepo ?? undefined }, workspace.name)
         return
       }
-      if (Object.keys(next).length) navPushMany({ [PULLS_KEY]: { ...place, ...next }, mode: 'pulls' })
+      if (Object.keys(next).length) navPushMany({ [PULLS_KEY]: { ...place, ...next, project: workspace.name }, mode: 'pulls' })
       else pushMode('pulls')
     },
     [workspace, selectedId, place, pushMode],
