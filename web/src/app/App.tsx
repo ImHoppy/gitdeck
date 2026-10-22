@@ -387,7 +387,10 @@ function Browse() {
             }}
           />
         ) : (
-          <div className={styles.message}>{toggle} Select a repo in the tree.</div>
+          <>
+            {toggle && <div className={styles.toolbar}>{toggle}</div>}
+            <div className={styles.message}>Select a repo in the tree.</div>
+          </>
         )}
         </div>
       </main>
