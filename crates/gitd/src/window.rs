@@ -1,4 +1,11 @@
-use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        OnceLock,
+    },
+};
 use tao::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
@@ -13,6 +20,12 @@ pub enum Request {
 }
 
 static WINDOWS: OnceLock<EventLoopProxy<Request>> = OnceLock::new();
+static OPEN: AtomicUsize = AtomicUsize::new(0);
+
+/// How many native windows are open: an update restart reopens one only if there were some.
+pub fn open_count() -> usize {
+    OPEN.load(Ordering::Relaxed)
+}
 
 /// Native windows (WebView2, WKWebView, WebKitGTK) on their own thread; `open` adds one per call.
 #[cfg(not(target_os = "macos"))]
@@ -89,12 +102,14 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                 match webview {
                     Ok(webview) => {
                         open.insert(window.id(), (window, webview));
+                        OPEN.store(open.len(), Ordering::Relaxed);
                     }
                     Err(e) => eprintln!("could not create the window: {e}"),
                 }
             }
             Event::WindowEvent { window_id, event: WindowEvent::CloseRequested, .. } => {
                 open.remove(&window_id);
+                OPEN.store(open.len(), Ordering::Relaxed);
             }
             _ => {}
         }

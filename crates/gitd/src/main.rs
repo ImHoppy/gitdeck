@@ -31,6 +31,7 @@ mod snapshot;
 mod static_files;
 #[cfg(windows)]
 mod tray;
+mod updater;
 mod window;
 
 use clap::Parser;

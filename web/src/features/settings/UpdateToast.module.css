@@ -1,0 +1,14 @@
+/* lines up with the toast title, past its icon */
+.content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 27px;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  color: var(--fg-muted);
+  font-size: 12px;
+}

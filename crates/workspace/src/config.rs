@@ -21,15 +21,30 @@ pub struct Config {
     /// The first-run setup was finished or skipped. A config written before it existed counts as set up.
     #[serde(default = "set_up")]
     pub setup_done: bool,
-    /// The user's choice to get new versions automatically (off by default; nothing checks yet).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub auto_update: bool,
+    /// New releases from GitHub: never asked (the default), announced, or installed.
+    #[serde(default, skip_serializing_if = "UpdateMode::is_off")]
+    pub updates: UpdateMode,
     #[serde(default, rename = "workspace")]
     pub workspaces: Vec<WorkspaceConfig>,
 }
 
 fn set_up() -> bool {
     true
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UpdateMode {
+    #[default]
+    Off,
+    Notify,
+    Auto,
+}
+
+impl UpdateMode {
+    fn is_off(&self) -> bool {
+        *self == Self::Off
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

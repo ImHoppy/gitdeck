@@ -1,7 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { setAvatarsEnabled } from '../../lib/avatarSource'
 import { gitd } from '../../protocol/client'
-import type { Host } from './HostFlags'
+import type { Host, UpdateMode } from './HostFlags'
+
+const RESTART_GRACE_MS = 800
+const RESTART_POLL_MS = 300
+const RESTART_GIVE_UP_MS = 30_000
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** The old gitd exits shortly after answering, then the new one takes the port. */
+async function reloadWhenBack() {
+  await wait(RESTART_GRACE_MS)
+  const giveUp = Date.now() + RESTART_GIVE_UP_MS
+  while (Date.now() < giveUp) {
+    const up = await fetch('/', { cache: 'no-store' }).then((r) => r.ok, () => false)
+    if (up) return location.reload()
+    await wait(RESTART_POLL_MS)
+  }
+}
+
+export type UpdateState =
+  | { kind: 'idle' | 'checking' }
+  | { kind: 'upToDate'; at: number }
+  | { kind: 'available' | 'downloading' | 'installed'; version: string }
+  | { kind: 'failed'; message: string }
 
 export type ServerInfo = {
   keepRunning: boolean
@@ -18,10 +41,11 @@ export type ServerInfo = {
   fileManagerDetected: string | null
   fetchInterval: number | null
   setupDone: boolean
-  autoUpdate: boolean
+  updates: UpdateMode
   /** null where there is no Explorer menu (Linux, macOS). */
   explorerMenu: boolean | null
   autostart: boolean
+  update: UpdateState
 }
 
 export function useServerInfo() {
@@ -32,6 +56,7 @@ export function useServerInfo() {
   }, [])
 
   useEffect(reload, [reload])
+  useEffect(() => gitd.on<UpdateState>('update', (update) => setInfo((i) => i && { ...i, update })), [])
 
   useEffect(() => setAvatarsEnabled(info?.githubAvatars ?? false), [info])
 
@@ -89,20 +114,52 @@ export function useServerInfo() {
   }, [])
   const setExplorerMenu = useCallback((on: boolean) => setFlag('server.setExplorerMenu', on), [setFlag])
   const setAutostart = useCallback((on: boolean) => setFlag('server.setAutostart', on), [setFlag])
-  const setAutoUpdate = useCallback((on: boolean) => setFlag('server.setAutoUpdate', on), [setFlag])
+  const setUpdates = useCallback((mode: UpdateMode) => {
+    gitd.call<ServerInfo>('server.setUpdates', { mode }).then(setInfo, () => {})
+  }, [])
 
   const host = useMemo<Host | null>(
     () =>
       info && {
         explorerMenu: info.explorerMenu,
         autostart: info.autostart,
-        autoUpdate: info.autoUpdate,
+        updates: info.updates,
         setExplorerMenu,
         setAutostart,
-        setAutoUpdate,
+        setUpdates,
       },
-    [info, setExplorerMenu, setAutostart, setAutoUpdate],
+    [info, setExplorerMenu, setAutostart, setUpdates],
   )
+
+  /** Resolves to an error message, or null once asked. */
+  const checkUpdate = useCallback(async (): Promise<string | null> => {
+    try {
+      await gitd.call('update.check')
+      return null
+    } catch (e) {
+      return (e as Error).message
+    }
+  }, [])
+
+  const installUpdate = useCallback(async (): Promise<string | null> => {
+    try {
+      await gitd.call('update.install')
+      return null
+    } catch (e) {
+      return (e as Error).message
+    }
+  }, [])
+
+  /** In a browser the page outlives gitd: it reloads once the new version answers. */
+  const restartForUpdate = useCallback(async (): Promise<string | null> => {
+    try {
+      await gitd.call('update.restart')
+    } catch (e) {
+      return (e as Error).message
+    }
+    await reloadWhenBack()
+    return null
+  }, [])
 
   const finishSetup = useCallback(() => {
     gitd.call<ServerInfo>('server.finishSetup').then(setInfo, () => {})
@@ -119,6 +176,9 @@ export function useServerInfo() {
     setEditor,
     setFileManager,
     host,
+    checkUpdate,
+    installUpdate,
+    restartForUpdate,
     finishSetup,
   }
 }

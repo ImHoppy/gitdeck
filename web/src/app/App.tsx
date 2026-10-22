@@ -10,7 +10,7 @@ import {
   PULL_ACTIONS,
   useSync,
 } from '../features/sync'
-import { gitNotice, SettingsPage, SetupDialog, type Theme, useServerInfo, useTheme } from '../features/settings'
+import { gitNotice, SettingsPage, SetupDialog, type Theme, UpdateToast, useServerInfo, useTheme } from '../features/settings'
 import { treeMenu, useTreeCommands } from '../features/repo-actions'
 import { useWorkspace, WorkspacePicker, WorkspaceTree } from '../features/workspace-tree'
 import { useDialogs } from '../ui/Dialog/useDialogs'
@@ -222,6 +222,7 @@ function Browse() {
         }}
       />
     ) : null
+  const updateToast = server.info ? <UpdateToast state={server.info.update} onInstall={server.installUpdate} onRestart={server.restartForUpdate} /> : null
   const settings = settingsOpen ? (
     <SettingsPage
       theme={themeChoice}
@@ -244,6 +245,7 @@ function Browse() {
       editor={server.info ? { path: server.info.editor, onSave: server.setEditor } : null}
       fileManager={server.info ? { path: server.info.fileManager, detected: server.info.fileManagerDetected, onSave: server.setFileManager } : null}
       host={server.host}
+      update={server.info ? { version: server.info.version, state: server.info.update, mode: server.info.updates, onCheck: server.checkUpdate, onInstall: server.installUpdate, onRestart: server.restartForUpdate } : null}
       onSetup={() => {
         setSettingsOpen(false)
         setSetupOpen(true)
@@ -264,6 +266,7 @@ function Browse() {
         {(openError ?? error) && <Toast tone="bad" title={openError ?? error} onDismiss={() => setOpenError(null)} />}
         {settings}
         {setup}
+        {updateToast}
       </Shell>
     )
   }
@@ -387,6 +390,7 @@ function Browse() {
     </div>
     {settings}
     {setup}
+    {updateToast}
     </Shell>
   )
 }

@@ -164,3 +164,9 @@
   color: var(--fg-muted);
   font-size: 12px;
 }
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

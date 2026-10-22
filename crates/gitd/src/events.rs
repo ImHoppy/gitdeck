@@ -1,4 +1,4 @@
-use crate::{github::PrList, jobs::JobUpdate, snapshot::RepoSnapshot};
+use crate::{github::PrList, jobs::JobUpdate, snapshot::RepoSnapshot, updater::UpdateState};
 use gitcore::CommandRecord;
 use serde::Serialize;
 
@@ -11,4 +11,5 @@ pub enum Event {
     PullRequests(PrList),
     /// From one window to the others: select this commit or branch in the history.
     Navigate(serde_json::Value),
+    Update(UpdateState),
 }

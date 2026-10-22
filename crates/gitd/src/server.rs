@@ -26,10 +26,11 @@ pub struct AppState {
     pub lifecycle: Lifecycle,
     pub commands: Arc<CommandLog>,
     pub github: Arc<crate::github::Github>,
+    pub updater: crate::updater::Updater,
 }
 
 impl AppState {
-    fn busy(&self) -> bool {
+    pub fn busy(&self) -> bool {
         // a held lock means a workspace is being opened: count it as work
         self.live.try_lock().map_or(true, |l| l.as_ref().is_some_and(|l| l.hub.busy()))
     }
@@ -48,7 +49,7 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let token = auth::load_or_create(&dir)?;
     let open = args.open.as_deref().map(|p| std::path::absolute(p).unwrap_or_else(|_| p.to_path_buf()));
     let url = browser::login_url(&args.bind, &token, open.as_deref());
-    let listener = match tokio::net::TcpListener::bind(args.bind).await {
+    let listener = match bind(args.bind, std::env::var_os(crate::updater::REPLACE_ENV).is_some()).await {
         Ok(l) => l,
         Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
             // one server for every window: a second launch only opens another window
@@ -77,7 +78,9 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         lifecycle: Lifecycle::new(Duration::from_secs(args.grace), args.keep),
         commands,
         github: Arc::new(crate::github::Github::new(github_prs, events.clone())),
+        updater: crate::updater::Updater::new(events.clone()),
     });
+    crate::updater::spawn(app.clone());
 
     let router = Router::new()
         .route("/login", get(login))
@@ -111,6 +114,22 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         .with_graceful_shutdown(async move { shutdown.lifecycle.shutdown.notified().await })
         .await?;
     Ok(())
+}
+
+const REPLACE_WAIT: Duration = Duration::from_secs(10);
+const REPLACE_POLL: Duration = Duration::from_millis(200);
+
+/// `replace`: the gitd this one was updated from is still exiting, so its port frees up shortly.
+async fn bind(addr: std::net::SocketAddr, replace: bool) -> std::io::Result<tokio::net::TcpListener> {
+    let deadline = tokio::time::Instant::now() + REPLACE_WAIT;
+    loop {
+        match tokio::net::TcpListener::bind(addr).await {
+            Err(e) if replace && e.kind() == std::io::ErrorKind::AddrInUse && tokio::time::Instant::now() < deadline => {
+                tokio::time::sleep(REPLACE_POLL).await;
+            }
+            result => return result,
+        }
+    }
 }
 
 pub fn authorized(app: &AppState, headers: &HeaderMap) -> bool {

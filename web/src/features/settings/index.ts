@@ -1,5 +1,6 @@
 export { SettingsPage } from './SettingsPage'
 export { SetupDialog } from './SetupDialog'
+export { UpdateToast } from './UpdateToast'
 export { gitNotice } from './gitNotice'
 export { useServerInfo } from './useServerInfo'
 export { type Theme, useTheme } from './useTheme'

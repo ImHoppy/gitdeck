@@ -31,6 +31,25 @@ export function useAppStatus({ server, onSettings, prs, onPulls }: Deps) {
   useStatusItem(
     git ? { id: 'git', side: 'left', order: 80, icon: 'alert', text: git.short, title: `${git.text} (click: Settings)`, tone: git.tone, onClick: onSettings } : null,
   )
+  const update = info?.update
+  useStatusItem(
+    update?.kind === 'available' || update?.kind === 'installed' || update?.kind === 'downloading'
+      ? {
+          id: 'update',
+          side: 'right',
+          order: 20,
+          icon: 'refresh',
+          text: { available: `gitdeck ${update.version} available`, installed: `restart for ${update.version}`, downloading: `updating to ${update.version}` }[update.kind],
+          title: {
+            available: `gitdeck ${update.version} is out (click: Settings, to install it)`,
+            installed: `gitdeck ${update.version} is installed (click: Settings, to restart gitd)`,
+            downloading: `Downloading gitdeck ${update.version}`,
+          }[update.kind],
+          tone: update.kind === 'downloading' ? 'busy' : 'good',
+          onClick: onSettings,
+        }
+      : null,
+  )
   const gh = prs?.status?.enabled ? prs.status.gh : null
   useStatusItem(
     gh

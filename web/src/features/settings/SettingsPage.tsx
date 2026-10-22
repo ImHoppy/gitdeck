@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ComponentProps, useEffect, useRef, useState } from 'react'
 import { commitInWindow, setCommitInWindow } from '../../lib/commitWindow'
 import { repoWindowOnDoubleClick, setRepoWindowOnDoubleClick } from '../../lib/repoWindow'
 import { pullsInWindow, setPullsInWindow } from '../../lib/pullsWindow'
@@ -10,6 +10,7 @@ import { Button } from '../../ui/Button/Button'
 import { type Choice, ChoiceSelect, Row, Section } from './SettingRows'
 import { SettingsNav } from './SettingsNav'
 import { ToolPaths } from './ToolPaths'
+import { UpdateRow } from './UpdateRow'
 import { useSectionSpy } from './useSectionSpy'
 import styles from './SettingsPage.module.css'
 import type { Theme } from './useTheme'
@@ -37,13 +38,14 @@ type Props<S extends string, P extends string> = {
   editor: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
   fileManager: { path: string | null; detected: string | null; onSave: (path: string) => Promise<string | null> } | null
   host: Host | null
+  update: ComponentProps<typeof UpdateRow> | null
   onSetup: () => void
   /** The open repository, for its own git settings. */
   repoId: number | null
   onClose: () => void
 }
 
-export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, githubPrs, version, git, editor, fileManager, host, onSetup, repoId, onClose }: Props<S, P>) {
+export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, githubPrs, version, git, editor, fileManager, host, update, onSetup, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
   const [repoWindow, setRepoWindow] = useState(repoWindowOnDoubleClick)
   const [pullsWindow, setPullsWindow] = useState(pullsInWindow)
@@ -150,7 +152,7 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
                 />
               </Row>
               {host && <HostFlags host={host} />}
-              <Row label="Version">{version ?? '?'}</Row>
+              {update ? <UpdateRow {...update} /> : <Row label="Version">{version ?? '?'}</Row>}
               <div className={styles.row}>
                 <span>First-run setup</span>
                 <Button title="Show the first-run setup again" onClick={onSetup}>Run again</Button>

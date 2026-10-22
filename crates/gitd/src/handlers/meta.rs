@@ -28,9 +28,10 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
         "fileManagerDetected": tokio::task::spawn_blocking(file_manager::detect).await.ok().flatten(),
         "fetchInterval": fetch_interval,
         "setupDone": app.config.lock().unwrap().setup_done,
-        "autoUpdate": app.config.lock().unwrap().auto_update,
+        "updates": app.config.lock().unwrap().updates,
         "explorerMenu": tokio::task::spawn_blocking(explorer::is_on).await.ok().flatten(),
         "autostart": tokio::task::spawn_blocking(autostart::is_on).await.unwrap_or(false),
+        "update": app.updater.state(),
     }))
 }
 
