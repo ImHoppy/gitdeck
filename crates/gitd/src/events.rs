@@ -12,4 +12,5 @@ pub enum Event {
     /// From one window to the others: select this commit or branch in the history.
     Navigate(serde_json::Value),
     Update(UpdateState),
+    Zoom(f64),
 }

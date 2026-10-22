@@ -59,6 +59,7 @@ pub async fn zoom(app: &AppState, p: ZoomParams) -> anyhow::Result<Value> {
         level
     };
     crate::window::set_zoom(level);
+    let _ = app.events.send(crate::events::Event::Zoom(level));
     Ok(json!(level))
 }
 

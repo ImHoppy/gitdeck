@@ -1,6 +1,7 @@
 import type { PrAvailability } from '../features/pull-requests'
 import { gitNotice, type useServerInfo } from '../features/settings'
 import { useStatusItem } from '../lib/statusBar'
+import { inGitdeckWindow } from '../lib/zoom'
 
 type Deps = {
   server: ReturnType<typeof useServerInfo>
@@ -24,6 +25,19 @@ export function useAppStatus({ server, onSettings, prs, onPulls }: Deps) {
           title: info.keepRunning ? 'gitd keeps running with no window open (click: stop after the last window)' : 'gitd stops after the last window closes (click: keep it running)',
           tone: info.keepRunning ? 'good' : 'normal',
           onClick: () => server.setKeepRunning(!info.keepRunning),
+        }
+      : null,
+  )
+  useStatusItem(
+    info && inGitdeckWindow()
+      ? {
+          id: 'zoom',
+          side: 'right',
+          order: 100,
+          icon: 'search',
+          text: `${Math.round(info.zoom * 100)}%`,
+          title: 'Zoom, Ctrl + / Ctrl - (click: back to 100%)',
+          onClick: () => server.setZoom(1),
         }
       : null,
   )

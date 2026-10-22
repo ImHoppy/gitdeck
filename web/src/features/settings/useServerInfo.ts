@@ -58,6 +58,7 @@ export function useServerInfo() {
 
   useEffect(reload, [reload])
   useEffect(() => gitd.on<UpdateState>('update', (update) => setInfo((i) => i && { ...i, update })), [])
+  useEffect(() => gitd.on<number>('zoom', (zoom) => setInfo((i) => i && { ...i, zoom })), [])
 
   useEffect(() => setAvatarsEnabled(info?.githubAvatars ?? false), [info])
 
