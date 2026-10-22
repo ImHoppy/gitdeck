@@ -1,9 +1,9 @@
-use crate::{handlers::repo::hub, hub::Hub, live::LiveWorkspace, server::AppState};
+use crate::{events::WorkspaceEvents, handlers::repo::hub, hub::Hub, live::LiveWorkspace, server::AppState};
 use anyhow::{bail, Context};
 use futures::future::join_all;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::HashSet, path::PathBuf, sync::Arc, time::Duration};
 use gitcore::{commands::ignored, GitRunner};
 use workspace::{discovery, watch::WatchTarget, Config};
 
@@ -32,13 +32,13 @@ pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
         .with_context(|| format!("no workspace {}", p.name))?;
     // another window already has it open: share it instead of restarting the watchers
     if !p.reload {
-        let live = app.live.lock().await.as_ref().filter(|l| l.name == ws.name).map(|l| l.hub.clone());
+        let live = app.live.lock().await.get(&ws.name).map(|l| l.hub.clone());
         if let Some(hub) = live {
             return Ok(json!({ "name": ws.name, "repos": hub.snapshots().await, "nestedRoots": nested_roots(&ws) }));
         }
     }
     let repos = discovery::discover(&app.runner, &ws).await?;
-    let hub = Arc::new(Hub::new(app.runner.clone(), app.events.clone(), &repos));
+    let hub = Arc::new(Hub::new(app.runner.clone(), WorkspaceEvents::new(&ws.name, app.workspace_events.clone()), &repos));
     let snapshots = join_all(repos.into_iter().map(|entry| hub.snapshot(entry))).await;
     let targets: Vec<WatchTarget> = snapshots
         .iter()
@@ -66,7 +66,11 @@ pub async fn open(app: &AppState, p: OpenParams) -> anyhow::Result<Value> {
         }))
         .await;
     });
-    *app.live.lock().await = Some(live);
+    let shown: HashSet<String> = app.bindings.lock().unwrap().values().cloned().collect();
+    let mut all = app.live.lock().await;
+    // a workspace no window shows any more stops watching and fetching, unless a job still runs in it
+    all.retain(|name, l| shown.contains(name) || l.hub.busy());
+    all.insert(ws.name.clone(), live);
     Ok(json!({ "name": ws.name, "repos": snapshots, "nestedRoots": nested_roots(&ws) }))
 }
 

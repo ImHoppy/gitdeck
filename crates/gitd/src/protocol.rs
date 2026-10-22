@@ -7,6 +7,9 @@ pub struct Request {
     pub method: String,
     #[serde(default)]
     pub params: Value,
+    /// The workspace the sending window shows.
+    #[serde(default)]
+    pub ws: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

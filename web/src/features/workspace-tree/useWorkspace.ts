@@ -11,6 +11,7 @@ export function useWorkspace() {
 
   const open = useCallback(async (name: string, reload = false): Promise<WorkspaceSnapshot | null> => {
     setOpening(name)
+    gitd.workspace = name
     try {
       const ws = await gitd.call<WorkspaceSnapshot>('workspace.open', { name, reload })
       setWorkspace(ws)

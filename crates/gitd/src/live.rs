@@ -9,6 +9,15 @@ use workspace::{
     RepoId,
 };
 
+tokio::task_local! {
+    /// The workspace of the window whose request is being handled.
+    pub static WORKSPACE: Option<String>;
+}
+
+pub fn current() -> Option<String> {
+    WORKSPACE.try_with(Clone::clone).ok().flatten()
+}
+
 pub struct LiveWorkspace {
     pub name: String,
     pub hub: Arc<Hub>,

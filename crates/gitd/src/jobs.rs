@@ -1,4 +1,4 @@
-use crate::events::Event;
+use crate::events::{Event, WorkspaceEvents};
 use gitcore::{streamed, Console};
 use serde::Serialize;
 use std::{
@@ -9,7 +9,6 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tokio::sync::broadcast;
 use workspace::{sync::SyncOutcome, RepoId};
 
 const KEEP_DONE: usize = 20;
@@ -61,11 +60,11 @@ impl Job {
 pub struct Jobs {
     next: AtomicU64,
     all: Arc<Mutex<VecDeque<Job>>>,
-    events: broadcast::Sender<Event>,
+    events: WorkspaceEvents,
 }
 
 impl Jobs {
-    pub fn new(events: broadcast::Sender<Event>) -> Self {
+    pub fn new(events: WorkspaceEvents) -> Self {
         Self { next: AtomicU64::new(1), all: Default::default(), events }
     }
 
@@ -78,7 +77,7 @@ impl Jobs {
     ) -> SyncOutcome {
         let id = self.next.fetch_add(1, Ordering::Relaxed);
         let mut job = Job { id, repo_id, title, background, console: Console::default(), sent: 0, last_sent: Instant::now(), done: None };
-        let _ = self.events.send(Event::Job(job.update(0)));
+        self.events.send(Event::Job(job.update(0)));
         self.lock().push_back(job);
 
         let (all, events) = (self.all.clone(), self.events.clone());
@@ -87,7 +86,7 @@ impl Jobs {
             let Some(job) = all.iter_mut().find(|j| j.id == id) else { return };
             job.console.feed(chunk);
             if job.last_sent.elapsed() >= THROTTLE {
-                let _ = events.send(Event::Job(job.update(job.sent)));
+                events.send(Event::Job(job.update(job.sent)));
             }
         });
         let outcome = streamed(sink, fut).await;
@@ -95,7 +94,7 @@ impl Jobs {
         let mut all = self.lock();
         if let Some(job) = all.iter_mut().find(|j| j.id == id) {
             job.done = Some(outcome.clone());
-            let _ = self.events.send(Event::Job(job.update(job.sent)));
+            self.events.send(Event::Job(job.update(job.sent)));
         }
         while all.iter().filter(|j| j.done.is_some()).count() > KEEP_DONE {
             let oldest = all.iter().position(|j| j.done.is_some()).expect("counted above");
@@ -117,11 +116,12 @@ impl Jobs {
 mod tests {
     use super::*;
     use gitcore::{GitRunner, ProcessRunner};
+    use tokio::sync::broadcast;
 
     #[tokio::test]
     async fn streams_a_network_command_and_keeps_its_output() {
         let (tx, mut rx) = broadcast::channel(16);
-        let jobs = Jobs::new(tx);
+        let jobs = Jobs::new(WorkspaceEvents::new("w", tx));
         let dir = std::env::temp_dir();
         let outcome = jobs
             .run(1, "Fetch a".into(), false, async {
@@ -134,6 +134,6 @@ mod tests {
         assert_eq!(listed[0].lines[0], "$ git fetch --progress");
         assert!(listed[0].lines[1].starts_with("fatal:"));
         assert!(listed[0].done.is_some());
-        assert!(matches!(rx.recv().await, Ok(Event::Job(JobUpdate { from: 0, .. }))));
+        assert!(matches!(rx.recv().await, Ok((_, Event::Job(JobUpdate { from: 0, .. })))));
     }
 }

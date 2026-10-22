@@ -1,5 +1,5 @@
 use crate::{
-    auth, browser, cli, command_log::CommandLog, events::Event, handlers, lifecycle::Lifecycle, live::LiveWorkspace,
+    auth, browser, cli, command_log::CommandLog, events::{Event, Scoped}, handlers, lifecycle::Lifecycle, live::LiveWorkspace,
     protocol::{Request, Response},
     static_files,
 };
@@ -11,8 +11,15 @@ use axum::{
     Router,
 };
 use futures::{SinkExt, StreamExt};
-use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::sync::{broadcast, mpsc, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
+use tokio::sync::{broadcast, mpsc, watch, Mutex};
 use gitcore::ProcessRunner;
 use workspace::Config;
 
@@ -22,7 +29,10 @@ pub struct AppState {
     pub runner: ProcessRunner,
     pub token: String,
     pub events: broadcast::Sender<Event>,
-    pub live: Mutex<Option<LiveWorkspace>>,
+    pub workspace_events: broadcast::Sender<Scoped>,
+    pub live: Mutex<HashMap<String, LiveWorkspace>>,
+    /// The workspace each window shows, by connection.
+    pub bindings: std::sync::Mutex<HashMap<u64, String>>,
     pub lifecycle: Lifecycle,
     pub commands: Arc<CommandLog>,
     pub github: Arc<crate::github::Github>,
@@ -32,7 +42,7 @@ pub struct AppState {
 impl AppState {
     pub fn busy(&self) -> bool {
         // a held lock means a workspace is being opened: count it as work
-        self.live.try_lock().map_or(true, |l| l.as_ref().is_some_and(|l| l.hub.busy()))
+        self.live.try_lock().map_or(true, |l| l.values().any(|l| l.hub.busy()))
     }
 
     pub fn toggle_keep_running(self: &Arc<Self>, runtime: &tokio::runtime::Handle) {
@@ -46,6 +56,8 @@ impl AppState {
 }
 
 const EVENT_BUFFER: usize = 256;
+
+static NEXT_CONNECTION: AtomicU64 = AtomicU64::new(1);
 
 pub type Shared = Arc<AppState>;
 
@@ -86,7 +98,9 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
             runner
         },
         events: events.clone(),
-        live: Mutex::new(None),
+        workspace_events: broadcast::channel(EVENT_BUFFER).0,
+        live: Mutex::default(),
+        bindings: Default::default(),
         lifecycle: Lifecycle::new(Duration::from_secs(args.grace), args.keep),
         commands,
         github: Arc::new(crate::github::Github::new(github_prs, events.clone())),
@@ -235,28 +249,48 @@ async fn client(app: Shared, socket: WebSocket) {
         }
     });
     app.lifecycle.connected();
-    let forwarder = tokio::spawn(forward_events(app.events.subscribe(), tx.clone()));
+    let connection = NEXT_CONNECTION.fetch_add(1, Ordering::Relaxed);
+    let (bound, shown) = watch::channel(None);
+    let forwarder = tokio::spawn(forward_events(app.events.subscribe(), app.workspace_events.subscribe(), shown, tx.clone()));
     while let Some(Ok(msg)) = stream.next().await {
         let Message::Text(text) = msg else { continue };
         let Ok(req) = serde_json::from_str::<Request>(&text) else { continue };
+        if let Some(ws) = req.ws.as_ref().filter(|ws| bound.borrow().as_ref() != Some(*ws)) {
+            bound.send_replace(Some(ws.clone()));
+            app.bindings.lock().unwrap().insert(connection, ws.clone());
+        }
         let (app, tx) = (app.clone(), tx.clone());
         tokio::spawn(async move {
-            let call = handlers::dispatch(&app, &req.method, req.params);
+            let call = crate::live::WORKSPACE.scope(req.ws, handlers::dispatch(&app, &req.method, req.params));
             let result = if handlers::is_read(&req.method) { gitcore::runner::interactive(call).await } else { call.await };
             let resp = Response::from_result(req.id, result);
             let _ = tx.send(serde_json::to_string(&resp).unwrap_or_default());
         });
     }
     forwarder.abort();
+    app.bindings.lock().unwrap().remove(&connection);
     drop(tx);
     let _ = writer.await;
     let state = app.clone();
     app.lifecycle.disconnected(move || state.busy()).await;
 }
 
-async fn forward_events(mut events: broadcast::Receiver<Event>, tx: mpsc::UnboundedSender<String>) {
+async fn forward_events(
+    mut events: broadcast::Receiver<Event>,
+    mut scoped: broadcast::Receiver<Scoped>,
+    shown: watch::Receiver<Option<String>>,
+    tx: mpsc::UnboundedSender<String>,
+) {
     loop {
-        match events.recv().await {
+        let event = tokio::select! {
+            event = events.recv() => event,
+            event = scoped.recv() => match event {
+                Ok((ws, event)) if shown.borrow().as_deref() == Some(&*ws) => Ok(event),
+                Ok(_) => continue,
+                Err(e) => Err(e),
+            },
+        };
+        match event {
             Ok(event) => {
                 if tx.send(serde_json::to_string(&event).unwrap_or_default()).is_err() {
                     return;

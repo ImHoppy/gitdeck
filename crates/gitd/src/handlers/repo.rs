@@ -9,7 +9,8 @@ use workspace::{
 };
 
 pub async fn hub(app: &AppState) -> anyhow::Result<Arc<Hub>> {
-    app.live.lock().await.as_ref().map(|l| l.hub.clone()).context("no workspace open")
+    let name = crate::live::current().context("no workspace open")?;
+    app.live.lock().await.get(&name).map(|l| l.hub.clone()).context("no workspace open")
 }
 
 #[derive(Deserialize)]

@@ -1,9 +1,8 @@
-use crate::{events::Event, histories::Histories, jobs::Jobs, snapshot::RepoSnapshot};
+use crate::{events::{Event, WorkspaceEvents}, histories::Histories, jobs::Jobs, snapshot::RepoSnapshot};
 use futures::future::join_all;
 use gitcore::{commands::gitlinks, GitOutput, GitRunner, ProcessRunner};
 use serde::Serialize;
 use std::collections::HashMap;
-use tokio::sync::broadcast;
 use workspace::{
     bulk,
     fetch_log::FetchLog,
@@ -16,7 +15,7 @@ pub struct Hub {
     pub entries: HashMap<RepoId, RepoEntry>,
     pub histories: Histories,
     pub jobs: Jobs,
-    events: broadcast::Sender<Event>,
+    events: WorkspaceEvents,
     scheduler: Scheduler,
     fetch_log: FetchLog,
     latest: std::sync::Mutex<HashMap<RepoId, RepoSnapshot>>,
@@ -44,7 +43,7 @@ impl RepoResult {
 }
 
 impl Hub {
-    pub fn new(runner: ProcessRunner, events: broadcast::Sender<Event>, entries: &[RepoEntry]) -> Self {
+    pub fn new(runner: ProcessRunner, events: WorkspaceEvents, entries: &[RepoEntry]) -> Self {
         Self {
             runner,
             entries: entries.iter().map(|e| (e.id, e.clone())).collect(),
@@ -87,7 +86,7 @@ impl Hub {
 
     pub async fn publish(&self, id: RepoId) {
         if let Some(entry) = self.entries.get(&id) {
-            let _ = self.events.send(Event::RepoState(self.snapshot(entry.clone()).await));
+            self.events.send(Event::RepoState(self.snapshot(entry.clone()).await));
         }
     }
 
@@ -102,7 +101,7 @@ impl Hub {
                 return;
             }
         }
-        let _ = self.events.send(Event::RepoState(snapshot));
+        self.events.send(Event::RepoState(snapshot));
     }
 
     fn mark_written(&self, id: RepoId) {

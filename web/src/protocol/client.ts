@@ -14,6 +14,8 @@ export class GitdClient {
   private pending = new Map<number, Pending>()
   private ready: Promise<void> | null = null
   private listeners = new Map<string, Set<Listener>>()
+  /** The workspace this window shows: gitd answers each request from it and sends only its events. */
+  workspace: string | null = null
 
   private connect(): Promise<void> {
     if (this.ready) return this.ready
@@ -63,7 +65,7 @@ export class GitdClient {
     const id = this.nextId++
     return new Promise<T>((resolve, reject) => {
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject })
-      this.socket!.send(JSON.stringify({ id, method, params }))
+      this.socket!.send(JSON.stringify({ id, method, params, ws: this.workspace ?? undefined }))
     })
   }
 }

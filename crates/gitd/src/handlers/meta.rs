@@ -10,8 +10,7 @@ use std::path::{Path, PathBuf};
 
 pub async fn info(app: &AppState) -> anyhow::Result<Value> {
     let configured = app.config.lock().unwrap().git.clone();
-    let live = app.live.lock().await.as_ref().map(|l| l.name.clone());
-    let fetch_interval = live.and_then(|n| app.config.lock().unwrap().workspace(&n).map(|w| w.fetch_interval_minutes));
+    let fetch_interval = crate::live::current().and_then(|n| app.config.lock().unwrap().workspace(&n).map(|w| w.fetch_interval_minutes));
     let version_out = app.runner.run_ok(Path::new("."), version::ARGS).await.ok();
     Ok(json!({
         "keepRunning": app.lifecycle.keep_running(),
@@ -121,8 +120,8 @@ pub struct FetchIntervalParams {
 
 pub async fn set_fetch_interval(app: &AppState, p: FetchIntervalParams) -> anyhow::Result<Value> {
     {
-        let mut live = app.live.lock().await;
-        let Some(live) = live.as_mut() else { bail!("no project open") };
+        let mut all = app.live.lock().await;
+        let Some(live) = crate::live::current().and_then(|n| all.get_mut(&n)) else { bail!("no project open") };
         let mut config = app.config.lock().unwrap();
         config.set_fetch_interval(&live.name, p.minutes);
         config.save(&app.config_path)?;
