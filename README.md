@@ -9,6 +9,11 @@ Windows and Linux.
 </tr>
 </table>
 
+<p>
+<img src="docs/images/history.png" width="49%" alt="History of cli/cli in a project with git/git">
+<img src="docs/images/pulls.png" width="49%" alt="Pull requests of git/git">
+</p>
+
 ## Why
 
 I use Git Extensions every day, but it gets slow on big histories and it doesn't handle a project
@@ -41,3 +46,24 @@ gitd --bind 10.0.0.5:7777 --keep --no-open
 Then on the laptop open `http://10.0.0.5:7777/login?token=<token>`. The token is in
 `%APPDATA%\gitdeck\token` on Windows or `~/.config/gitdeck/token` on Linux. The login sets a
 cookie, so you only do it once per browser.
+
+## Contributing
+
+You need Rust (stable), Bun and git.
+
+```
+cd web && bun install && bun run build
+cargo run -p gitd
+```
+
+For the web client with hot reload, keep `gitd` running and start `bun run dev` in `web/`.
+
+Before opening a pull request:
+
+```
+cd web && bun run lint && bun test
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+```
+
+If your change touches the web client, please add screenshots of it to the pull request.
