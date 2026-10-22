@@ -1,4 +1,4 @@
-use crate::{file_manager, server::AppState};
+use crate::{autostart, explorer, file_manager, server::AppState};
 use anyhow::bail;
 use gitcore::GitRunner;
 use serde::Deserialize;
@@ -20,6 +20,10 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
         "fileManager": app.config.lock().unwrap().file_manager.clone(),
         "fileManagerDetected": tokio::task::spawn_blocking(file_manager::detect).await.ok().flatten(),
         "fetchInterval": fetch_interval,
+        "setupDone": app.config.lock().unwrap().setup_done,
+        "autoUpdate": app.config.lock().unwrap().auto_update,
+        "explorerMenu": tokio::task::spawn_blocking(explorer::is_on).await.ok().flatten(),
+        "autostart": tokio::task::spawn_blocking(autostart::is_on).await.unwrap_or(false),
     }))
 }
 

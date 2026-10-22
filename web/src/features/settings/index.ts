@@ -1,3 +1,4 @@
 export { SettingsPage } from './SettingsPage'
+export { SetupDialog } from './SetupDialog'
 export { useServerInfo } from './useServerInfo'
-export { useTheme } from './useTheme'
+export { type Theme, useTheme } from './useTheme'

@@ -1,15 +1,15 @@
-import { Select } from '../../ui/Select/Select'
-import { type ReactNode, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { commitInWindow, setCommitInWindow } from '../../lib/commitWindow'
 import { repoWindowOnDoubleClick, setRepoWindowOnDoubleClick } from '../../lib/repoWindow'
 import { pullsInWindow, setPullsInWindow } from '../../lib/pullsWindow'
 import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { GitConfigSection } from './GitConfigSection'
-import { PathRow } from './PathRow'
+import { HostFlags, type Host } from './HostFlags'
+import { IconButton } from '../../ui/IconButton/IconButton'
+import { type Choice, ChoiceSelect, Row, Section } from './SettingRows'
+import { ToolPaths } from './ToolPaths'
 import styles from './SettingsPage.module.css'
 import type { Theme } from './useTheme'
-
-type Choice<T extends string> = { value: T; options: [T, string][]; onChange: (v: T) => void }
 
 type Props<S extends string, P extends string> = {
   theme: Choice<Theme>
@@ -23,12 +23,14 @@ type Props<S extends string, P extends string> = {
   git: { path: string | null; version: string | null; onSave: (path: string) => Promise<string | null> } | null
   editor: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
   fileManager: { path: string | null; detected: string | null; onSave: (path: string) => Promise<string | null> } | null
+  host: Host | null
+  onSetup: () => void
   /** The open repository, for its own git settings. */
   repoId: number | null
   onClose: () => void
 }
 
-export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, githubPrs, version, git, editor, fileManager, repoId, onClose }: Props<S, P>) {
+export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, githubPrs, version, git, editor, fileManager, host, onSetup, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
   const [repoWindow, setRepoWindow] = useState(repoWindowOnDoubleClick)
   const [pullsWindow, setPullsWindow] = useState(pullsInWindow)
@@ -113,31 +115,7 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
         </Section>
         {git && (
           <Section title="Git">
-            <PathRow
-              label="Git executable"
-              placeholder="git (from PATH), or e.g. C:/Program Files/Git/cmd/git.exe"
-              path={git.path}
-              status={git.version ?? 'git not found'}
-              onSave={git.onSave}
-            />
-            {editor && (
-              <PathRow
-                label="Editor for conflicts and files"
-                placeholder="code (VS Code from PATH), or a path to an editor"
-                path={editor.path}
-                status={editor.path ? `Opens with ${editor.path}` : 'Opens with VS Code (code)'}
-                onSave={editor.onSave}
-              />
-            )}
-            {fileManager && (
-              <PathRow
-                label="File manager"
-                placeholder="the system one, or e.g. C:/Program Files/FPilot/FPilot.exe"
-                path={fileManager.path}
-                status={fileManagerStatus(fileManager.path, fileManager.detected)}
-                onSave={fileManager.onSave}
-              />
-            )}
+            <ToolPaths git={git} editor={editor} fileManager={fileManager} />
           </Section>
         )}
         <Section title="Git configuration">
@@ -152,37 +130,15 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               onChange={(e) => keepRunning?.onChange(e.target.checked)}
             />
           </Row>
+          {host && <HostFlags host={host} />}
           <Row label="Version">{version ?? '?'}</Row>
+          <div className={styles.row}>
+            <span>First-run setup</span>
+            <IconButton title="Show the first-run setup again" onClick={onSetup}>Run again</IconButton>
+          </div>
         </Section>
         <p className={styles.note}>Appearance and pull are kept in this browser; the git executable in gitd's config; keep running lasts until gitd exits.</p>
       </div>
     </div>
   )
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className={styles.section}>
-      <h3>{title}</h3>
-      {children}
-    </section>
-  )
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className={styles.row}>
-      <span>{label}</span>
-      {children}
-    </label>
-  )
-}
-
-function ChoiceSelect<T extends string>({ choice }: { choice: Choice<T> }) {
-  return <Select value={choice.value} options={choice.options} onChange={choice.onChange} />
-}
-
-function fileManagerStatus(path: string | null, detected: string | null) {
-  if (path) return `Opens with ${path}`
-  return detected ? `Opens with ${detected}, the system's folder handler` : 'Opens with the system file manager'
 }

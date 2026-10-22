@@ -26,6 +26,18 @@ pub fn set(on: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Whether "Open in gitdeck" is on the folder menu; `None` where there is no Explorer.
+pub fn is_on() -> Option<bool> {
+    cfg!(windows).then(|| reg(&["query", KEYS[0]]).unwrap_or(false))
+}
+
 fn reg(args: &[&str]) -> anyhow::Result<bool> {
-    Ok(Command::new("reg").args(args).output()?.status.success())
+    let mut cmd = Command::new("reg");
+    cmd.args(args);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    Ok(cmd.output()?.status.success())
 }

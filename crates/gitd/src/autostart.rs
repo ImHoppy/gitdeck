@@ -16,13 +16,25 @@ pub fn set(on: bool) -> anyhow::Result<()> {
     }
 }
 
+const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+
+pub fn is_on() -> bool {
+    let home = || std::env::var_os("HOME").map(std::path::PathBuf::from);
+    if cfg!(windows) {
+        run(Command::new("reg").args(["query", RUN_KEY, "/v", NAME])).is_ok()
+    } else if cfg!(target_os = "macos") {
+        home().is_some_and(|h| h.join(format!("Library/LaunchAgents/com.{NAME}.gitd.plist")).is_file())
+    } else {
+        home().is_some_and(|h| h.join(format!(".config/systemd/user/{NAME}.service")).is_file())
+    }
+}
+
 fn windows(on: bool, exe: &str) -> anyhow::Result<()> {
-    let key = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
     let command = format!("\"{exe}\" --keep --no-open");
     let args: Vec<&str> = if on {
-        vec!["add", key, "/v", NAME, "/t", "REG_SZ", "/d", &command, "/f"]
+        vec!["add", RUN_KEY, "/v", NAME, "/t", "REG_SZ", "/d", &command, "/f"]
     } else {
-        vec!["delete", key, "/v", NAME, "/f"]
+        vec!["delete", RUN_KEY, "/v", NAME, "/f"]
     };
     run(Command::new("reg").args(args))
 }
@@ -73,6 +85,11 @@ fn launchd(on: bool, exe: &str) -> anyhow::Result<()> {
 }
 
 fn run(cmd: &mut Command) -> anyhow::Result<()> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
     let out = cmd.output()?;
     if !out.status.success() {
         bail!("{}", String::from_utf8_lossy(&out.stderr).trim());

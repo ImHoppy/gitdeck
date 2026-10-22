@@ -18,8 +18,18 @@ pub struct Config {
     /// File manager for "open in file explorer" (e.g. FPilot.exe); unset is the system one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub file_manager: Option<String>,
+    /// The first-run setup was finished or skipped. A config written before it existed counts as set up.
+    #[serde(default = "set_up")]
+    pub setup_done: bool,
+    /// The user's choice to get new versions automatically (off by default; nothing checks yet).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub auto_update: bool,
     #[serde(default, rename = "workspace")]
     pub workspaces: Vec<WorkspaceConfig>,
+}
+
+fn set_up() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -198,6 +208,14 @@ mod tests {
         let ws = back.workspace("ava").unwrap();
         assert_eq!(ws.roots.len(), 1);
         assert!(ws.is_excluded(Path::new("E:/AvaServer/big")));
+    }
+
+    #[test]
+    fn only_a_new_config_asks_for_setup() {
+        assert!(!Config::default().setup_done);
+        assert!(toml::from_str::<Config>("github_avatars = true").unwrap().setup_done);
+        let fresh: Config = toml::from_str(&toml::to_string_pretty(&Config::default()).unwrap()).unwrap();
+        assert!(!fresh.setup_done);
     }
 }
 

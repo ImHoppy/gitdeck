@@ -81,3 +81,27 @@
 .configInput {
   width: min(280px, 50vw);
 }
+
+.flag {
+  display: flex;
+  flex-direction: column;
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(480px, calc(100vw - 64px));
+}
+
+.intro {
+  margin: 0 0 6px;
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+
+.stepCount {
+  margin-right: auto;
+  color: var(--fg-muted);
+  font-size: 12px;
+}

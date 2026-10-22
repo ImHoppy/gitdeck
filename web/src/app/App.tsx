@@ -10,7 +10,7 @@ import {
   PULL_ACTIONS,
   useSync,
 } from '../features/sync'
-import { SettingsPage, useServerInfo, useTheme } from '../features/settings'
+import { SettingsPage, SetupDialog, type Theme, useServerInfo, useTheme } from '../features/settings'
 import { treeMenu, useTreeCommands } from '../features/repo-actions'
 import { useWorkspace, WorkspacePicker, WorkspaceTree } from '../features/workspace-tree'
 import { useDialogs } from '../ui/Dialog/useDialogs'
@@ -208,9 +208,22 @@ function Browse() {
       }),
     })
 
+  const themeChoice = { value: theme.theme, onChange: theme.setTheme, options: THEMES }
+  const [setupOpen, setSetupOpen] = useState(false)
+  const setup =
+    server.info && (setupOpen || !server.info.setupDone) ? (
+      <SetupDialog
+        theme={themeChoice}
+        server={server}
+        onDone={() => {
+          setSetupOpen(false)
+          server.finishSetup()
+        }}
+      />
+    ) : null
   const settings = settingsOpen ? (
     <SettingsPage
-      theme={{ value: theme.theme, onChange: theme.setTheme, options: [['auto', 'Follow the system'], ['light', 'Light'], ['dark', 'Dark']] }}
+      theme={themeChoice}
       pullAction={{ value: sync.pullAction, onChange: sync.setPullAction, options: PULL_ACTIONS.map((a) => [a.kind, a.label]) }}
       submodules={{
         value: sync.choice,
@@ -229,6 +242,11 @@ function Browse() {
       repoId={selected?.id ?? null}
       editor={server.info ? { path: server.info.editor, onSave: server.setEditor } : null}
       fileManager={server.info ? { path: server.info.fileManager, detected: server.info.fileManagerDetected, onSave: server.setFileManager } : null}
+      host={server.host}
+      onSetup={() => {
+        setSettingsOpen(false)
+        setSetupOpen(true)
+      }}
       git={server.info ? { path: server.info.git, version: server.info.gitVersion, onSave: server.setGit } : null}
       onClose={() => setSettingsOpen(false)}
     />
@@ -244,6 +262,7 @@ function Browse() {
         <StartPage onOpen={openProject} version={server.info?.version ?? null} />
         {(openError ?? error) && <Toast tone="bad" title={openError ?? error} onDismiss={() => setOpenError(null)} />}
         {settings}
+        {setup}
       </Shell>
     )
   }
@@ -366,6 +385,7 @@ function Browse() {
       {dialogs.element}
     </div>
     {settings}
+    {setup}
     </Shell>
   )
 }
@@ -375,6 +395,8 @@ type Place = { project: string | null; repo: string | null }
 const NOWHERE: Place = { project: null, repo: null }
 
 const samePath = (a: string, b: string) => a.replaceAll('\\', '/').toLowerCase() === b.replaceAll('\\', '/').toLowerCase()
+
+const THEMES: [Theme, string][] = [['auto', 'Follow the system'], ['light', 'Light'], ['dark', 'Dark']]
 
 const FETCH_MINUTES = [0, 1, 2, 5, 10, 15, 30, 60]
 
