@@ -69,7 +69,7 @@ pub struct PrFile {
     pub change_type: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Label {
     pub name: String,
     #[serde(default)]

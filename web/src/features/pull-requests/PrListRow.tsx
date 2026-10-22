@@ -18,6 +18,16 @@ export function PrListRow({ pr, unread, selected, checkedOut, showRepo, onClick 
         {showRepo && <span className={styles.repoTag}>{pr.repo.split('/')[1]}</span>}
         <span>{pr.author}</span>
         <span className={styles.branch}>{pr.headRefName}</span>
+        {pr.labels.length > 0 && (
+          <span className={styles.rowLabels}>
+            {pr.labels.map((l) => (
+              <span key={l.name} className={styles.rowLabel}>
+                <span className={styles.labelDot} style={{ background: `#${l.color}` }} />
+                <span>{l.name}</span>
+              </span>
+            ))}
+          </span>
+        )}
         <ChecksMark checks={pr.checks} />
         <ReviewMark pr={pr} />
         <span className={styles.age}>{relativeTime(Date.parse(pr.updatedAt) / 1000)}</span>

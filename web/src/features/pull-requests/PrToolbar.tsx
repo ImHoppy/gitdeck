@@ -16,6 +16,8 @@ type Props = {
   onState: (s: ListState) => void
   scope: Scope
   onScope: (s: Scope) => void
+  /** The label filter and the sort, beside the text filter. */
+  filters: ReactNode
   filter: string
   onFilter: (text: string) => void
   loading: boolean
@@ -37,7 +39,7 @@ const STATES: [ListState, string][] = [
   ['merged', 'Merged'],
 ]
 
-export function PrToolbar({ lead, repos, repo, onRepo, state, onState, scope, onScope, filter, onFilter, loading, onRefresh, onNew, pop }: Props) {
+export function PrToolbar({ lead, repos, repo, onRepo, state, onState, scope, onScope, filters, filter, onFilter, loading, onRefresh, onNew, pop }: Props) {
   return (
     <div className={styles.toolbar}>
       {lead}
@@ -50,6 +52,7 @@ export function PrToolbar({ lead, repos, repo, onRepo, state, onState, scope, on
           </button>
         ))}
       </span>
+      {filters}
       <input className={styles.filter} value={filter} placeholder="Filter: title, #number, author, branch" onChange={(e) => onFilter(e.target.value)} />
       <IconButton title="Refresh (F5)" disabled={loading} onClick={onRefresh}>
         {loading ? <Spinner /> : <Icon name="refresh" />}

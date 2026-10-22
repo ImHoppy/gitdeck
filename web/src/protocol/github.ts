@@ -12,6 +12,13 @@ export type GithubRepoLink = { id: number; remote: string; repo: string }
 
 export type ListState = 'open' | 'closed' | 'merged'
 
+export type PrSort = 'created' | 'updated' | 'comments' | 'bestMatch'
+
+export type PrOrder = 'asc' | 'desc'
+
+/** Which PRs a list holds and in what order; anything past state and order is a GitHub search. */
+export type PrQuery = { state: ListState; scope: 'all' | 'mine' | 'review'; labels: string[]; noLabel: boolean; sort: PrSort; order: PrOrder }
+
 export type CheckSummary = { passed: number; failed: number; pending: number }
 
 export type PrSummary = {
@@ -25,20 +32,25 @@ export type PrSummary = {
   state: 'OPEN' | 'CLOSED' | 'MERGED'
   reviewDecision: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null
   checks: CheckSummary
+  createdAt: string
   updatedAt: string
   isCrossRepository: boolean
   headOwner: string | null
   url: string
   reviewRequests: string[]
+  labels: Label[]
+  comments: number
 }
 
-export type PrList = { repo: string; state: ListState; scope: 'all' | 'mine' | 'review'; prs: PrSummary[]; at: number; limit: number; complete: boolean }
+export type PrList = PrQuery & { repo: string; prs: PrSummary[]; at: number; limit: number; complete: boolean }
 
 export type PrCommit = { oid: string; headline: string; authoredDate: string; author: string }
 
 export type PrFile = { path: string; additions: number; deletions: number; changeType: string }
 
 export type Label = { name: string; color: string }
+
+export type RepoLabel = Label & { description: string }
 
 export type PrDetail = {
   id: string

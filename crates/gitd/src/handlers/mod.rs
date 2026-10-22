@@ -24,7 +24,7 @@ pub fn is_read(method: &str) -> bool {
     method.starts_with("log.")
         || method.starts_with("diff.")
         || method.starts_with("file.")
-        || matches!(method, "pr.status" | "pr.repos" | "pr.list" | "pr.view" | "pr.checks" | "pr.timeline" | "pr.repoInfo" | "pr.card" | "pr.findRepo" | "pr.switchedFrom")
+        || matches!(method, "pr.status" | "pr.repos" | "pr.list" | "pr.view" | "pr.checks" | "pr.timeline" | "pr.repoInfo" | "pr.labels" | "pr.card" | "pr.findRepo" | "pr.switchedFrom")
         || matches!(method, "project.open" | "workspace.open" | "remote.list" | "reflog.list" | "worktree.list" | "conflict.list" | "repo.stats" | "commit.body" | "commit.lastMessage" | "tree.list" | "stash.list" | "repo.conflicts")
 }
 
@@ -119,6 +119,7 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "pr.checks" => pulls::detail::checks(app, serde_json::from_value(params)?).await,
         "pr.timeline" => pulls::detail::timeline(app, serde_json::from_value(params)?).await,
         "pr.repoInfo" => pulls::detail::repo_info(app, serde_json::from_value(params)?).await,
+        "pr.labels" => pulls::detail::labels(app, serde_json::from_value(params)?).await,
         "pr.card" => pulls::detail::card(app, serde_json::from_value(params)?).await,
         "pr.fetch" => pulls::detail::fetch(app, serde_json::from_value(params)?).await,
         "pr.comment" => pulls::write::comment(app, serde_json::from_value(params)?).await,

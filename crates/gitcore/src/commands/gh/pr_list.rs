@@ -1,9 +1,10 @@
 //! The PR list, one page at a time with GraphQL: GitHub hands back a cursor, so the next page
 //! starts where the last one ended. (`gh pr list` only takes a total, so page 3 would rebuild
-//! the first 300 PRs.) Pages are small enough to show while the rest still loads. "Mine" and
-//! "Review requested" are GitHub searches, so they find old PRs and not only the latest page.
+//! the first 300 PRs.) Pages are small enough to show while the rest still loads. "Mine",
+//! "Review requested" and label filters are GitHub searches, so they find old PRs and not only
+//! the latest page.
 
-use super::{checks, graphql, login, Actor};
+use super::{checks, graphql, login, pr_query::Query, pr_view::Label, Actor};
 use crate::commands::remote::GithubRepo;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -36,7 +37,7 @@ impl ListState {
         }
     }
 
-    fn qualifier(self) -> &'static str {
+    pub(crate) fn qualifier(self) -> &'static str {
         match self {
             Self::Open => "is:open",
             Self::Closed => "is:closed",
@@ -56,22 +57,18 @@ pub enum Scope {
     Review,
 }
 
-/// The request body (sent on stdin): `first` PRs after `cursor`, most recently updated first.
-pub fn request(repo: &GithubRepo, state: ListState, scope: Scope, first: u32, cursor: Option<&str>) -> Vec<u8> {
-    let who = match scope {
-        Scope::All => None,
-        Scope::Mine => Some("author:@me"),
-        Scope::Review => Some("review-requested:@me"),
-    };
-    let body = match who {
-        None => json!({
-            "query": REPO_QUERY,
-            "variables": { "owner": repo.owner, "name": repo.name, "states": state.github_states(), "first": first, "after": cursor },
-        }),
-        Some(who) => json!({
+/// The request body (sent on stdin): `first` PRs after `cursor`, in the query's order.
+pub fn request(repo: &GithubRepo, query: &Query, first: u32, cursor: Option<&str>) -> Vec<u8> {
+    let body = if query.needs_search() {
+        json!({
             "query": SEARCH_QUERY,
-            "variables": { "q": format!("repo:{} is:pr {} {who} sort:updated-desc", repo.slug(), state.qualifier()), "first": first, "after": cursor },
-        }),
+            "variables": { "q": query.search(repo), "first": first, "after": cursor },
+        })
+    } else {
+        json!({
+            "query": REPO_QUERY,
+            "variables": { "owner": repo.owner, "name": repo.name, "states": query.state.github_states(), "orderBy": query.order_by(), "first": first, "after": cursor },
+        })
     };
     serde_json::to_vec(&body).unwrap_or_default()
 }
@@ -91,12 +88,15 @@ pub struct PrSummary {
     /// `APPROVED`, `CHANGES_REQUESTED`, `REVIEW_REQUIRED`, or none when no review is required.
     pub review_decision: Option<String>,
     pub checks: checks::CheckSummary,
+    pub created_at: String,
     pub updated_at: String,
     pub is_cross_repository: bool,
     pub head_owner: Option<String>,
     pub url: String,
     /// Logins and team names asked to review.
     pub review_requests: Vec<String>,
+    pub labels: Vec<Label>,
+    pub comments: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -165,6 +165,8 @@ struct Raw {
     state: String,
     #[serde(default)]
     review_decision: Option<String>,
+    #[serde(default)]
+    created_at: String,
     updated_at: String,
     #[serde(default)]
     is_cross_repository: bool,
@@ -175,6 +177,16 @@ struct Raw {
     review_requests: Option<Nodes<RequestNode>>,
     #[serde(default)]
     commits: Option<Nodes<CommitNode>>,
+    #[serde(default)]
+    labels: Option<Nodes<Label>>,
+    #[serde(default)]
+    comments: Option<Count>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Count {
+    total_count: u64,
 }
 
 #[derive(Deserialize)]
@@ -242,6 +254,7 @@ pub fn parse(out: &[u8]) -> Result<Page, String> {
                 state: r.state,
                 review_decision: r.review_decision.filter(|d| !d.is_empty()),
                 checks: rollup.map(|r| r.contexts.summary()).unwrap_or_default(),
+                created_at: r.created_at,
                 updated_at: r.updated_at,
                 is_cross_repository: r.is_cross_repository,
                 head_owner: r.head_repository_owner.map(|o| o.login),
@@ -250,6 +263,8 @@ pub fn parse(out: &[u8]) -> Result<Page, String> {
                     .review_requests
                     .map(|n| n.nodes.into_iter().filter_map(|q| q.requested_reviewer.and_then(ReviewRequest::who)).collect())
                     .unwrap_or_default(),
+                labels: r.labels.map(|n| n.nodes).unwrap_or_default(),
+                comments: r.comments.map_or(0, |c| c.total_count),
             }
         })
         .collect();
@@ -276,8 +291,10 @@ mod tests {
     #[test]
     fn request_asks_both_states_for_closed() {
         let repo = GithubRepo { owner: "a".into(), name: "b".into() };
-        let body: serde_json::Value = serde_json::from_slice(&request(&repo, ListState::Closed, Scope::All, 25, Some("c1"))).unwrap();
+        let query = Query { state: ListState::Closed, ..Query::open() };
+        let body: serde_json::Value = serde_json::from_slice(&request(&repo, &query, 25, Some("c1"))).unwrap();
         assert_eq!(body["variables"]["states"], json!(["CLOSED", "MERGED"]));
+        assert_eq!(body["variables"]["orderBy"]["field"], "UPDATED_AT");
         assert_eq!(body["variables"]["after"], "c1");
         assert_eq!(body["variables"]["first"], 25);
         assert!(body["query"].as_str().unwrap().contains("pullRequests(states: $states"));
@@ -287,10 +304,12 @@ mod tests {
     #[test]
     fn mine_and_review_are_searches() {
         let repo = GithubRepo { owner: "a".into(), name: "b".into() };
-        let body: serde_json::Value = serde_json::from_slice(&request(&repo, ListState::Closed, Scope::Mine, 25, None)).unwrap();
+        let query = Query { state: ListState::Closed, scope: Scope::Mine, ..Query::open() };
+        let body: serde_json::Value = serde_json::from_slice(&request(&repo, &query, 25, None)).unwrap();
         assert_eq!(body["variables"]["q"], "repo:a/b is:pr is:closed author:@me sort:updated-desc");
         assert!(body["query"].as_str().unwrap().contains("search(query: $q, type: ISSUE"));
-        let body: serde_json::Value = serde_json::from_slice(&request(&repo, ListState::Open, Scope::Review, 25, None)).unwrap();
+        let query = Query { scope: Scope::Review, ..Query::open() };
+        let body: serde_json::Value = serde_json::from_slice(&request(&repo, &query, 25, None)).unwrap();
         assert_eq!(body["variables"]["q"], "repo:a/b is:pr is:open review-requested:@me sort:updated-desc");
     }
 
@@ -308,11 +327,14 @@ mod tests {
             {"number":1,"title":"t","author":null,"headRefName":"h","baseRefName":"main","isDraft":true,"state":"OPEN",
              "reviewDecision":null,"updatedAt":"2026-01-01T00:00:00Z","url":"u","headRepositoryOwner":null,
              "reviewRequests":{"nodes":[{"requestedReviewer":{"name":"core"}},{"requestedReviewer":{"login":"me"}},{"requestedReviewer":null}]},
-             "commits":{"nodes":[{"commit":{"statusCheckRollup":null}}]}}]}}}}"#;
+             "commits":{"nodes":[{"commit":{"statusCheckRollup":null}}]},
+             "labels":{"nodes":[{"name":"bug","color":"d73a4a"}]},"comments":{"totalCount":4}}]}}}}"#;
         let page = parse(out).unwrap();
         assert_eq!(page.next, None);
         assert_eq!(page.prs[0].author, "ghost");
         assert_eq!(page.prs[0].review_requests, ["core", "me"]);
+        assert_eq!(page.prs[0].labels[0].name, "bug");
+        assert_eq!(page.prs[0].comments, 4);
         assert_eq!(parse(br#"{"data":null,"errors":[{"message":"API rate limit exceeded"}]}"#), Err("API rate limit exceeded".into()));
         assert_eq!(parse(br#"{"data":{"repository":null}}"#), Err("repository not found".into()));
     }

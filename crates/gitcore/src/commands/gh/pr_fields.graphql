@@ -1,7 +1,9 @@
 
 fragment Pr on PullRequest {
-  number title isDraft state updatedAt url headRefName baseRefName headRefOid isCrossRepository reviewDecision
+  number title isDraft state createdAt updatedAt url headRefName baseRefName headRefOid isCrossRepository reviewDecision
   author { login }
+  comments { totalCount }
+  labels(first: 10) { nodes { name color } }
   headRepositoryOwner { login }
   reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login } ... on Team { name } } } }
   commits(last: 1) {

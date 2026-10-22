@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { byUpdated, filterPrs, type PrRow } from './filter'
+import { bySort, byUpdated, filterPrs, type PrRow, queryKey } from './filter'
+import type { PrQuery } from '../../protocol/github'
 import { isUnread } from './unread'
 
 const pr = (n: number, extra: Partial<PrRow> = {}): PrRow => ({
@@ -13,11 +14,14 @@ const pr = (n: number, extra: Partial<PrRow> = {}): PrRow => ({
   state: 'OPEN',
   reviewDecision: null,
   checks: { passed: 0, failed: 0, pending: 0 },
+  createdAt: `2026-09-0${n}T00:00:00Z`,
   updatedAt: `2026-10-0${n}T00:00:00Z`,
   isCrossRepository: false,
   headOwner: null,
   url: '',
   reviewRequests: [],
+  labels: [],
+  comments: 0,
   repo: 'a/b',
   repoId: 1,
   ...extra,
@@ -34,6 +38,25 @@ describe('filterPrs', () => {
 
   test('newest first', () => {
     expect([...rows].sort(byUpdated).map((p) => p.number)).toEqual([3, 2, 1])
+  })
+
+  test('labels match the text too', () => {
+    const labelled = [...rows, pr(4, { labels: [{ name: 'database', color: '006b75' }] })]
+    expect(filterPrs(labelled, 'datab').map((p) => p.number)).toEqual([4])
+  })
+
+  test('merges by the sort GitHub used', () => {
+    const many = [pr(1, { comments: 5 }), pr(2, { comments: 9, createdAt: '2026-01-01T00:00:00Z' }), pr(3)]
+    expect([...many].sort(bySort('comments', 'desc')).map((p) => p.number)).toEqual([2, 1, 3])
+    expect([...many].sort(bySort('created', 'asc')).map((p) => p.number)).toEqual([2, 1, 3])
+    expect([...many].sort(bySort('updated', 'asc')).map((p) => p.number)).toEqual([1, 2, 3])
+    expect([...many].sort(bySort('bestMatch', 'desc')).map((p) => p.number)).toEqual([1, 2, 3])
+  })
+
+  test('no label wins over picked labels in the key', () => {
+    const q: PrQuery = { state: 'open', scope: 'all', labels: ['bug'], noLabel: false, sort: 'updated', order: 'desc' }
+    expect(queryKey(q)).not.toEqual(queryKey({ ...q, labels: [] }))
+    expect(queryKey({ ...q, noLabel: true })).toEqual(queryKey({ ...q, labels: [], noLabel: true }))
   })
 })
 

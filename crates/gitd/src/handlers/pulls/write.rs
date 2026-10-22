@@ -5,7 +5,7 @@ use gitcore::{
         gh::{
             graphql::{self, Mutation},
             pr_comment, pr_edit,
-            pr_list::{ListState, Scope},
+            pr_query::Query,
             pr_merge::{self, MergeMethod},
             pr_state::{self, StateChange},
         },
@@ -48,7 +48,7 @@ async fn finish(app: &AppState, r: &Resolved, outcome: &SyncOutcome, draft: Opti
         if let Some(Ok(dir)) = draft.map(|d| drafts::dir(&drafts::root(), d)) {
             let _ = tokio::fs::remove_dir_all(dir).await;
         }
-        let _ = app.github.list(&app.runner, &r.cwd, &r.repo, ListState::Open, Scope::All, true, None).await;
+        let _ = app.github.list(&app.runner, &r.cwd, &r.repo, &Query::open(), true, None).await;
     }
 }
 

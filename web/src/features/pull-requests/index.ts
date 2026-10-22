@@ -1,5 +1,6 @@
 export { PullRequestsView } from './PullRequestsView'
 export { type PrAvailability, usePrStatus } from './usePrStatus'
+export { OPEN_PRS } from './filter'
 export { usePullRequests } from './usePullRequests'
 export { ALL_REPOS, NO_PULLS, placeIn, PULLS_KEY, type PullsPlace, type PullsTab } from './prNav'
 export { type PrHeadMark, prsBySha } from './prHeads'

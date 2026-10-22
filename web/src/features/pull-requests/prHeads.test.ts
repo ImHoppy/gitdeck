@@ -13,11 +13,14 @@ const pr = (number: number, head: string, oid: string, extra: Partial<PrSummary>
   state: 'OPEN',
   reviewDecision: null,
   checks: { passed: 0, failed: 0, pending: 0 },
+  createdAt: '',
   updatedAt: '',
   isCrossRepository: false,
   headOwner: null,
   url: '',
   reviewRequests: [],
+  labels: [],
+  comments: 0,
   ...extra,
 })
 

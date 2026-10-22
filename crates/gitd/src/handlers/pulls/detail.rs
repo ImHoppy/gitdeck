@@ -3,7 +3,7 @@ use crate::{github::gh_error, handlers::repo::hub, server::AppState};
 use anyhow::Context;
 use gitcore::{
     commands::{
-        gh::{issue, pr_checks, pr_view, repo_view, timeline},
+        gh::{issue, label_list, pr_checks, pr_view, repo_view, timeline},
         merge_base, pull_ref,
         remote::GithubRepo,
     },
@@ -16,6 +16,7 @@ use workspace::RepoId;
 
 const REPO_INFO_TTL: Duration = Duration::from_secs(60 * 60);
 const CARD_TTL: Duration = Duration::from_secs(10 * 60);
+const LABELS_TTL: Duration = Duration::from_secs(10 * 60);
 
 #[derive(Deserialize)]
 pub struct PrParams {
@@ -68,6 +69,19 @@ pub async fn repo_info(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {
     }
     let out = gh_json(app, &r.cwd, repo_view::args(&r.repo)).await?;
     let v = serde_json::to_value(repo_view::parse(&out)?)?;
+    app.github.cache.put(key, v.clone());
+    Ok(v)
+}
+
+/// The repo's labels, for the list's label filter.
+pub async fn labels(app: &AppState, p: RepoParams) -> anyhow::Result<Value> {
+    let r = resolve(app, &p.target).await?;
+    let key = format!("labels:{}", r.repo.slug().to_lowercase());
+    if let Some(v) = app.github.cache.get(&key, LABELS_TTL) {
+        return Ok(v);
+    }
+    let out = gh_json(app, &r.cwd, label_list::args(&r.repo)).await?;
+    let v = serde_json::to_value(label_list::parse(&out)?)?;
     app.github.cache.put(key, v.clone());
     Ok(v)
 }

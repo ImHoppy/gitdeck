@@ -165,7 +165,36 @@
   font: 12px ui-monospace, 'Cascadia Code', Consolas, monospace;
 }
 
+.rowLabels {
+  display: flex;
+  flex: none;
+  max-width: 50%;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.rowLabel {
+  display: inline-flex;
+  flex: none;
+  max-width: 110px;
+  align-items: center;
+  gap: 4px;
+}
+
+.rowLabel span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labelDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
 .age {
+  flex: none;
   margin-left: auto;
 }
 

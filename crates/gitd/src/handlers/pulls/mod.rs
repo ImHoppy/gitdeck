@@ -10,7 +10,7 @@ use anyhow::Context;
 use futures::future::join_all;
 use gitcore::{
     commands::{
-        gh::pr_list::{ListState, Scope},
+        gh::pr_query::Query,
         remote::{self, GithubRepo},
     },
     GitRunner,
@@ -90,9 +90,8 @@ pub async fn repos(app: &AppState, p: StatusParams) -> anyhow::Result<Value> {
 pub struct ListParams {
     #[serde(flatten)]
     target: Target,
-    state: ListState,
-    #[serde(default)]
-    scope: Scope,
+    #[serde(flatten)]
+    query: Query,
     /// The user asked: only a short throttle applies.
     #[serde(default)]
     refresh: bool,
@@ -103,7 +102,7 @@ pub struct ListParams {
 
 pub async fn list(app: &AppState, p: ListParams) -> anyhow::Result<Value> {
     let r = resolve(app, &p.target).await?;
-    Ok(serde_json::to_value(app.github.list(&app.runner, &r.cwd, &r.repo, p.state, p.scope, p.refresh, p.limit).await?)?)
+    Ok(serde_json::to_value(app.github.list(&app.runner, &r.cwd, &r.repo, &p.query, p.refresh, p.limit).await?)?)
 }
 
 #[derive(Deserialize)]

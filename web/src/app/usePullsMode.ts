@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { NO_PULLS, placeIn, PULLS_KEY, type PullsPlace, usePrStatus, usePullRequests } from '../features/pull-requests'
+import { NO_PULLS, OPEN_PRS, placeIn, PULLS_KEY, type PullsPlace, usePrStatus, usePullRequests } from '../features/pull-requests'
 import { requestHistory } from '../lib/historyTarget'
 import { navPushMany, useNavState } from '../lib/navState'
 import { pullsInWindow } from '../lib/pullsWindow'
@@ -33,7 +33,7 @@ export function usePullsMode({ workspace, selectedId, settingKey, revealRepo }: 
   const current = availability.repos.filter((l) => l.id === selectedId)
   // on but not usable (no gh, no login): the view itself says what to do on the host
   const enabled = !!availability.status?.enabled
-  const currentPrs = usePullRequests(current, 'open', 'all', availability.ready)
+  const currentPrs = usePullRequests(current, OPEN_PRS, availability.ready)
   const unread = currentPrs.unread.size
 
   const push = useCallback(

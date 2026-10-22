@@ -3,7 +3,7 @@ import { useNarrow } from '../../lib/useNarrow'
 import { usePaneSize } from '../../lib/usePaneSize'
 import { useSessionState } from '../../lib/useSessionState'
 import { gitd } from '../../protocol/client'
-import type { ListState, RepoMatch } from '../../protocol/github'
+import type { ListState, PrOrder, PrQuery, PrSort, RepoMatch } from '../../protocol/github'
 import type { WorkspaceSnapshot } from '../../protocol/types'
 import { Resizer } from '../../ui/Resizer/Resizer'
 import { filterPrs, type Scope } from './filter'
@@ -16,8 +16,11 @@ import { PrToolbar } from './PrToolbar'
 import { PrUnavailable } from './PrUnavailable'
 import styles from './PullRequests.module.css'
 import { CreatePrForm } from './CreatePrForm'
+import { LabelFilter } from './LabelFilter'
+import { SortMenu } from './SortMenu'
 import type { PrAvailability } from './usePrStatus'
 import { usePullRequests } from './usePullRequests'
+import { useRepoLabels } from './useRepoLabels'
 
 const same = (a: string, b: string) => a.replaceAll('\\', '/').toLowerCase() === b.replaceAll('\\', '/').toLowerCase()
 
@@ -41,6 +44,9 @@ export function PullRequestsView({ workspace, availability, place, push, replace
   const { repos: links, ready } = availability
   const [state, setState] = useSessionState<ListState>('pulls.state', 'open')
   const [scope, setScope] = useSessionState<Scope>('pulls.scope', 'all')
+  const [labels, setLabels] = useSessionState<{ names: string[]; none: boolean }>('pulls.labels', { names: [], none: false })
+  const [sorting, setSorting] = useSessionState<{ sort: PrSort; order: PrOrder }>('pulls.sort', { sort: 'updated', order: 'desc' })
+  const [labelsWanted, setLabelsWanted] = useState(false)
   const [filter, setFilter] = useState('')
   const listWidth = usePaneSize('pullsList', 380, 220, 900)
   const narrow = useNarrow()
@@ -52,7 +58,9 @@ export function PullRequestsView({ workspace, availability, place, push, replace
     ? null
     : (links.find((l) => place.repo && same(pathOf(l.id) ?? '', place.repo)) ?? links.find((l) => l.id === currentRepoId) ?? links[0] ?? null)
   const listed = useMemo(() => (all ? links : selectedLink ? [selectedLink] : []), [all, links, selectedLink])
-  const prs = usePullRequests(listed, state, scope, ready)
+  const query: PrQuery = { state, scope, labels: labels.names, noLabel: labels.none, ...sorting }
+  const prs = usePullRequests(listed, query, ready)
+  const repoLabels = useRepoLabels(listed, labelsWanted)
   const rows = useMemo(() => filterPrs(prs.rows, filter), [prs.rows, filter])
 
   const prRepo = place.prRepo ?? selectedLink?.repo ?? null
@@ -123,6 +131,18 @@ export function PullRequestsView({ workspace, availability, place, push, replace
         onState={setState}
         scope={scope}
         onScope={setScope}
+        filters={
+          <>
+            <LabelFilter
+              labels={repoLabels}
+              selected={labels.names}
+              noLabel={labels.none}
+              onChange={(names, none) => setLabels({ names, none })}
+              onOpen={() => setLabelsWanted(true)}
+            />
+            <SortMenu sort={sorting.sort} order={sorting.order} onChange={(sort, order) => setSorting({ sort, order })} />
+          </>
+        }
         filter={filter}
         onFilter={setFilter}
         loading={prs.loading}
@@ -139,7 +159,7 @@ export function PullRequestsView({ workspace, availability, place, push, replace
               unread={prs.unread}
               selected={selectedKey}
               showRepo={all}
-              empty={prs.loading ? 'Loading…' : `No ${state} pull requests${scope !== 'all' || filter ? ' here' : ''}.`}
+              empty={prs.loading ? 'Loading…' : `No ${state} pull requests${scope !== 'all' || filter || labels.names.length || labels.none ? ' here' : ''}.`}
               checkedOut={(pr) => !pr.isCrossRepository && pr.repoId !== null && currentBranch(pr.repoId) === pr.headRefName}
               onSelect={(pr, move) => (move ? replace : push)({ ...place, pr: pr.number, prRepo: pr.repo, create: null })}
               key={prs.page}

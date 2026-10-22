@@ -13,7 +13,7 @@ use crate::events::Event;
 use anyhow::bail;
 use gitcore::{
     commands::{
-        gh::{auth::{self, GhAvailability}, pr_list::{ListState, Scope}},
+        gh::{auth::{self, GhAvailability}, pr_query::Query},
         remote::{self, GithubRepo},
     },
     GhRunner, GitRunner, ProcessRunner, RunError,
@@ -173,7 +173,7 @@ impl Github {
             for path in paths {
                 let Some((_, repo)) = gh.remote_of(&runner, &path, false).await else { continue };
                 if seen.insert(key(&repo)) {
-                    let _ = gh.list(&runner, &path, &repo, ListState::Open, Scope::All, false, None).await;
+                    let _ = gh.list(&runner, &path, &repo, &Query::open(), false, None).await;
                 }
             }
         });
