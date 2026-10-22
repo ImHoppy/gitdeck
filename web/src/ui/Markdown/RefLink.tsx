@@ -10,21 +10,28 @@ export function RefLink({ repo, number, text }: { repo: string | null; number: n
   const ctx = useMarkdownCtx()
   const [card, setCard] = useState<RefPreview | null | 'loading'>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // a card that arrives after the pointer left stays closed
+  const hovering = useRef(false)
   const slug = repo ?? ctx.repo
   const href = slug ? `https://github.com/${slug}/issues/${number}` : undefined
 
   const enter = () => {
-    if (!ctx.preview || card) return
+    if (!ctx.preview) return
     const preview = ctx.preview
+    hovering.current = true
     timer.current = setTimeout(() => {
       setCard('loading')
-      preview(repo, number).then(setCard, () => setCard(null))
+      preview(repo, number).then(
+        (c) => hovering.current && setCard(c),
+        () => setCard(null),
+      )
     }, HOVER_DELAY_MS)
   }
   const leave = () => {
+    hovering.current = false
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
-    if (card === 'loading') setCard(null)
+    setCard(null)
   }
 
   return (
