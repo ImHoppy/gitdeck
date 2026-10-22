@@ -26,16 +26,10 @@ const pr = (n: number, extra: Partial<PrRow> = {}): PrRow => ({
 describe('filterPrs', () => {
   const rows = [pr(1), pr(2, { author: 'Bob', reviewRequests: ['ALICE'] }), pr(3, { title: 'Fix auto fetch backoff' })]
 
-  test('scopes', () => {
-    expect(filterPrs(rows, 'mine', '', 'Alice').map((p) => p.number)).toEqual([1, 3])
-    expect(filterPrs(rows, 'review', '', 'alice').map((p) => p.number)).toEqual([2])
-    expect(filterPrs(rows, 'all', '', null)).toHaveLength(3)
-  })
-
   test('text matches every word anywhere', () => {
-    expect(filterPrs(rows, 'all', 'backoff fix', null).map((p) => p.number)).toEqual([3])
-    expect(filterPrs(rows, 'all', '#2', null).map((p) => p.number)).toEqual([2])
-    expect(filterPrs(rows, 'all', 'feat/1', null).map((p) => p.number)).toEqual([1])
+    expect(filterPrs(rows, 'backoff fix').map((p) => p.number)).toEqual([3])
+    expect(filterPrs(rows, '#2').map((p) => p.number)).toEqual([2])
+    expect(filterPrs(rows, 'feat/1').map((p) => p.number)).toEqual([1])
   })
 
   test('newest first', () => {

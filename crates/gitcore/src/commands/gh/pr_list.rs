@@ -1,13 +1,15 @@
 //! The PR list, one page at a time with GraphQL: GitHub hands back a cursor, so the next page
 //! starts where the last one ended. (`gh pr list` only takes a total, so page 3 would rebuild
-//! the first 300 PRs.) Pages are small enough to show while the rest still loads.
+//! the first 300 PRs.) Pages are small enough to show while the rest still loads. "Mine" and
+//! "Review requested" are GitHub searches, so they find old PRs and not only the latest page.
 
 use super::{checks, graphql, login, Actor};
 use crate::commands::remote::GithubRepo;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-const QUERY: &str = include_str!("pr_list.graphql");
+const REPO_QUERY: &str = concat!(include_str!("pr_list.graphql"), include_str!("pr_fields.graphql"));
+const SEARCH_QUERY: &str = concat!(include_str!("pr_search.graphql"), include_str!("pr_fields.graphql"));
 
 /// One page of the list as shown.
 pub const PAGE: u32 = 100;
@@ -33,18 +35,45 @@ impl ListState {
             Self::Merged => &["MERGED"],
         }
     }
+
+    fn qualifier(self) -> &'static str {
+        match self {
+            Self::Open => "is:open",
+            Self::Closed => "is:closed",
+            Self::Merged => "is:merged",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Scope {
+    #[default]
+    All,
+    /// Opened by the gh login.
+    Mine,
+    /// Waiting for the gh login's review, directly or through one of its teams.
+    Review,
 }
 
 /// The request body (sent on stdin): `first` PRs after `cursor`, most recently updated first.
-pub fn request(repo: &GithubRepo, state: ListState, first: u32, cursor: Option<&str>) -> Vec<u8> {
-    let variables = json!({
-        "owner": repo.owner,
-        "name": repo.name,
-        "states": state.github_states(),
-        "first": first,
-        "after": cursor,
-    });
-    serde_json::to_vec(&json!({ "query": QUERY, "variables": variables })).unwrap_or_default()
+pub fn request(repo: &GithubRepo, state: ListState, scope: Scope, first: u32, cursor: Option<&str>) -> Vec<u8> {
+    let who = match scope {
+        Scope::All => None,
+        Scope::Mine => Some("author:@me"),
+        Scope::Review => Some("review-requested:@me"),
+    };
+    let body = match who {
+        None => json!({
+            "query": REPO_QUERY,
+            "variables": { "owner": repo.owner, "name": repo.name, "states": state.github_states(), "first": first, "after": cursor },
+        }),
+        Some(who) => json!({
+            "query": SEARCH_QUERY,
+            "variables": { "q": format!("repo:{} is:pr {} {who} sort:updated-desc", repo.slug(), state.qualifier()), "first": first, "after": cursor },
+        }),
+    };
+    serde_json::to_vec(&body).unwrap_or_default()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -91,7 +120,10 @@ struct Message {
 
 #[derive(Deserialize)]
 struct Data {
+    #[serde(default)]
     repository: Option<Repository>,
+    #[serde(default)]
+    search: Option<Connection>,
 }
 
 #[derive(Deserialize)]
@@ -188,7 +220,12 @@ pub fn parse(out: &[u8]) -> Result<Page, String> {
     if !answer.errors.is_empty() {
         return Err(answer.errors.into_iter().map(|e| e.message).collect::<Vec<_>>().join("; "));
     }
-    let conn = answer.data.and_then(|d| d.repository).ok_or("repository not found")?.pull_requests;
+    let data = answer.data.ok_or("no answer")?;
+    let conn = match (data.search, data.repository) {
+        (Some(found), _) => found,
+        (None, Some(repo)) => repo.pull_requests,
+        (None, None) => return Err("repository not found".into()),
+    };
     let prs = conn
         .nodes
         .into_iter()
@@ -239,11 +276,30 @@ mod tests {
     #[test]
     fn request_asks_both_states_for_closed() {
         let repo = GithubRepo { owner: "a".into(), name: "b".into() };
-        let body: serde_json::Value = serde_json::from_slice(&request(&repo, ListState::Closed, 25, Some("c1"))).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&request(&repo, ListState::Closed, Scope::All, 25, Some("c1"))).unwrap();
         assert_eq!(body["variables"]["states"], json!(["CLOSED", "MERGED"]));
         assert_eq!(body["variables"]["after"], "c1");
         assert_eq!(body["variables"]["first"], 25);
         assert!(body["query"].as_str().unwrap().contains("pullRequests(states: $states"));
+        assert!(body["query"].as_str().unwrap().contains("fragment Pr on PullRequest"));
+    }
+
+    #[test]
+    fn mine_and_review_are_searches() {
+        let repo = GithubRepo { owner: "a".into(), name: "b".into() };
+        let body: serde_json::Value = serde_json::from_slice(&request(&repo, ListState::Closed, Scope::Mine, 25, None)).unwrap();
+        assert_eq!(body["variables"]["q"], "repo:a/b is:pr is:closed author:@me sort:updated-desc");
+        assert!(body["query"].as_str().unwrap().contains("search(query: $q, type: ISSUE"));
+        let body: serde_json::Value = serde_json::from_slice(&request(&repo, ListState::Open, Scope::Review, 25, None)).unwrap();
+        assert_eq!(body["variables"]["q"], "repo:a/b is:pr is:open review-requested:@me sort:updated-desc");
+    }
+
+    #[test]
+    fn real_search_page() {
+        let page = parse(include_bytes!("testdata/pr_search.json")).unwrap();
+        assert_eq!(page.prs.len(), 3);
+        assert!(page.prs.iter().all(|p| p.author == "babakks" && p.state == "MERGED"));
+        assert!(page.next.is_some());
     }
 
     #[test]

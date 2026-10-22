@@ -1,0 +1,19 @@
+
+fragment Pr on PullRequest {
+  number title isDraft state updatedAt url headRefName baseRefName headRefOid isCrossRepository reviewDecision
+  author { login }
+  headRepositoryOwner { login }
+  reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login } ... on Team { name } } } }
+  commits(last: 1) {
+    nodes {
+      commit {
+        statusCheckRollup {
+          contexts(first: 1) {
+            checkRunCountsByState { state count }
+            statusContextCountsByState { state count }
+          }
+        }
+      }
+    }
+  }
+}

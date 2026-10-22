@@ -2,24 +2,7 @@ query($owner: String!, $name: String!, $states: [PullRequestState!], $first: Int
   repository(owner: $owner, name: $name) {
     pullRequests(states: $states, first: $first, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
       pageInfo { hasNextPage endCursor }
-      nodes {
-        number title isDraft state updatedAt url headRefName baseRefName headRefOid isCrossRepository reviewDecision
-        author { login }
-        headRepositoryOwner { login }
-        reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login } ... on Team { name } } } }
-        commits(last: 1) {
-          nodes {
-            commit {
-              statusCheckRollup {
-                contexts(first: 1) {
-                  checkRunCountsByState { state count }
-                  statusContextCountsByState { state count }
-                }
-              }
-            }
-          }
-        }
-      }
+      nodes { ...Pr }
     }
   }
 }

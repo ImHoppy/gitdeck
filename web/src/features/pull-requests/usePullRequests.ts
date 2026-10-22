@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { gitd } from '../../protocol/client'
 import type { GithubRepoLink, ListState, PrList } from '../../protocol/github'
-import { byUpdated, type PrRow } from './filter'
+import { byUpdated, type PrRow, type Scope } from './filter'
 import { isUnread, loadSeen, SEEN_EVENT, setBaseline } from './unread'
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -35,7 +35,7 @@ function useSeen() {
  * The PRs of `repos` (one repo, or every repo for "All repos"), kept live: gitd pushes a
  * list whenever a refresh finds it changed.
  */
-export function usePullRequests(repos: GithubRepoLink[], state: ListState, enabled: boolean) {
+export function usePullRequests(repos: GithubRepoLink[], state: ListState, scope: Scope, enabled: boolean) {
   const [lists, setLists] = useState<Record<string, PrList>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -50,10 +50,10 @@ export function usePullRequests(repos: GithubRepoLink[], state: ListState, enabl
       const unique = repos.filter((r, i) => repos.findIndex((o) => same(o.repo, r.repo)) === i)
       void Promise.all(
         unique.map((r) =>
-          gitd.call<PrList>('pr.list', { id: r.id, state, refresh }).then(
+          gitd.call<PrList>('pr.list', { id: r.id, state, scope, refresh }).then(
             (list) => {
               setBaseline(list.repo, new Date(list.at * 1000).toISOString())
-              setLists((l) => ({ ...l, [`${r.repo.toLowerCase()}:${state}`]: list }))
+              setLists((l) => ({ ...l, [`${r.repo.toLowerCase()}:${state}:${scope}`]: list }))
               setErrors((e) => ({ ...e, [r.repo]: '' }))
             },
             (e: Error) => setErrors((all) => ({ ...all, [r.repo]: e.message })),
@@ -62,7 +62,7 @@ export function usePullRequests(repos: GithubRepoLink[], state: ListState, enabl
       ).finally(() => setLoading(false))
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [key, state, enabled],
+    [key, state, scope, enabled],
   )
 
   useEffect(() => load(false), [load])
@@ -70,22 +70,22 @@ export function usePullRequests(repos: GithubRepoLink[], state: ListState, enabl
   useEffect(
     () =>
       gitd.on<PrList>('pull-requests', (list) => {
-        if (list.state === state) setLists((l) => ({ ...l, [`${list.repo.toLowerCase()}:${list.state}`]: list }))
+        if (list.state === state && list.scope === scope) setLists((l) => ({ ...l, [`${list.repo.toLowerCase()}:${list.state}:${list.scope}`]: list }))
       }),
-    [state],
+    [state, scope],
   )
 
   const rows: PrRow[] = useMemo(() => {
     const out: PrRow[] = []
     const added = new Set<string>()
     for (const r of repos) {
-      const k = `${r.repo.toLowerCase()}:${state}`
+      const k = `${r.repo.toLowerCase()}:${state}:${scope}`
       if (added.has(k)) continue
       added.add(k)
       for (const pr of lists[k]?.prs ?? []) out.push({ ...pr, repo: lists[k].repo, repoId: r.id })
     }
     return out.sort(byUpdated)
-  }, [lists, repos, state])
+  }, [lists, repos, state, scope])
 
   const unread = useMemo(() => new Set(rows.filter((p) => isUnread(seen, p.repo, p.number, p.updatedAt)).map((p) => `${p.repo}#${p.number}`)), [rows, seen])
   const error = Object.entries(errors).find(([, e]) => e)?.[1] ?? null
@@ -93,30 +93,30 @@ export function usePullRequests(repos: GithubRepoLink[], state: ListState, enabl
 
   const [growing, setGrowing] = useState(false)
   const [paged, setPaged] = useState({ at: '', page: 1 })
-  const scope = `${key}:${state}`
-  const page = paged.at === scope ? paged.page : 1
+  const pagesOf = `${key}:${state}:${scope}`
+  const page = paged.at === pagesOf ? paged.page : 1
   const unique = useMemo(() => repos.filter((r, i) => repos.findIndex((o) => same(o.repo, r.repo)) === i), [repos])
-  const listOf = useCallback((r: GithubRepoLink) => lists[`${r.repo.toLowerCase()}:${state}`], [lists, state])
+  const listOf = useCallback((r: GithubRepoLink) => lists[`${r.repo.toLowerCase()}:${state}:${scope}`], [lists, state, scope])
   const complete = unique.every((r) => listOf(r)?.complete ?? true)
 
   /** Page `p` holds PRs `(p-1)*100 … p*100` of the merged list; gh lists from the top, so the lists grow to reach it. */
   const goTo = useCallback(
     (p: number) => {
-      setPaged({ at: scope, page: p })
+      setPaged({ at: pagesOf, page: p })
       const need = p * PAGE
       const short = unique.filter((r) => listOf(r) && !listOf(r).complete && listOf(r).limit < need)
       if (!enabled || short.length === 0) return
       setGrowing(true)
       void Promise.all(
         short.map((r) =>
-          gitd.call<PrList>('pr.list', { id: r.id, state, limit: need }).then(
-            (list) => setLists((l) => ({ ...l, [`${r.repo.toLowerCase()}:${state}`]: list })),
+          gitd.call<PrList>('pr.list', { id: r.id, state, scope, limit: need }).then(
+            (list) => setLists((l) => ({ ...l, [`${r.repo.toLowerCase()}:${state}:${scope}`]: list })),
             (e: Error) => setErrors((all) => ({ ...all, [r.repo]: e.message })),
           ),
         ),
       ).finally(() => setGrowing(false))
     },
-    [scope, unique, listOf, enabled, state],
+    [pagesOf, unique, listOf, enabled, state, scope],
   )
 
   const pageRows = useMemo(() => rows.slice((page - 1) * PAGE, page * PAGE), [rows, page])

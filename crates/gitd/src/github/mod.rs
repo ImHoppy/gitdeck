@@ -13,7 +13,7 @@ use crate::events::Event;
 use anyhow::bail;
 use gitcore::{
     commands::{
-        gh::{auth::{self, GhAvailability}, pr_list::ListState},
+        gh::{auth::{self, GhAvailability}, pr_list::{ListState, Scope}},
         remote::{self, GithubRepo},
     },
     GhRunner, GitRunner, ProcessRunner, RunError,
@@ -41,9 +41,9 @@ pub struct Github {
     enabled: AtomicBool,
     availability: Mutex<Option<(Instant, GhAvailability)>>,
     remotes: Mutex<HashMap<PathBuf, Option<(String, GithubRepo)>>>,
-    lists: Mutex<HashMap<(String, ListState), PrList>>,
+    lists: Mutex<HashMap<lists::ListKey, PrList>>,
     /// One fetch at a time per list: the next page waits for a refresh instead of racing it.
-    gates: Mutex<HashMap<(String, ListState), Arc<tokio::sync::Mutex<()>>>>,
+    gates: Mutex<HashMap<lists::ListKey, Arc<tokio::sync::Mutex<()>>>>,
     throttle: Mutex<Throttle>,
     pub cache: cache::Cache,
     /// Per clone: the branch left by "Switch to this branch" and the stash made then.
@@ -173,7 +173,7 @@ impl Github {
             for path in paths {
                 let Some((_, repo)) = gh.remote_of(&runner, &path, false).await else { continue };
                 if seen.insert(key(&repo)) {
-                    let _ = gh.list(&runner, &path, &repo, ListState::Open, false, None).await;
+                    let _ = gh.list(&runner, &path, &repo, ListState::Open, Scope::All, false, None).await;
                 }
             }
         });

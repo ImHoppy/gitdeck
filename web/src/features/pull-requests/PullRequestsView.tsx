@@ -38,7 +38,7 @@ type Props = {
 
 /** The PR list on the left, the whole selected PR on the right, like an email client. */
 export function PullRequestsView({ workspace, availability, place, push, replace, currentRepoId, lead, pop, onShowInHistory }: Props) {
-  const { repos: links, ready, login } = availability
+  const { repos: links, ready } = availability
   const [state, setState] = useSessionState<ListState>('pulls.state', 'open')
   const [scope, setScope] = useSessionState<Scope>('pulls.scope', 'all')
   const [filter, setFilter] = useState('')
@@ -52,8 +52,8 @@ export function PullRequestsView({ workspace, availability, place, push, replace
     ? null
     : (links.find((l) => place.repo && same(pathOf(l.id) ?? '', place.repo)) ?? links.find((l) => l.id === currentRepoId) ?? links[0] ?? null)
   const listed = useMemo(() => (all ? links : selectedLink ? [selectedLink] : []), [all, links, selectedLink])
-  const prs = usePullRequests(listed, state, ready)
-  const rows = useMemo(() => filterPrs(prs.rows, scope, filter, login), [prs.rows, scope, filter, login])
+  const prs = usePullRequests(listed, state, scope, ready)
+  const rows = useMemo(() => filterPrs(prs.rows, filter), [prs.rows, filter])
 
   const prRepo = place.prRepo ?? selectedLink?.repo ?? null
   const prLink = prRepo ? links.find((l) => same(l.repo, prRepo)) : undefined

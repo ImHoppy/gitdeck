@@ -33,7 +33,7 @@ export function usePullsMode({ workspace, selectedId, settingKey, revealRepo }: 
   const current = availability.repos.filter((l) => l.id === selectedId)
   // on but not usable (no gh, no login): the view itself says what to do on the host
   const enabled = !!availability.status?.enabled
-  const currentPrs = usePullRequests(current, 'open', availability.ready)
+  const currentPrs = usePullRequests(current, 'open', 'all', availability.ready)
   const unread = currentPrs.unread.size
 
   const push = useCallback(
