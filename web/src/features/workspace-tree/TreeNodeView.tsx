@@ -3,6 +3,7 @@ import type { RepoSnapshot } from '../../protocol/types'
 import type { TreeNode } from './model'
 import { rollup } from './model'
 import { Icon } from '../../ui/Icon/Icon'
+import { useClickOrDouble } from '../../lib/useClickOrDouble'
 import { RepoBadges } from './RepoBadges'
 import { TreeRow } from './TreeRow'
 import styles from './WorkspaceTree.module.css'
@@ -21,6 +22,10 @@ export function TreeNodeView({ node, depth, selectedId, onSelect, onOpen, action
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children.length > 0
   const toggle = () => setExpanded((e) => !e)
+  const clicks = useClickOrDouble(
+    node.kind === 'repo' ? () => onSelect(node.repo.id) : undefined,
+    node.kind === 'repo' && onOpen ? () => onOpen(node.repo) : undefined,
+  )
 
   const label =
     node.kind === 'folder' ? (
@@ -53,8 +58,8 @@ export function TreeNodeView({ node, depth, selectedId, onSelect, onOpen, action
         expanded={hasChildren ? expanded : null}
         selected={node.kind === 'repo' && node.repo.id === selectedId}
         onToggle={toggle}
-        onClick={node.kind === 'repo' ? () => onSelect(node.repo.id) : undefined}
-        onDoubleClick={node.kind === 'repo' && onOpen ? () => onOpen(node.repo) : undefined}
+        onClick={clicks.onClick}
+        onDoubleClick={clicks.onDoubleClick}
         onContextMenu={node.kind === 'repo' && onRepoMenu ? (at) => onRepoMenu(node.repo, at) : undefined}
       >
         {label}

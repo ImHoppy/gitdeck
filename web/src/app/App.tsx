@@ -257,7 +257,7 @@ function Browse() {
             workspace={workspace}
             selectedId={selectedId}
             onSelect={pickRepo}
-            onOpen={(repo) => repoWindowOnDoubleClick() && openRepoWindow(repo.path)}
+            onOpen={repoWindowOnDoubleClick() ? (repo) => openRepoWindow(repo.path) : undefined}
             onRefresh={() => open(workspace.name, true)}
             picker={<>
               <IconButton title="Close the project and go back to the start page" onClick={closeProject}>
