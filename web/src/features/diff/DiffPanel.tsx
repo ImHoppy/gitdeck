@@ -1,5 +1,6 @@
 import { Spinner } from '../../ui/Spinner/Spinner'
-import { ImagePreview, isImage } from './ImagePreview'
+import { ImagePreview } from './ImagePreview'
+import { isImage } from './isImage'
 import { Select } from '../../ui/Select/Select'
 import { useMemo, useState } from 'react'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'

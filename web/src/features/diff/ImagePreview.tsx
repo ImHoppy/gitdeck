@@ -3,10 +3,6 @@ import type { ChangedFile, DiffTarget } from '../../protocol/types'
 import { formatBytes } from '../../lib/formatBytes'
 import styles from './ImagePreview.module.css'
 
-const IMAGE = /\.(png|jpe?g|gif|webp|bmp|ico|svg|avif)$/i
-
-export const isImage = (path: string) => IMAGE.test(path)
-
 /** The two revisions a diff compares, as `/blob` names them; null where the file has no before. */
 function revisions(target: DiffTarget): [string | null, string] {
   if (target.kind === 'worktree') return ['index', 'worktree']

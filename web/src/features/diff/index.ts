@@ -1,6 +1,7 @@
 export { DiffPanel } from './DiffPanel'
 export { type FileAction, FileList, type FileListMode } from './FileList'
-export { ImagePreview, isImage } from './ImagePreview'
+export { ImagePreview } from './ImagePreview'
+export { isImage } from './isImage'
 export { PatchView } from './PatchView'
 export { useDiffFiles } from './useDiffFiles'
 export { usePatch } from './usePatch'

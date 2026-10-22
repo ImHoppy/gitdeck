@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { useSessionState } from '../lib/useSessionState'
 import { useDebounced } from '../lib/useDebounced'
 import { CommitDialog } from '../features/commit'
@@ -118,31 +118,32 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
       live = false
     }
   }, [ancestry, selectedSha, ancestors])
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'F5') {
-        e.preventDefault()
-        history.reload()
-      } else if (e.ctrlKey && e.key === ' ') {
-        e.preventDefault()
-        openCommit()
-      } else if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'g') {
-        e.preventDefault()
-        void tools.gitBash()
-      } else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
-        e.preventDefault()
-        filterBox.current?.focus()
-      } else if (e.ctrlKey && !committing && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-        // Git Extensions: Ctrl+Down pulls, Ctrl+Up pushes
-        e.preventDefault()
-        if (pull.busy) return
-        if (e.key === 'ArrowDown') pull.run(pull.action)
-        else onPush(repo.id)
-      }
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key === 'F5') {
+      e.preventDefault()
+      history.reload()
+    } else if (e.ctrlKey && e.key === ' ') {
+      e.preventDefault()
+      openCommit()
+    } else if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'g') {
+      e.preventDefault()
+      void tools.gitBash()
+    } else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+      e.preventDefault()
+      filterBox.current?.focus()
+    } else if (e.ctrlKey && !committing && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      // Git Extensions: Ctrl+Down pulls, Ctrl+Up pushes
+      e.preventDefault()
+      if (pull.busy) return
+      if (e.key === 'ArrowDown') pull.run(pull.action)
+      else onPush(repo.id)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [history, committing, pull, onPush, repo.id, tools])
+  })
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => onKey(e)
+    window.addEventListener('keydown', listener)
+    return () => window.removeEventListener('keydown', listener)
+  }, [])
   useEffect(() => {
     document.title = `${repo.pathInParent ?? repo.name} · gitdeck`
   }, [repo.pathInParent, repo.name])

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { loadSetting, saveSetting } from '../../lib/storedSetting'
 import { Toast } from '../../ui/Toast/Toast'
 import { useRepoTools } from '../repo-actions'
@@ -82,46 +82,6 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
   }
   const canCommit = !actions.busy && message.trim() !== '' && ((staged.files?.length ?? 0) > 0 || amend)
 
-  // Git Extensions keys on the picked file: S stage, U unstage, R reset; the next file gets picked
-  const fileKeys = useRef<(key: string) => boolean>(() => false)
-  fileKeys.current = (key) => {
-    if (!file || !picked || !list) return false
-    const next = list[list.indexOf(file) + 1] ?? list[list.indexOf(file) - 1]
-    const pickNext = () => setPicked(next ? { side: picked.side, path: next.path } : null)
-    if (key === 's' && picked.side === 'worktree') {
-      stage([file])
-      pickNext()
-    } else if (key === 'u' && picked.side === 'index') {
-      unstage([file])
-      pickNext()
-    } else if (key === 'r' && picked.side === 'worktree') void discard([file])
-    else return false
-    return true
-  }
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const typing = e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')
-      const covered = document.querySelector('[role="menu"], [aria-modal="true"]')
-      if (!typing && !covered && !e.ctrlKey && !e.altKey && !e.metaKey && fileKeys.current(e.key.toLowerCase())) {
-        e.preventDefault()
-        return
-      }
-      if (e.key === 'F5') {
-        // new file lists also reload the open diff; in its own window this beats reloading the page
-        e.preventDefault()
-        unstaged.reload()
-        staged.reload()
-        return
-      }
-      // a menu or a confirmation on top takes the Escape for itself
-      if (e.key !== 'Escape' || document.querySelector('[role="menu"], [aria-modal="true"]')) return
-      onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, unstaged.reload, staged.reload])
-
   const switchMode = () => {
     const next = mode === 'tree' ? 'list' : 'tree'
     setMode(next)
@@ -139,6 +99,46 @@ export function CommitDialog({ repoId, onClose, onPush, standalone, onPopOut }: 
     const body = fresh ? `The changes to ${what} will be lost; ${fresh} new file${fresh === 1 ? '' : 's'} will be deleted.` : `The changes to ${what} will be lost.`
     if (await dialogs.confirm('Discard changes?', body, 'Discard')) await actions.discard(files)
   }
+
+  // Git Extensions keys on the picked file: S stage, U unstage, R reset; the next file gets picked
+  const fileKey = (key: string) => {
+    if (!file || !picked || !list) return false
+    const next = list[list.indexOf(file) + 1] ?? list[list.indexOf(file) - 1]
+    const pickNext = () => setPicked(next ? { side: picked.side, path: next.path } : null)
+    if (key === 's' && picked.side === 'worktree') {
+      stage([file])
+      pickNext()
+    } else if (key === 'u' && picked.side === 'index') {
+      unstage([file])
+      pickNext()
+    } else if (key === 'r' && picked.side === 'worktree') void discard([file])
+    else return false
+    return true
+  }
+
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    const typing = e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')
+    const covered = document.querySelector('[role="menu"], [aria-modal="true"]')
+    if (!typing && !covered && !e.ctrlKey && !e.altKey && !e.metaKey && fileKey(e.key.toLowerCase())) {
+      e.preventDefault()
+      return
+    }
+    if (e.key === 'F5') {
+      // new file lists also reload the open diff; in its own window this beats reloading the page
+      e.preventDefault()
+      unstaged.reload()
+      staged.reload()
+      return
+    }
+    // a menu or a confirmation on top takes the Escape for itself
+    if (e.key !== 'Escape' || covered) return
+    onClose()
+  })
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => onKey(e)
+    window.addEventListener('keydown', listener)
+    return () => window.removeEventListener('keydown', listener)
+  }, [])
 
   const ignore = async (files: ChangedFile[], exclude: boolean, folder?: string) => {
     if (files.length === 0) return
