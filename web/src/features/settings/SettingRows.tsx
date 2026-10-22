@@ -4,9 +4,9 @@ import styles from './SettingsPage.module.css'
 
 export type Choice<T extends string> = { value: T; options: [T, string][]; onChange: (v: T) => void }
 
-export function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
-    <section className={styles.section}>
+    <section id={id} className={styles.section}>
       <h3>{title}</h3>
       {children}
     </section>
