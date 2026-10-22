@@ -46,6 +46,7 @@ export type ServerInfo = {
   explorerMenu: boolean | null
   autostart: boolean
   update: UpdateState
+  zoom: number
 }
 
 export function useServerInfo() {
@@ -161,6 +162,10 @@ export function useServerInfo() {
     return null
   }, [])
 
+  const setZoom = useCallback((level: number) => {
+    gitd.call<number>('server.zoom', { level }).then((zoom) => setInfo((i) => i && { ...i, zoom }), () => {})
+  }, [])
+
   const finishSetup = useCallback(() => {
     gitd.call<ServerInfo>('server.finishSetup').then(setInfo, () => {})
   }, [])
@@ -176,6 +181,7 @@ export function useServerInfo() {
     setEditor,
     setFileManager,
     host,
+    setZoom,
     checkUpdate,
     installUpdate,
     restartForUpdate,

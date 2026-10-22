@@ -28,6 +28,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "UpdateMode::is_off")]
     pub updates: UpdateMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zoom: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub host: Option<IpAddr>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub port: Option<u16>,

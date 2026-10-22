@@ -26,6 +26,7 @@ import { pickFolder } from '../lib/pickFolder'
 import { loadLastRepo, saveLastRepo } from '../lib/lastRepo'
 import { useNavState } from '../lib/navState'
 import { openRepoWindow, repoWindowOnDoubleClick } from '../lib/repoWindow'
+import { inGitdeckWindow, ZOOM_LEVELS } from '../lib/zoom'
 import styles from './App.module.css'
 import { CommitDetailWindow } from './CommitDetailWindow'
 import { CommitWindow } from './CommitWindow'
@@ -226,6 +227,11 @@ function Browse() {
   const settings = settingsOpen ? (
     <SettingsPage
       theme={themeChoice}
+      zoom={
+        server.info && inGitdeckWindow()
+          ? { value: String(server.info.zoom), onChange: (v) => server.setZoom(Number(v)), options: zoomOptions(server.info.zoom) }
+          : null
+      }
       pullAction={{ value: sync.pullAction, onChange: sync.setPullAction, options: PULL_ACTIONS.map((a) => [a.kind, a.label]) }}
       submodules={{
         value: sync.choice,
@@ -402,6 +408,11 @@ const NOWHERE: Place = { project: null, repo: null }
 const samePath = (a: string, b: string) => a.replaceAll('\\', '/').toLowerCase() === b.replaceAll('\\', '/').toLowerCase()
 
 const THEMES: [Theme, string][] = [['auto', 'Follow the system'], ['light', 'Light'], ['dark', 'Dark']]
+
+function zoomOptions(current: number): [string, string][] {
+  const all = ZOOM_LEVELS.includes(current) ? ZOOM_LEVELS : [...ZOOM_LEVELS, current].sort((a, b) => a - b)
+  return all.map((l) => [String(l), `${Math.round(l * 100)}%`])
+}
 
 const FETCH_MINUTES = [0, 1, 2, 5, 10, 15, 30, 60]
 

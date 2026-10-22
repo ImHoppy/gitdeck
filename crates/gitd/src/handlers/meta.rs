@@ -1,4 +1,4 @@
-use crate::{autostart, explorer, file_manager, server::AppState};
+use crate::{autostart, explorer, file_manager, server::AppState, zoom};
 use anyhow::bail;
 use gitcore::{
     commands::version::{self, Support},
@@ -32,7 +32,34 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
         "explorerMenu": tokio::task::spawn_blocking(explorer::is_on).await.ok().flatten(),
         "autostart": tokio::task::spawn_blocking(autostart::is_on).await.unwrap_or(false),
         "update": app.updater.state(),
+        "zoom": app.config.lock().unwrap().zoom.unwrap_or(1.0),
     }))
+}
+
+#[derive(Deserialize)]
+pub struct ZoomParams {
+    /// Up (> 0), down (< 0) or back to 100% (0) from the saved level.
+    #[serde(default)]
+    step: Option<i32>,
+    level: Option<f64>,
+}
+
+/// Every gitdeck window follows; returns the new level.
+pub async fn zoom(app: &AppState, p: ZoomParams) -> anyhow::Result<Value> {
+    let level = {
+        let mut config = app.config.lock().unwrap();
+        let current = config.zoom.unwrap_or(1.0);
+        let level = match (p.level, p.step) {
+            (Some(level), _) => zoom::clamp(level),
+            (None, Some(by)) => zoom::step(current, by),
+            (None, None) => current,
+        };
+        config.zoom = (level != 1.0).then_some(level);
+        config.save(&app.config_path)?;
+        level
+    };
+    crate::window::set_zoom(level);
+    Ok(json!(level))
 }
 
 /// Opening or creating repositories needs the git commands gitdeck runs: refuse a git older than that.

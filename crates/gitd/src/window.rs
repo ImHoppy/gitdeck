@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        OnceLock,
+        Mutex, OnceLock,
     },
 };
 use tao::{
@@ -17,10 +17,23 @@ use wry::{NewWindowResponse, WebContext, WebViewBuilder};
 pub enum Request {
     Open(String),
     Title(WindowId, String),
+    Zoom(f64),
 }
 
 static WINDOWS: OnceLock<EventLoopProxy<Request>> = OnceLock::new();
 static OPEN: AtomicUsize = AtomicUsize::new(0);
+static ZOOM: Mutex<f64> = Mutex::new(1.0);
+
+/// Lets the page tell a gitdeck window from a browser tab, which zooms by itself.
+const MARK_WINDOW: &str = "window.gitdeckWindow = true";
+
+/// The zoom of every native window, open now or later.
+pub fn set_zoom(level: f64) {
+    *ZOOM.lock().unwrap() = level;
+    if let Some(proxy) = WINDOWS.get() {
+        let _ = proxy.send_event(Request::Zoom(level));
+    }
+}
 
 /// How many native windows are open: an update restart reopens one only if there were some.
 pub fn open_count() -> usize {
@@ -74,6 +87,11 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                     window.set_title(&title);
                 }
             }
+            Event::UserEvent(Request::Zoom(level)) => {
+                for (_, webview) in open.values() {
+                    let _ = webview.zoom(level);
+                }
+            }
             Event::UserEvent(Request::Open(url)) => {
                 let (rgba, size) = crate::icon::rgba();
                 let Ok(window) = WindowBuilder::new()
@@ -89,6 +107,7 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                 let id = window.id();
                 let builder = WebViewBuilder::new_with_web_context(&mut context)
                     .with_url(url)
+                    .with_initialization_script(MARK_WINDOW)
                     // window.open (the commit page pop-out) becomes another native window
                     .with_new_window_req_handler(move |url, _| {
                         let _ = popups.send_event(Request::Open(url));
@@ -101,6 +120,7 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                 let webview = attach(builder, &window);
                 match webview {
                     Ok(webview) => {
+                        let _ = webview.zoom(*ZOOM.lock().unwrap());
                         open.insert(window.id(), (window, webview));
                         OPEN.store(open.len(), Ordering::Relaxed);
                     }

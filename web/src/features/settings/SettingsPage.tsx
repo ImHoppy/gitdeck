@@ -27,6 +27,8 @@ const SECTION = {
 
 type Props<S extends string, P extends string> = {
   theme: Choice<Theme>
+  /** Only in gitdeck windows: a browser tab zooms by itself. */
+  zoom: Choice<string> | null
   submodules: Choice<S>
   pullAction: Choice<P>
   fetchInterval: Choice<string> | null
@@ -45,7 +47,7 @@ type Props<S extends string, P extends string> = {
   onClose: () => void
 }
 
-export function SettingsPage<S extends string, P extends string>({ theme, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, githubPrs, version, git, editor, fileManager, host, update, onSetup, repoId, onClose }: Props<S, P>) {
+export function SettingsPage<S extends string, P extends string>({ theme, zoom, submodules, pullAction, fetchInterval, keepRunning, githubAvatars, githubPrs, version, git, editor, fileManager, host, update, onSetup, repoId, onClose }: Props<S, P>) {
   const [commitWindow, setCommitWindow] = useState(commitInWindow)
   const [repoWindow, setRepoWindow] = useState(repoWindowOnDoubleClick)
   const [pullsWindow, setPullsWindow] = useState(pullsInWindow)
@@ -70,6 +72,11 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               <Row label="Theme">
                 <ChoiceSelect choice={theme} />
               </Row>
+              {zoom && (
+                <Row label="Zoom (Ctrl + / Ctrl - / Ctrl 0)">
+                  <ChoiceSelect choice={zoom} />
+                </Row>
+              )}
               <Row label="Author pictures from GitHub (fetched once, then cached; off: initials, nothing leaves this machine)">
                 <input
                   type="checkbox"

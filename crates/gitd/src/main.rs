@@ -33,6 +33,7 @@ mod static_files;
 mod tray;
 mod updater;
 mod window;
+mod zoom;
 
 use clap::Parser;
 

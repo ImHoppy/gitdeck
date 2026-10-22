@@ -96,6 +96,7 @@ pub async fn dispatch(app: &AppState, method: &str, params: Value) -> anyhow::Re
         "server.setAvatars" => meta::set_avatars(app, serde_json::from_value(params)?).await,
         "server.setGit" => meta::set_git(app, serde_json::from_value(params)?).await,
         "server.setFetchInterval" => meta::set_fetch_interval(app, serde_json::from_value(params)?).await,
+        "server.zoom" => meta::zoom(app, serde_json::from_value(params)?).await,
         "server.setExplorerMenu" => setup::set_explorer_menu(app, serde_json::from_value(params)?).await,
         "server.setAutostart" => setup::set_autostart(app, serde_json::from_value(params)?).await,
         "server.setUpdates" => setup::set_updates(app, serde_json::from_value(params)?).await,

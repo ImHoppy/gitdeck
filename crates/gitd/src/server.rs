@@ -46,6 +46,7 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let config = Config::load(&config_path)?;
     let addr = args.bind.unwrap_or_else(|| config.listen_addr());
     let local = local_addr(addr);
+    crate::window::set_zoom(config.zoom.unwrap_or(1.0));
     let git = config.git.clone();
     let github_prs = config.github_prs;
     let token = auth::load_or_create(&dir)?;
