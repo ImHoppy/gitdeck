@@ -55,6 +55,8 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               onChange={(e) => githubAvatars?.onChange(e.target.checked)}
             />
           </Row>
+        </Section>
+        <Section title="Windows">
           <Row label="Always open the commit page in a new window">
             <input
               type="checkbox"
@@ -75,16 +77,6 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               }}
             />
           </Row>
-        </Section>
-        <Section title="GitHub">
-          <Row label="Pull requests, through the host's own gh login (gh auth login on the host; no token is stored)">
-            <input
-              type="checkbox"
-              disabled={!githubPrs}
-              checked={githubPrs?.value ?? false}
-              onChange={(e) => githubPrs?.onChange(e.target.checked)}
-            />
-          </Row>
           <Row label="Open pull requests in a window (Ctrl+Shift+P, PR pills, Create pull request)">
             <input
               type="checkbox"
@@ -93,6 +85,16 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
                 setPullsWindow(e.target.checked)
                 setPullsInWindow(e.target.checked)
               }}
+            />
+          </Row>
+        </Section>
+        <Section title="GitHub">
+          <Row label="Pull requests, through the host's own gh login (gh auth login on the host; no token is stored)">
+            <input
+              type="checkbox"
+              disabled={!githubPrs}
+              checked={githubPrs?.value ?? false}
+              onChange={(e) => githubPrs?.onChange(e.target.checked)}
             />
           </Row>
         </Section>
