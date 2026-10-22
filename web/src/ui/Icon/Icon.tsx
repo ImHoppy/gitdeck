@@ -37,6 +37,8 @@ const PATHS = {
   comment: 'M2 3h12v8H7l-3 2.5V11H2z',
   back: 'M10 3 5 8l5 5',
   bell: 'M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0',
+  sortDesc: 'M2 3.5h7M2 7h5M2 10.5h3M12 2.5v11M9.5 11 12 13.5l2.5-2.5',
+  sortAsc: 'M2 3.5h3M2 7h5M2 10.5h7M12 13.5v-11M9.5 5 12 2.5 14.5 5',
 } as const
 
 export type IconName = keyof typeof PATHS

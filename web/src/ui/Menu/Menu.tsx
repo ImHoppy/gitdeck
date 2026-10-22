@@ -1,10 +1,11 @@
-import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import type { ReactNode, RefObject } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
+import { Popover } from '../Popover/Popover'
 import styles from './Menu.module.css'
 
 export type MenuItem =
   | { key: string; label: ReactNode; icon?: IconName; checked?: boolean; danger?: boolean; disabled?: boolean; onSelect: () => void }
+  | { key: string; heading: string }
   | 'separator'
 
 type Props = {
@@ -16,62 +17,16 @@ type Props = {
   owner?: RefObject<HTMLElement | null>
 }
 
-const MARGIN = 4
-
 export function Menu({ items, at, onClose, owner }: Props) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
-
-  // fixed and clamped to the viewport so scrolling panels and the window edge never clip it
-  useLayoutEffect(() => {
-    const menu = ref.current?.getBoundingClientRect()
-    if (!menu) return
-    const [x, top, bottom] = 'x' in at && !('width' in at) ? [at.x, at.y, at.y] : [at.left, at.top - 2, at.bottom + 2]
-    const left = Math.min(Math.max(MARGIN, x), window.innerWidth - menu.width - MARGIN)
-    const y = bottom + menu.height > window.innerHeight - MARGIN ? Math.max(MARGIN, top - menu.height) : bottom
-    setPos({ left, top: y })
-  }, [at])
-
-  useEffect(() => {
-    const outside = (e: MouseEvent) => {
-      const t = e.target as Node
-      if (!ref.current?.contains(t) && !owner?.current?.contains(t)) onClose()
-    }
-    const key = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.stopPropagation()
-      onClose()
-    }
-    // the user scrolling the page moves what the menu points at; scrolling the menu's own list
-    // doesn't, nor does a panel resetting its scroll when it loads (a scroll event, no wheel)
-    const scroll = (e: Event) => {
-      if (!ref.current?.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('mousedown', outside)
-    document.addEventListener('keydown', key)
-    window.addEventListener('wheel', scroll, true)
-    window.addEventListener('touchmove', scroll, true)
-    window.addEventListener('resize', onClose)
-    return () => {
-      document.removeEventListener('mousedown', outside)
-      document.removeEventListener('keydown', key)
-      window.removeEventListener('wheel', scroll, true)
-      window.removeEventListener('touchmove', scroll, true)
-      window.removeEventListener('resize', onClose)
-    }
-  }, [onClose, owner])
-
-  return createPortal(
-    <div
-      ref={ref}
-      className={styles.menu}
-      role="menu"
-      style={pos ? { left: pos.left, top: pos.top } : { visibility: 'hidden' }}
-      onContextMenu={(e) => e.preventDefault()}
-    >
+  return (
+    <Popover at={at} onClose={onClose} owner={owner} className={styles.menu} role="menu">
       {items.map((item, i) =>
         item === 'separator' ? (
           <div key={`sep${i}`} className={styles.separator} />
+        ) : 'heading' in item ? (
+          <div key={item.key} className={styles.heading}>
+            {item.heading}
+          </div>
         ) : (
           <div
             key={item.key}
@@ -89,7 +44,6 @@ export function Menu({ items, at, onClose, owner }: Props) {
           </div>
         ),
       )}
-    </div>,
-    document.body,
+    </Popover>
   )
 }
