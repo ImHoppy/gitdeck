@@ -51,7 +51,7 @@ pub fn files_by_extension(out: &[u8]) -> Vec<(String, u64)> {
         if meta.starts_with("160000") {
             continue;
         }
-        let name = path.rsplit('/').next().unwrap_or(&path);
+        let name = path.rsplit('/').next().unwrap_or(path);
         let ext = match name.rfind('.') {
             Some(i) if i > 0 => name[i + 1..].to_lowercase(),
             _ => String::new(),

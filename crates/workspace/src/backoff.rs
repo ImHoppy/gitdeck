@@ -12,7 +12,7 @@ pub struct FetchBackoff {
 impl FetchBackoff {
     pub fn due(&self, id: RepoId, tick: u64) -> bool {
         self.failures.get(&id).copied().unwrap_or(0) < FAILURES_BEFORE_BACKOFF
-            || tick % BACKOFF_FACTOR == 0
+            || tick.is_multiple_of(BACKOFF_FACTOR)
     }
 
     pub fn record(&mut self, id: RepoId, ok: bool) {

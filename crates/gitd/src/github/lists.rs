@@ -102,7 +102,7 @@ impl Github {
         while !list.complete && (list.prs.len() as u32) < list.limit {
             let have = list.prs.len() as u32;
             // each page starts small, so its first rows show as soon as it is opened
-            let first = if have % pr_list::PAGE == 0 { FIRST_CHUNK } else { CHUNK.min(list.limit - have) };
+            let first = if have.is_multiple_of(pr_list::PAGE) { FIRST_CHUNK } else { CHUNK.min(list.limit - have) };
             let page = self.page(runner, cwd, repo, list.state, list.scope, first, list.cursor.as_deref()).await?;
             // a PR updated while paging moves to the top: it may come back a second time
             list.prs.extend(page.prs.into_iter().filter(|p| seen.insert(p.number)));

@@ -17,8 +17,11 @@ pub async fn run(hub: Arc<Hub>, interval: Duration, clients: Arc<AtomicUsize>, a
     let mut backoff = FetchBackoff::default();
     let mut offline = false;
     let mut ticker = tokio::time::interval(interval);
-    for tick in 0u64.. {
+    let mut next = 0u64;
+    loop {
         ticker.tick().await;
+        let tick = next;
+        next += 1;
         if clients.load(Ordering::SeqCst) == 0 {
             continue;
         }

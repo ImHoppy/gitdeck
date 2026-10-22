@@ -2,12 +2,11 @@ name: ci
 
 on:
   push:
-    branches: [main]
-    tags: ['v*']
+    branches: ['**']
   pull_request:
 
 jobs:
-  build:
+  check:
     strategy:
       fail-fast: false
       matrix:
@@ -21,6 +20,8 @@ jobs:
           bun-version: 1.4.3
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - uses: Swatinem/rust-cache@v2
 
@@ -36,6 +37,9 @@ jobs:
           bun test
           bun run build
 
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
       - name: git identity for the real-git tests
         run: |
           git config --global user.name ci
@@ -44,37 +48,3 @@ jobs:
 
       - name: test
         run: cargo test --workspace
-
-      - name: release build
-        run: cargo build --release -p gitd
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: gitd-${{ matrix.os }}
-          path: |
-            target/release/gitd
-            target/release/gitd.exe
-          if-no-files-found: ignore
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-      - name: name binaries per platform
-        run: |
-          mv dist/gitd-windows-latest/gitd.exe gitd-windows-x64.exe
-          mv dist/gitd-ubuntu-latest/gitd gitd-linux-x64
-          mv dist/gitd-macos-latest/gitd gitd-macos-arm64
-          chmod +x gitd-linux-x64 gitd-macos-arm64
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            gitd-windows-x64.exe
-            gitd-linux-x64
-            gitd-macos-arm64

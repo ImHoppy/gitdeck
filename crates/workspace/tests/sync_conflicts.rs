@@ -50,11 +50,9 @@ fn fixture() -> Fixture {
     git(&root, &["init", "-q", "--bare", "origin.git"]);
     git(&root, &["clone", "-q", "origin.git", "mine"]);
     let mine = root.join("mine");
-    for repo in [&mine] {
-        git(repo, &["config", "user.name", "t"]);
-        git(repo, &["config", "user.email", "t@t"]);
-        git(repo, &["config", "core.autocrlf", "false"]);
-    }
+    git(&mine, &["config", "user.name", "t"]);
+    git(&mine, &["config", "user.email", "t@t"]);
+    git(&mine, &["config", "core.autocrlf", "false"]);
     commit(&mine, "a.txt", "base\n");
     git(&mine, &["push", "-q", "-u", "origin", "HEAD:main"]);
     git(&root, &["clone", "-q", "origin.git", "theirs"]);
