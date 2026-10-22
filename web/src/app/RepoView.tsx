@@ -126,6 +126,9 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
       } else if (e.ctrlKey && e.key === ' ') {
         e.preventDefault()
         openCommit()
+      } else if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault()
+        void tools.gitBash()
       } else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
         e.preventDefault()
         filterBox.current?.focus()
@@ -139,7 +142,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [history, committing, pull, onPush, repo.id])
+  }, [history, committing, pull, onPush, repo.id, tools])
   useEffect(() => {
     document.title = `${repo.pathInParent ?? repo.name} · gitdeck`
   }, [repo.pathInParent, repo.name])
@@ -251,6 +254,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
         onCommit={openCommit}
         onStash={() => void stashPush(ctx)}
         onStats={() => openWindow({ kind: 'stats', repo: repo.id }, workspace)}
+        onGitBash={() => void tools.gitBash()}
         onAncestry={() => setAncestry(!ancestry)}
       >
         <HistorySearch

@@ -20,12 +20,13 @@ type Props = {
   onCommit: () => void
   onStash: () => void
   onStats: () => void
+  onGitBash: () => void
   onAncestry: () => void
   /** The search box and command status, which own their state. */
   children: ReactNode
 }
 
-export function RepoToolbar({ repo, busy, ancestry, onBack, lead, onBranchMenu, sync, onMoreMenu, onCommit, onStash, onStats, onAncestry, children }: Props) {
+export function RepoToolbar({ repo, busy, ancestry, onBack, lead, onBranchMenu, sync, onMoreMenu, onCommit, onStash, onStats, onGitBash, onAncestry, children }: Props) {
   const head = repo.state?.head
   const status = repo.state?.status
   const changes = (status?.staged ?? 0) + (status?.unstaged ?? 0) + (status?.untracked ?? 0)
@@ -50,6 +51,9 @@ export function RepoToolbar({ repo, busy, ancestry, onBack, lead, onBranchMenu, 
       </IconButton>
       <IconButton title="Statistics of this repository (new window)" onClick={onStats}>
         <Icon name="chart" /> Statistics
+      </IconButton>
+      <IconButton title="Open git bash in this repository (Ctrl+G)" onClick={onGitBash}>
+        <Icon name="terminal" /> Git bash
       </IconButton>
       <IconButton title="Dim commits that are not ancestors of the selected one" onClick={onAncestry}>
         <Icon name="history" /> {ancestry ? 'ancestry on' : 'ancestry'}

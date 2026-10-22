@@ -1,9 +1,9 @@
 use crate::{handlers::repo::hub, server::AppState};
 use anyhow::{bail, Context};
-use gitcore::commands::tracked;
+use gitcore::{commands::tracked, GitRunner};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::{path::Path, process::Command};
+use std::{path::{Path, PathBuf}, process::Command};
 use workspace::{tracked::{checkout_args, tracked_branch}, RepoId};
 
 #[derive(Deserialize)]
@@ -68,9 +68,24 @@ pub async fn reveal(app: &AppState, p: RevealParams) -> anyhow::Result<Value> {
             None => explorer(&path)?,
         },
         "terminal" => terminal(&path)?,
+        "gitbash" if cfg!(windows) => git_bash(app, &path).await?,
+        "gitbash" => terminal(&path)?,
         other => bail!("unknown target {other}"),
     }
     Ok(Value::Null)
+}
+
+/// Git for Windows' git-bash.exe sits above `git --exec-path` (`<install>/mingw64/libexec/git-core`).
+async fn git_bash(app: &AppState, path: &Path) -> anyhow::Result<()> {
+    let out = app.runner.run_ok(Path::new("."), &["--exec-path"]).await?;
+    let exec = PathBuf::from(String::from_utf8_lossy(&out).trim());
+    let bash = exec
+        .ancestors()
+        .map(|dir| dir.join("git-bash.exe"))
+        .find(|p| p.is_file())
+        .context("git-bash.exe not found beside git: set the git of Git for Windows in Settings")?;
+    Command::new(&bash).arg(format!("--cd={}", path.display())).current_dir(path).spawn()?;
+    Ok(())
 }
 
 fn explorer(path: &Path) -> std::io::Result<()> {

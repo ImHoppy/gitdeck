@@ -28,7 +28,7 @@ export function useTreeCommands() {
   return {
     error,
     clearError: () => setError(null),
-    reveal: (id: number, what: 'explorer' | 'terminal') => call('repo.reveal', { id, with: what }),
+    reveal: (id: number, what: 'explorer' | 'terminal' | 'gitbash') => call('repo.reveal', { id, with: what }),
     openInEditor: (id: number) => call('editor.open', { id }),
     checkoutTracked: (id: number) => call('repo.checkoutTracked', { id }),
     submodule: (id: number, op: 'init' | 'update') => call('repo.submodule', { id, op }),

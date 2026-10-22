@@ -58,6 +58,7 @@ export function useRepoTools(repoId: number) {
     ignore: (pattern: string, exclude = false) =>
       run(async () => (await gitd.call('changes.ignore', { id, pattern, exclude }), `Added ${pattern} to ${exclude ? '.git/info/exclude' : '.gitignore'}`)),
     reveal: (path?: string) => run(async () => (await gitd.call('repo.reveal', { id, with: 'explorer', path }), null)),
+    gitBash: () => run(async () => (await gitd.call('repo.reveal', { id, with: 'gitbash' }), null)),
     openInEditor: (path?: string, line?: number) => run(async () => (await gitd.call('editor.open', { id, path, line }), null)),
     diffTool: (path: string, opts: { base?: string | null; rev?: string; staged?: boolean; editor?: boolean }) => run(async () => (await gitd.call('tool.diff', { id, path, ...opts }), null)),
     mergeTool: (path: string) => run(async () => (await gitd.call('tool.merge', { id, path }), null)),

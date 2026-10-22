@@ -4,7 +4,7 @@ import type { MenuItem } from '../../ui/Menu/Menu'
 export type TreeMenuDeps = {
   open: (id: number) => void
   sync: (id: number, kind: SyncKind) => void
-  reveal: (id: number, what: 'explorer' | 'terminal') => void
+  reveal: (id: number, what: 'explorer' | 'terminal' | 'gitbash') => void
   openInEditor: (id: number) => void
   checkoutTracked: (id: number) => void
   submodule: (id: number, op: 'init' | 'update') => Promise<boolean>
@@ -74,6 +74,7 @@ export function treeMenu(repo: RepoSnapshot, d: TreeMenuDeps): MenuItem[] {
     { key: 'explorer', label: 'Open in file explorer', icon: 'folder', onSelect: () => d.reveal(repo.id, 'explorer') },
     { key: 'editor', label: 'Open in editor', icon: 'editor', onSelect: () => d.openInEditor(repo.id) },
     { key: 'terminal', label: 'Open terminal here', icon: 'terminal', onSelect: () => d.reveal(repo.id, 'terminal') },
+    { key: 'gitbash', label: 'Open git bash here', icon: 'terminal', onSelect: () => d.reveal(repo.id, 'gitbash') },
     { key: 'copy', label: 'Copy path', icon: 'copy', onSelect: () => void navigator.clipboard?.writeText(repo.path) },
     ...workspaceItems,
   )
