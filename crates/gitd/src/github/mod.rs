@@ -5,12 +5,15 @@ pub mod cache;
 pub mod http;
 pub mod drafts;
 pub mod image;
+mod lists;
+
+pub use lists::PrList;
 
 use crate::events::Event;
 use anyhow::bail;
 use gitcore::{
     commands::{
-        gh::{auth::{self, GhAvailability}, pr_list::{self, ListState, PrSummary}},
+        gh::{auth::{self, GhAvailability}, pr_list::ListState},
         remote::{self, GithubRepo},
     },
     GhRunner, GitRunner, ProcessRunner, RunError,
@@ -34,32 +37,13 @@ const READY_TTL: Duration = Duration::from_secs(10 * 60);
 const NOT_READY_TTL: Duration = Duration::from_secs(20);
 const BACKGROUND_GAP: Duration = Duration::from_secs(120);
 const MANUAL_GAP: Duration = Duration::from_secs(5);
-/// GitHub gives up on a heavy list query (the checks of 100 PRs) now and then; the next try usually works.
-const RETRY_AFTER: Duration = Duration::from_secs(2);
-
-fn gateway_timeout(stderr: &str) -> bool {
-    stderr.contains("HTTP 502") || stderr.contains("HTTP 504")
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PrList {
-    pub repo: String,
-    pub state: ListState,
-    pub prs: Vec<PrSummary>,
-    /// Unix seconds of the answer.
-    pub at: u64,
-    /// How many PRs were asked for; the page asks for more as it scrolls to the end.
-    pub limit: u32,
-    /// Every PR in this state is in the list (fewer came back than asked for).
-    pub complete: bool,
-}
-
 pub struct Github {
     enabled: AtomicBool,
     availability: Mutex<Option<(Instant, GhAvailability)>>,
     remotes: Mutex<HashMap<PathBuf, Option<(String, GithubRepo)>>>,
     lists: Mutex<HashMap<(String, ListState), PrList>>,
+    /// One fetch at a time per list: the next page waits for a refresh instead of racing it.
+    gates: Mutex<HashMap<(String, ListState), Arc<tokio::sync::Mutex<()>>>>,
     throttle: Mutex<Throttle>,
     pub cache: cache::Cache,
     /// Per clone: the branch left by "Switch to this branch" and the stash made then.
@@ -102,6 +86,7 @@ impl Github {
             availability: Mutex::new(None),
             remotes: Mutex::default(),
             lists: Mutex::default(),
+            gates: Mutex::default(),
             throttle: Mutex::new(Throttle::new(BACKGROUND_GAP, MANUAL_GAP)),
             cache: cache::Cache::default(),
             switched: Mutex::default(),
@@ -157,44 +142,6 @@ impl Github {
         let found = remote::github_remote(&remote::parse(&out));
         lock(&self.remotes).insert(path.to_path_buf(), found.clone());
         found
-    }
-
-    pub fn cached_list(&self, repo: &GithubRepo, state: ListState) -> Option<PrList> {
-        lock(&self.lists).get(&(key(repo), state)).cloned()
-    }
-
-    /// The cached list while the throttle holds, else a fresh one, pushed to every page when it changed.
-    /// `limit` asks for a longer list (the page scrolled to its end); without one the list keeps
-    /// the length it has, so a background refresh never shortens what someone scrolled through.
-    pub async fn list(&self, runner: &ProcessRunner, cwd: &Path, repo: &GithubRepo, state: ListState, manual: bool, limit: Option<u32>) -> anyhow::Result<PrList> {
-        let k = key(repo);
-        let cached = self.cached_list(repo, state);
-        let known = cached.as_ref().map_or(pr_list::PAGE, |c| c.limit);
-        let limit = limit.unwrap_or(known).clamp(pr_list::PAGE, pr_list::MAX_LIMIT).max(known);
-        let longer = cached.as_ref().is_some_and(|c| limit > c.limit && !c.complete);
-        let allowed = lock(&self.throttle).take(&format!("{k}:{state:?}"), Instant::now(), manual || longer);
-        if let (false, Some(cached)) = (allowed, &cached) {
-            return Ok(cached.clone());
-        }
-        let args = pr_list::args(repo, state, limit);
-        let args: Vec<&str> = args.iter().map(String::as_str).collect();
-        let out = match runner.gh_ok(cwd, &args).await {
-            Err(RunError::Failed { stderr, .. }) if gateway_timeout(&stderr) => {
-                tokio::time::sleep(RETRY_AFTER).await;
-                runner.gh_ok(cwd, &args).await
-            }
-            out => out,
-        }
-        .map_err(gh_error)?;
-        let prs = pr_list::parse(&out)?;
-        let complete = (prs.len() as u32) < limit;
-        let list = PrList { repo: repo.slug(), state, prs, at: now_secs(), limit, complete };
-        let changed = cached.is_none_or(|c| serde_json::to_value(&c.prs).ok() != serde_json::to_value(&list.prs).ok());
-        lock(&self.lists).insert((k, state), list.clone());
-        if changed {
-            let _ = self.events.send(Event::PullRequests(list.clone()));
-        }
-        Ok(list)
     }
 
     pub fn switched_from(&self, path: &Path) -> Option<SwitchedFrom> {
