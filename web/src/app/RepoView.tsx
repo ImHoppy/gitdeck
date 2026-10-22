@@ -78,7 +78,7 @@ type Props = {
   prs?: Prs | null
 }
 
-const SHA = /^[0-9a-f]{7,40}$/
+const SHA = /^[0-9a-f]{7,64}$/
 
 export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: Props) {
   const [filter, setFilter] = useState('')

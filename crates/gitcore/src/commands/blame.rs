@@ -38,12 +38,17 @@ pub fn parse(out: &[u8]) -> Vec<BlameLine> {
                 ("author", Some(sha)) => known.entry(sha.clone()).or_default().author = value.to_string(),
                 ("author-time", Some(sha)) => known.entry(sha.clone()).or_default().time = value.parse().unwrap_or(0),
                 ("summary", Some(sha)) => known.entry(sha.clone()).or_default().summary = value.to_string(),
-                _ if key.len() == 40 && key.bytes().all(|b| b.is_ascii_hexdigit()) => current = Some(key.to_string()),
+                _ if is_object_id(key) => current = Some(key.to_string()),
                 _ => {}
             }
         }
     }
     lines
+}
+
+/// SHA-1 (40 hex digits) or SHA-256 (64), the default of Git 3.0.
+fn is_object_id(s: &str) -> bool {
+    matches!(s.len(), 40 | 64) && s.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
 #[cfg(test)]
@@ -61,5 +66,13 @@ mod tests {
         assert_eq!(lines[1].author, "Ann");
         assert_eq!(lines[1].text, "line two");
         assert_eq!(lines[0].summary, "first");
+    }
+
+    #[test]
+    fn reads_sha256_repositories() {
+        let a = "b".repeat(64);
+        let lines = parse(format!("{a} 1 1 1\nauthor Bo\nauthor-time 5\nsummary s\nfilename f\n\tcode\n").as_bytes());
+        assert_eq!(lines[0].sha, a);
+        assert_eq!(lines[0].author, "Bo");
     }
 }
