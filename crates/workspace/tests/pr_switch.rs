@@ -55,6 +55,8 @@ fn fixture() -> Fixture {
     git(&author, &["push", "-q", "origin", "HEAD:refs/pull/7/head"]);
     git(&root, &["clone", "-q", "origin.git", "mine"]);
     let mine = root.join("mine");
+    // the switch runs git with the machine's own config: Windows CI checks out CRLF otherwise
+    git(&mine, &["config", "core.autocrlf", "false"]);
     Fixture { root, mine }
 }
 
