@@ -10,7 +10,7 @@ use tao::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopProxy},
-    window::{Icon, WindowBuilder, WindowId},
+    window::{Icon, Theme, WindowBuilder, WindowId},
 };
 use wry::{NewWindowResponse, WebContext, WebViewBuilder};
 
@@ -28,6 +28,10 @@ static ZOOM: Mutex<f64> = Mutex::new(1.0);
 
 /// Lets the page tell a gitdeck window from a browser tab, which zooms by itself.
 const MARK_WINDOW: &str = "window.gitdeckWindow = true";
+
+/// `--bg` of the page's dark and light themes (theme.css).
+const DARK_BG: (u8, u8, u8, u8) = (0x1f, 0x1f, 0x1f, 0xff);
+const LIGHT_BG: (u8, u8, u8, u8) = (0xff, 0xff, 0xff, 0xff);
 
 /// The zoom of every native window, open now or later.
 pub fn set_zoom(level: f64) {
@@ -102,15 +106,23 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                     .with_title("gitdeck")
                     .with_inner_size(LogicalSize::new(1400.0, 900.0))
                     .with_window_icon(Icon::from_rgba(rgba, size, size).ok())
+                    // shown once painted in the theme's background, never white first
+                    .with_visible(false)
                     .build(target)
                 else {
                     return;
                 };
+                let background = match window.theme() {
+                    Theme::Dark => DARK_BG,
+                    _ => LIGHT_BG,
+                };
+                window.set_background_color(Some(background));
                 let popups = proxy.clone();
                 let titles = proxy.clone();
                 let id = window.id();
                 let builder = WebViewBuilder::new_with_web_context(&mut context)
                     .with_url(url)
+                    .with_background_color(background)
                     .with_initialization_script(MARK_WINDOW)
                     // window.open (the commit page pop-out) becomes another native window
                     .with_new_window_req_handler(move |url, _| {
@@ -125,6 +137,7 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                 match webview {
                     Ok(webview) => {
                         let _ = webview.zoom(*ZOOM.lock().unwrap());
+                        window.set_visible(true);
                         open.insert(window.id(), (window, webview));
                         OPEN.store(open.len(), Ordering::Relaxed);
                     }
