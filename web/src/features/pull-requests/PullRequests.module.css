@@ -74,6 +74,12 @@
   border-right: 1px solid var(--border);
 }
 
+.listFull {
+  flex: 1;
+  min-width: 0;
+  border-right: none;
+}
+
 .detailPane {
   flex: 1;
   min-width: 0;
@@ -289,8 +295,15 @@
   gap: 4px 6px;
 }
 
+.headTitle button,
 .headActions button {
+  flex: none;
   height: 24px;
+}
+
+.headActions .merge button {
+  height: 28px;
+  padding: 0 14px;
 }
 
 .prTabs {

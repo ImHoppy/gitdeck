@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { PrDetail } from '../../protocol/github'
+import { Button } from '../../ui/Button/Button'
 import { DropButton } from '../../ui/DropButton/DropButton'
 import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
@@ -70,9 +71,11 @@ export function PrHeader({ detail: d, outside, onBack, switchButton, rebaseMenu,
         )}
         {rebaseMenu && <DropButton icon="history" label="Rebase" title="Keep the branch current" onOpen={(at) => onMenu(rebaseMenu, at)} />}
         {merge && (
-          <IconButton title={merge.title} disabled={merge.disabled} onClick={merge.run}>
-            <Icon name="merge" /> Merge…
-          </IconButton>
+          <span className={styles.merge}>
+            <Button title={merge.title} good disabled={merge.disabled} onClick={merge.run}>
+              <Icon name="merge" /> Merge…
+            </Button>
+          </span>
         )}
         <IconButton title="Open on GitHub" onClick={() => window.open(d.url, '_blank', 'noopener,noreferrer')}>
           GitHub ↗

@@ -153,7 +153,7 @@ export function PullRequestsView({ workspace, availability, place, push, replace
       {prs.error && <div className={styles.error}>{prs.error}</div>}
       <div className={styles.body}>
         {showList && (
-          <div className={styles.listPane} style={narrow ? undefined : { width: listWidth.size }}>
+          <div className={narrow ? `${styles.listPane} ${styles.listFull}` : styles.listPane} style={narrow ? undefined : { width: listWidth.size }}>
             <PrList
               rows={rows}
               unread={prs.unread}

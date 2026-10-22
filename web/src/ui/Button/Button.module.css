@@ -33,3 +33,15 @@
   border-color: var(--accent);
   filter: brightness(1.1);
 }
+
+.good {
+  border-color: #1f883d;
+  background: #1f883d;
+  color: #fff;
+  font-weight: 600;
+}
+
+.good:hover:not(:disabled) {
+  border-color: #1f883d;
+  filter: brightness(1.1);
+}
