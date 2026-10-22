@@ -208,7 +208,7 @@ fn assign_lanes(segs: &mut [Seg], r: u32, order: Vec<usize>) -> Row {
     let mut count = 0;
     let mut rev_lane = NO_LANE;
     let (mut has_start, mut has_end) = (false, false);
-    let mut create = |count: &mut i32| {
+    let create = |count: &mut i32| {
         *count += 1;
         *count - 1
     };
