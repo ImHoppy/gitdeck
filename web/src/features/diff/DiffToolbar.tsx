@@ -3,9 +3,15 @@ import { Select } from '../../ui/Select/Select'
 import styles from './Diff.module.css'
 import { CONTEXT_CHOICES } from './useDiffOptions'
 
-type Props = { options: PatchOptions; onChange: (o: PatchOptions) => void; staging: boolean }
+type Props = {
+  options: PatchOptions
+  onChange: (o: PatchOptions) => void
+  staging: boolean
+  wordDiff: boolean
+  onWordDiff: (on: boolean) => void
+}
 
-export function DiffToolbar({ options, onChange, staging }: Props) {
+export function DiffToolbar({ options, onChange, staging, wordDiff, onWordDiff }: Props) {
   return (
     <div className={styles.toolbar}>
       <label title="Context lines around each change">
@@ -23,6 +29,9 @@ export function DiffToolbar({ options, onChange, staging }: Props) {
           onChange={(e) => onChange({ ...options, ignoreWhitespace: e.target.checked })}
         />{' '}
         ignore whitespace
+      </label>
+      <label title="Dim what a changed line shares with the line it became">
+        <input type="checkbox" checked={wordDiff} onChange={(e) => onWordDiff(e.target.checked)} /> word diff
       </label>
       {!staging && <span className={styles.hint}>line staging needs 3 context lines and whitespace shown</span>}
     </div>

@@ -45,6 +45,51 @@
   background: var(--diff-del);
 }
 
+/* word diff: changed lines in full colour, what a line shares with its pair dimmed */
+.words .add {
+  background: var(--diff-add-strong);
+}
+
+.words .del {
+  background: var(--diff-del-strong);
+}
+
+.same {
+  /* the background fills the row, not just the glyph box */
+  padding-block: 2px;
+}
+
+.add .same {
+  background: var(--diff-add-dim);
+}
+
+.del .same {
+  background: var(--diff-del-dim);
+}
+
+/* the pair has text here that this line lacks */
+.anchorAdd,
+.anchorDel {
+  display: inline-block;
+  width: 0;
+  height: 14px;
+  vertical-align: -3px;
+}
+
+.anchorAdd {
+  box-shadow: 0 0 0 1px var(--ahead);
+}
+
+.anchorDel {
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+/* over the dimmed parts too */
+.line .occurrence {
+  background: var(--occurrence);
+  border-radius: 2px;
+}
+
 .hunk {
   color: var(--accent);
   background: var(--bg-panel);

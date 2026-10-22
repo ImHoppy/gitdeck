@@ -5,6 +5,7 @@ import { DiffViewer } from '../../ui/DiffViewer/DiffViewer'
 import { IconButton } from '../../ui/IconButton/IconButton'
 import { Menu, type MenuItem } from '../../ui/Menu/Menu'
 import { parseDiff } from '../../lib/diffLines'
+import { useWordDiff } from '../../lib/wordDiffSetting'
 import styles from './Diff.module.css'
 import { type LineMode, useLineStaging } from './useLineStaging'
 import { useRepoTools } from '../repo-actions'
@@ -27,6 +28,7 @@ export function PatchView({ repoId, file, patch, side }: Props) {
   const [confirmReset, setConfirmReset] = useState(false)
   const [menuAt, setMenuAt] = useState<{ x: number; y: number; line: number } | null>(null)
   const tools = useRepoTools(repoId)
+  const wordDiff = useWordDiff()
   const staging = useLineStaging(repoId)
 
   const run = async (mode: LineMode) => {
@@ -103,6 +105,7 @@ export function PatchView({ repoId, file, patch, side }: Props) {
         <DiffViewer
           patch={patch.text}
           path={file.path}
+          wordDiff={wordDiff}
           selected={side ? selected : undefined}
           onSelect={side ? setSelected : undefined}
           onContextMenu={side ? (line, at) => setMenuAt({ ...at, line }) : undefined}

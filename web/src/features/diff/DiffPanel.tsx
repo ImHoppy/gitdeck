@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
 import styles from './Diff.module.css'
 import { usePaneSize } from '../../lib/usePaneSize'
+import { setWordDiff, useWordDiff } from '../../lib/wordDiffSetting'
 import { Resizer } from '../../ui/Resizer/Resizer'
 import { DiffToolbar } from './DiffToolbar'
 import { FileList } from './FileList'
@@ -45,6 +46,7 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
   const [picked, setPicked] = useState<string | null>(null)
   const file: ChangedFile | null = files?.find((f) => f.path === picked) ?? files?.[0] ?? null
   const diff = useDiffOptions()
+  const wordDiff = useWordDiff()
   const listWidth = usePaneSize('diffFiles', 300, 140, 900)
   const patch = usePatch(repoId, target, file, all, diff.options)
   const narrow = useNarrow()
@@ -118,7 +120,13 @@ export function DiffPanel({ repoId, target: base, title, parents = [], initialQu
             {file?.path}
           </div>
         )}
-        <DiffToolbar options={diff.options} onChange={diff.setOptions} staging={diff.isDefault || target.kind === 'commit'} />
+        <DiffToolbar
+          options={diff.options}
+          onChange={diff.setOptions}
+          staging={diff.isDefault || target.kind === 'commit'}
+          wordDiff={wordDiff}
+          onWordDiff={setWordDiff}
+        />
         <div className={styles.patchBody}>
         {file && isImage(file.path) ? (
           <ImagePreview repoId={repoId} file={file} target={target} />

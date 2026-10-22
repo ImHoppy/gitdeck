@@ -19,6 +19,11 @@
   --scrollbar-hover: rgb(100 100 100 / 0.6);
   --diff-add: #dafbe1;
   --diff-del: #ffebe9;
+  --diff-add-strong: #acf2bd;
+  --diff-del-strong: #ffcecb;
+  --diff-add-dim: #dafbe1;
+  --diff-del-dim: #ffebe9;
+  --occurrence: rgb(255 140 0 / 0.4);
   --syn-keyword: #cf222e;
   --syn-string: #0a3069;
   --syn-comment: #6e7781;
@@ -52,6 +57,11 @@
     --scrollbar-hover: rgb(100 100 100 / 0.7);
     --diff-add: #1b2f23;
     --diff-del: #3a1d1d;
+    --diff-add-strong: #1f5c35;
+    --diff-del-strong: #6b2323;
+    --diff-add-dim: #173d25;
+    --diff-del-dim: #461b1b;
+    --occurrence: rgb(255 140 0 / 0.45);
     --syn-keyword: #569cd6;
     --syn-string: #ce9178;
     --syn-comment: #6a9955;
@@ -83,6 +93,11 @@
   --scrollbar-hover: rgb(100 100 100 / 0.7);
   --diff-add: #1b2f23;
   --diff-del: #3a1d1d;
+  --diff-add-strong: #1f5c35;
+  --diff-del-strong: #6b2323;
+  --diff-add-dim: #173d25;
+  --diff-del-dim: #461b1b;
+  --occurrence: rgb(255 140 0 / 0.45);
   --syn-keyword: #569cd6;
   --syn-string: #ce9178;
   --syn-comment: #6a9955;

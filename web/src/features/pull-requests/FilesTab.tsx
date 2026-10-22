@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { parseDiff } from '../../lib/diffLines'
 import { usePaneSize } from '../../lib/usePaneSize'
+import { useWordDiff } from '../../lib/wordDiffSetting'
 import type { DraftThread, PrDetail, ReviewThread } from '../../protocol/github'
 import type { ChangedFile, DiffTarget } from '../../protocol/types'
 import { DiffViewer } from '../../ui/DiffViewer/DiffViewer'
@@ -47,6 +48,7 @@ export function FilesTab({ repoId, detail, target, threads, review, links, actio
   const [line, setLine] = useState<LinePick | null>(null)
   const listWidth = usePaneSize('prFiles', 260, 140, 700)
   const commentsHeight = usePaneSize('prLineComments', 220, 80, 900)
+  const wordDiff = useWordDiff()
 
   if (error) return <div className={styles.empty}>{error}</div>
   if (!files) return <div className={styles.empty}><Spinner /></div>
@@ -73,6 +75,7 @@ export function FilesTab({ repoId, detail, target, threads, review, links, actio
             <DiffViewer
               patch={patch.patch.text}
               path={file.path}
+              wordDiff={wordDiff}
               gutter={(i) => {
                 const at = place(lines[i])
                 if (!at) return null

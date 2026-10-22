@@ -1,12 +1,16 @@
 import { type ReactNode, useMemo, useRef } from 'react'
+import { type Mark, occurrences } from '../../lib/decorate'
 import { parseDiff } from '../../lib/diffLines'
+import { inlineMarks } from '../../lib/inlineDiff'
 import { longPress } from '../../lib/longPress'
 import { useHighlight } from '../../lib/useHighlight'
 import { Icon } from '../Icon/Icon'
 import { VirtualList } from '../VirtualList/VirtualList'
 import { DiffFind } from './DiffFind'
+import { LineText } from './LineText'
 import styles from './DiffViewer.module.css'
 import { useDiffFind } from './useDiffFind'
+import { useWordPick } from './useWordPick'
 
 const LINE_HEIGHT = 18
 
@@ -18,14 +22,18 @@ type Props = {
   onContextMenu?: (line: number, at: { x: number; y: number }) => void
   /** A narrow column before the line numbers (review threads, "add a comment"). */
   gutter?: (line: number) => ReactNode
+  /** Dim what a changed line shares with the line it became, so the change stands out. */
+  wordDiff?: boolean
 }
 
-export function DiffViewer({ patch, path, selected, onSelect, onContextMenu, gutter }: Props) {
+export function DiffViewer({ patch, path, selected, onSelect, onContextMenu, gutter, wordDiff }: Props) {
   const lines = useMemo(() => parseDiff(patch), [patch])
   const texts = useMemo(() => lines.map((l) => (l.kind === 'meta' || l.kind === 'hunk' ? '' : l.text)), [lines])
   const html = useHighlight(path, texts)
   const all = useMemo(() => lines.map((l) => l.text), [lines])
   const find = useDiffFind(all)
+  const inline = useMemo(() => (wordDiff ? inlineMarks(lines) : null), [lines, wordDiff])
+  const pick = useWordPick(all)
   const widest = useMemo(() => all.reduce((w, t) => Math.max(w, t.replace(/	/g, '        ').length), 0), [all])
   const anchor = useRef<number | null>(null)
   const dragging = useRef(false)
@@ -75,22 +83,42 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu, gut
   }
 
   const handlers = (i: number) => ({
-    onMouseDown: (e: React.MouseEvent) => down(i, e),
+    onMouseDown: (e: React.MouseEvent) => {
+      pick.onMouseDown(e)
+      down(i, e)
+    },
+    onDoubleClick: (e: React.MouseEvent) => pick.onDoubleClick(i, e),
     onMouseEnter: () => enter(i),
     onContextMenu: (e: React.MouseEvent) => context(i, e),
     ...(onContextMenu ? longPress((at) => open(i, at)) : {}),
   })
 
+  const marks = (i: number): Mark[] => {
+    const l = lines[i]
+    const out: Mark[] = []
+    const m = inline?.(i)
+    if (m) {
+      for (const [start, end] of m.same) out.push({ start, end, cls: styles.same })
+      const anchor = l.kind === 'del' ? styles.anchorAdd : styles.anchorDel
+      for (const at of m.anchors) out.push({ start: at, end: at, cls: anchor })
+    }
+    if (pick.word) for (const [start, end] of occurrences(l.text, pick.word)) out.push({ start, end, cls: styles.occurrence })
+    return out
+  }
+
   if (lines.length === 0) return <div className={styles.empty}>No changes</div>
   return (
     <div
-      className={`${styles.viewer} ${onSelect ? styles.selectable : ''}`}
+      className={`${styles.viewer} ${onSelect ? styles.selectable : ''} ${wordDiff ? styles.words : ''}`}
       style={{ '--widest': `${widest}ch` } as React.CSSProperties}
       tabIndex={-1}
       // line clicks prevent the default (no text selection), which would also keep focus away
       onMouseDownCapture={(e) => e.currentTarget.focus({ preventScroll: true })}
+      onMouseUp={pick.onMouseUp}
       onKeyDown={(e) => {
-        if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+        if (e.key === 'Escape' && pick.word) {
+          pick.clear()
+        } else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
           // the diff's own search, not the history search of the page around it
           e.preventDefault()
           e.stopPropagation()
@@ -140,11 +168,7 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu, gut
               <span className={styles.no}>{l.oldNo ?? ''}</span>
               <span className={styles.no}>{l.newNo ?? ''}</span>
               <span className={styles.sign}>{l.kind === 'add' ? '+' : l.kind === 'del' ? '-' : ' '}</span>
-              {html ? (
-                <span className={styles.text} dangerouslySetInnerHTML={{ __html: html[i] }} />
-              ) : (
-                <span className={styles.text}>{l.text}</span>
-              )}
+              <LineText html={html?.[i]} text={l.text} marks={marks(i)} />
             </div>
           )
         }}
