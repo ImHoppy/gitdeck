@@ -44,17 +44,19 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
     let dir = cli::config_dir();
     let config_path = args.config.unwrap_or_else(|| dir.join("config.toml"));
     let config = Config::load(&config_path)?;
+    let addr = args.bind.unwrap_or_else(|| config.listen_addr());
+    let local = local_addr(addr);
     let git = config.git.clone();
     let github_prs = config.github_prs;
     let token = auth::load_or_create(&dir)?;
     let open = args.open.as_deref().map(|p| std::path::absolute(p).unwrap_or_else(|_| p.to_path_buf()));
-    let url = browser::login_url(&args.bind, &token, open.as_deref());
-    let listener = match bind(args.bind, std::env::var_os(crate::updater::REPLACE_ENV).is_some()).await {
+    let url = browser::login_url(&local, &token, open.as_deref());
+    let listener = match bind(addr, std::env::var_os(crate::updater::REPLACE_ENV).is_some()).await {
         Ok(l) => l,
         Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
             // one server for every window: a second launch only opens another window
             println!("gitd already running");
-            if !args.no_open && (args.browser || !crate::launcher::ask_running(&args.bind, &token, open.as_deref())) {
+            if !args.no_open && (args.browser || !crate::launcher::ask_running(&local, &token, open.as_deref())) {
                 browser::open(&url);
             }
             return Ok(());
@@ -108,12 +110,21 @@ pub async fn run(args: cli::Args) -> anyhow::Result<()> {
         crate::launcher::show(&url, app_browser);
     }
     #[cfg(windows)]
-    crate::tray::spawn(app.clone(), browser::login_url(&args.bind, &app.token, None));
+    crate::tray::spawn(app.clone(), browser::login_url(&local, &app.token, None));
     let shutdown = app.clone();
     axum::serve(listener, router)
         .with_graceful_shutdown(async move { shutdown.lifecycle.shutdown.notified().await })
         .await?;
     Ok(())
+}
+
+fn local_addr(addr: std::net::SocketAddr) -> std::net::SocketAddr {
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+    match addr.ip() {
+        IpAddr::V4(ip) if ip.is_unspecified() => std::net::SocketAddr::new(Ipv4Addr::LOCALHOST.into(), addr.port()),
+        IpAddr::V6(ip) if ip.is_unspecified() => std::net::SocketAddr::new(Ipv6Addr::LOCALHOST.into(), addr.port()),
+        _ => addr,
+    }
 }
 
 const REPLACE_WAIT: Duration = Duration::from_secs(10);

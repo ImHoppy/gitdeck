@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -24,9 +27,15 @@ pub struct Config {
     /// New releases from GitHub: never asked (the default), announced, or installed.
     #[serde(default, skip_serializing_if = "UpdateMode::is_off")]
     pub updates: UpdateMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host: Option<IpAddr>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
     #[serde(default, rename = "workspace")]
     pub workspaces: Vec<WorkspaceConfig>,
 }
+
+pub const DEFAULT_PORT: u16 = 7777;
 
 fn set_up() -> bool {
     true
@@ -103,6 +112,10 @@ impl Config {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(e.into()),
         }
+    }
+
+    pub fn listen_addr(&self) -> SocketAddr {
+        SocketAddr::new(self.host.unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST)), self.port.unwrap_or(DEFAULT_PORT))
     }
 
     pub fn workspace(&self, name: &str) -> Option<&WorkspaceConfig> {
@@ -223,6 +236,14 @@ mod tests {
         let ws = back.workspace("ava").unwrap();
         assert_eq!(ws.roots.len(), 1);
         assert!(ws.is_excluded(Path::new("E:/AvaServer/big")));
+    }
+
+    #[test]
+    fn listens_on_loopback_unless_told() {
+        assert_eq!(Config::default().listen_addr().to_string(), "127.0.0.1:7777");
+        let cfg: Config = toml::from_str("host = \"10.8.0.2\"
+port = 7800").unwrap();
+        assert_eq!(cfg.listen_addr().to_string(), "10.8.0.2:7800");
     }
 
     #[test]

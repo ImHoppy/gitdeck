@@ -2,8 +2,8 @@ use std::{net::SocketAddr, path::PathBuf};
 
 #[derive(clap::Parser, Debug)]
 pub struct Args {
-    #[arg(long, default_value = "127.0.0.1:7777")]
-    pub bind: SocketAddr,
+    #[arg(long)]
+    pub bind: Option<SocketAddr>,
     #[arg(long)]
     pub config: Option<PathBuf>,
     /// Seconds to wait after the last client closes before exiting.
