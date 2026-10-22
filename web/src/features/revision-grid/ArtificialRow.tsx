@@ -13,8 +13,8 @@ type Props = {
   onSelect: () => void
 }
 
-const GRAPH: GraphRow = { lane: 0, color: 7, segments: [{ from: null, to: 0, color: 7 }] }
-const GRAPH_THROUGH: GraphRow = { ...GRAPH, segments: [{ from: 0, to: null, color: 7 }, ...GRAPH.segments] }
+const GRAPH: GraphRow = { lane: 0, color: 7, segments: [{ start: null, center: 0, end: 0, color: 7, fromNode: false, toNode: false }] }
+const GRAPH_THROUGH: GraphRow = { ...GRAPH, segments: [{ start: 0, center: 0, end: null, color: 7, fromNode: true, toNode: false }, ...GRAPH.segments] }
 
 export function ArtificialRow({ label, badge, title, top, selected, graphWidth, height, onSelect }: Props) {
   return (

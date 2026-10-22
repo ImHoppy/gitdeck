@@ -59,7 +59,8 @@ export type GitRef = { sha: string; kind: RefKind; name: string; upstream: strin
 
 export type HistoryInfo = { key: string; head: string | null; refs: GitRef[]; count: number; hasNotes: boolean }
 
-export type GraphSegment = { from: number | null; to: number | null; color: number }
+/** A line's lane in the row above (`start`), here (`center`) and below (`end`); null ends at this row's commit. */
+export type GraphSegment = { start: number | null; center: number; end: number | null; color: number; fromNode: boolean; toNode: boolean }
 
 export type GraphRow = { lane: number; color: number; segments: GraphSegment[] }
 

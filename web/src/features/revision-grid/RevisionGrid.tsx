@@ -49,7 +49,7 @@ export function RevisionGrid({ repo, info, rows, ensure, selection, onSelect, on
     for (let i = range[0]; i < range[1]; i++) {
       const r = rows.get(i)
       if (!r) continue
-      max = Math.max(max, r.graph.lane + 1, ...r.graph.segments.map((s) => Math.max(s.from ?? 0, s.to ?? 0) + 1))
+      max = Math.max(max, r.graph.lane + 1, ...r.graph.segments.map((s) => Math.max(s.start ?? 0, s.center, s.end ?? 0) + 1))
     }
     return Math.min(max, 40)
   }, [rows, range])

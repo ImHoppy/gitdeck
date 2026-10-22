@@ -62,7 +62,7 @@ pub async fn load<R: GitRunner>(runner: &R, path: &Path, key: HistoryKey, opts: 
     let out = runner.run(path, &args).await?;
     // an unborn HEAD makes git log fail: that repo simply has no history yet
     let commits = if out.ok() { log::parse(&out.stdout) } else { Vec::new() };
-    let rows = graph::layout(&parent_indices(&commits));
+    let rows = graph::layout(&parent_indices(&commits), &color_seeds(&commits));
     Ok(History { key, commits, rows })
 }
 
@@ -87,7 +87,7 @@ impl History {
 
     fn keep(&self, hit: impl Fn(&LogCommit) -> bool, key: &str) -> History {
         let commits: Vec<LogCommit> = self.commits.iter().filter(|c| hit(c)).cloned().collect();
-        let rows = graph::layout(&parent_indices(&commits));
+        let rows = graph::layout(&parent_indices(&commits), &color_seeds(&commits));
         let mut k = self.key.clone();
         k.key = key.to_string();
         History { key: k, commits, rows }
@@ -133,6 +133,11 @@ impl History {
     }
 }
 
+/// From the hash: a commit keeps its lane colour as more history loads above it.
+fn color_seeds(commits: &[LogCommit]) -> Vec<u32> {
+    commits.iter().map(|c| c.sha.get(..8).and_then(|h| u32::from_str_radix(h, 16).ok()).unwrap_or(0)).collect()
+}
+
 fn parent_indices(commits: &[LogCommit]) -> Vec<Vec<u32>> {
     let index: HashMap<&str, u32> = commits.iter().enumerate().map(|(i, c)| (c.sha.as_str(), i as u32)).collect();
     commits
@@ -164,7 +169,7 @@ mod tests {
         let commits = vec![commit("aa1", "Fix grid", "Ann"), commit("bb2", "add tree", "Bob"), commit("cc3", "docs", "ann")];
         let h = History {
             key: HistoryKey { key: "k".into(), head: None, refs: vec![] },
-            rows: graph::layout(&parent_indices(&commits)),
+            rows: graph::layout(&parent_indices(&commits), &color_seeds(&commits)),
             commits,
         };
         let shas = |q: &str| h.filtered(q).commits.into_iter().map(|c| c.sha).collect::<Vec<_>>();

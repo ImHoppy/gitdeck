@@ -1,12 +1,27 @@
+mod rows;
+mod straighten;
+#[cfg(test)]
+mod tests;
+
+use rows::{Graph, Sharing};
 use serde::Serialize;
 
 pub const MAX_LANES: usize = 40;
 
+/// One row's piece of a child → parent line: its lane in the row above (`start`), here
+/// (`center`) and in the row below (`end`). No `start`: it leaves this row's commit; no `end`: it
+/// arrives at it (or joins a lane that carries on).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Segment {
-    pub from: Option<u8>,
-    pub to: Option<u8>,
+    pub start: Option<u8>,
+    pub center: u8,
+    pub end: Option<u8>,
     pub color: u16,
+    /// `start` is the commit of the row above: the line leaves that node directly.
+    pub from_node: bool,
+    /// `end` is the commit of the row below.
+    pub to_node: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -16,134 +31,52 @@ pub struct Row {
     pub segments: Vec<Segment>,
 }
 
-#[derive(Clone, Copy)]
-struct Lane {
-    target: u32,
-    color: u16,
+/// `parents[i]`: row indices of commit `i`'s parents, first parent first. `seeds[i]`: a number
+/// from commit `i`'s hash, which picks lane colours that stay put as more history loads.
+pub fn layout(parents: &[Vec<u32>], seeds: &[u32]) -> Vec<Row> {
+    let mut g = rows::build(parents, seeds);
+    straighten::lanes(&mut g);
+    straighten::diagonals(&mut g);
+    (0..g.rows.len()).map(|r| output(&g, r, seeds)).collect()
 }
 
-pub fn layout(parents: &[Vec<u32>]) -> Vec<Row> {
-    let mut lanes: Vec<Option<Lane>> = Vec::new();
-    let mut next_color: u16 = 0;
-    let mut new_color = || {
-        next_color = next_color.wrapping_add(1);
-        next_color
+fn output(g: &Graph, r: usize, seeds: &[u32]) -> Row {
+    let row = &g.rows[r];
+    let lane_in = |other: Option<usize>, seg: usize| {
+        other.map(|o| g.rows[o].lane_of(seg).index).filter(|&l| l >= 0 && (l as usize) < MAX_LANES).map(|l| l as u8)
     };
-    let mut rows = Vec::with_capacity(parents.len());
-
-    for (i, ps) in parents.iter().enumerate() {
-        let i = i as u32;
-        let mut segments = Vec::new();
-        let incoming: Vec<usize> =
-            (0..lanes.len()).filter(|&l| matches!(lanes[l], Some(x) if x.target == i)).collect();
-        let (node_lane, color) = match incoming.first() {
-            Some(&l) => (l, lanes[l].unwrap().color),
-            None => {
-                let l = free_slot(&mut lanes);
-                (l, new_color())
-            }
-        };
-        for (l, lane) in lanes.iter().enumerate() {
-            let Some(lane) = lane else { continue };
-            let piece = if lane.target == i {
-                Segment { from: Some(l as u8), to: None, color: lane.color }
-            } else {
-                Segment { from: Some(l as u8), to: Some(l as u8), color: lane.color }
-            };
-            push(&mut segments, l, piece);
+    let above = r.checked_sub(1);
+    let below = (r + 1 < g.rows.len()).then_some(r + 1);
+    let mut node_color = None;
+    let mut segments = Vec::new();
+    for (k, &seg) in row.segs.iter().enumerate() {
+        let lane = row.lanes[k];
+        if lane.sharing == Sharing::Entire || lane.index < 0 || lane.index as usize >= MAX_LANES {
+            continue;
         }
-        for &l in &incoming {
-            lanes[l] = None;
+        let s = &g.segs[seg];
+        let color = s.info.map_or(0, |i| g.infos[i].color);
+        let at_node = s.parent == row.rev || s.child == row.rev;
+        if at_node && node_color.is_none() {
+            node_color = Some(color);
         }
-
-        for (n, &parent) in ps.iter().enumerate() {
-            let existing = (0..lanes.len()).find(|&l| matches!(lanes[l], Some(x) if x.target == parent));
-            let (l, c) = match existing {
-                Some(l) => (l, lanes[l].unwrap().color),
-                None => {
-                    let l = if n == 0 && lanes.get(node_lane).is_some_and(Option::is_none) {
-                        node_lane
-                    } else {
-                        free_slot(&mut lanes)
-                    };
-                    let c = if n == 0 { color } else { new_color() };
-                    lanes[l] = Some(Lane { target: parent, color: c });
-                    (l, c)
-                }
-            };
-            push(&mut segments, l, Segment { from: None, to: Some(l as u8), color: c });
+        let start = if s.child == row.rev { None } else { lane_in(above, seg) };
+        let mut end = if s.parent == row.rev { None } else { lane_in(below, seg) };
+        if lane.sharing == Sharing::DifferentStart {
+            end = None;
         }
-        while matches!(lanes.last(), Some(None)) {
-            lanes.pop();
+        if start.is_none() && end.is_none() {
+            continue;
         }
-        rows.push(Row { lane: node_lane.min(MAX_LANES) as u8, color, segments });
+        segments.push(Segment {
+            start,
+            center: lane.index as u8,
+            end,
+            color,
+            from_node: start.is_some() && above.is_some_and(|a| s.child as usize == a),
+            to_node: end.is_some() && below.is_some_and(|b| s.parent as usize == b),
+        });
     }
-    rows
-}
-
-fn free_slot(lanes: &mut Vec<Option<Lane>>) -> usize {
-    match lanes.iter().position(Option::is_none) {
-        Some(l) => l,
-        None => {
-            lanes.push(None);
-            lanes.len() - 1
-        }
-    }
-}
-
-fn push(segments: &mut Vec<Segment>, lane: usize, s: Segment) {
-    if lane < MAX_LANES {
-        segments.push(s);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn lanes(rows: &[Row]) -> Vec<u8> {
-        rows.iter().map(|r| r.lane).collect()
-    }
-
-    #[test]
-    fn linear_history_stays_in_lane_zero() {
-        let rows = layout(&[vec![1], vec![2], vec![]]);
-        assert_eq!(lanes(&rows), [0, 0, 0]);
-        assert_eq!(rows[1].segments, [
-            Segment { from: Some(0), to: None, color: 1 },
-            Segment { from: None, to: Some(0), color: 1 },
-        ]);
-        assert!(rows.iter().all(|r| r.color == 1));
-    }
-
-    #[test]
-    fn merge_opens_a_second_lane_that_joins_back() {
-        // 0 = merge(1, 2), 1 -> 3, 2 -> 3, 3 root
-        let rows = layout(&[vec![1, 2], vec![3], vec![3], vec![]]);
-        assert_eq!(lanes(&rows), [0, 0, 1, 0]);
-        assert_eq!(rows[0].segments.len(), 2);
-        assert!(rows[2].segments.contains(&Segment { from: None, to: Some(0), color: rows[0].color }));
-        assert_eq!(rows[3].segments.iter().filter(|s| s.to.is_none()).count(), 1);
-    }
-
-    #[test]
-    fn two_tips_get_two_lanes_and_colors() {
-        // 0 -> 2, 1 -> 2, 2 root
-        let rows = layout(&[vec![2], vec![2], vec![]]);
-        assert_eq!(lanes(&rows), [0, 1, 0]);
-        assert_ne!(rows[0].color, rows[1].color);
-    }
-
-    #[test]
-    fn lanes_passing_through_a_row_never_shift() {
-        // three interleaved branches with merges: every pass-through piece stays vertical
-        let parents = [vec![2, 1], vec![3], vec![4, 3], vec![5], vec![5], vec![]];
-        for row in layout(&parents) {
-            for s in row.segments {
-                if let (Some(a), Some(b)) = (s.from, s.to) {
-                    assert_eq!(a, b);
-                }
-            }
-        }
-    }
+    let lane = row.rev_lane.clamp(0, MAX_LANES as i32 - 1) as u8;
+    Row { lane, color: node_color.unwrap_or((seeds[r] % rows::PALETTE_SIZE) as u16), segments }
 }
