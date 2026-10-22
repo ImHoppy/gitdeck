@@ -41,6 +41,10 @@
   padding: 5px 6px 5px 8px;
 }
 
+.head.mac {
+  padding: 5px 8px 5px 6px;
+}
+
 .mark {
   display: flex;
   flex: none;

@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { isMac } from '../../lib/platform'
 import { Icon } from '../Icon/Icon'
 import { Spinner } from '../Spinner/Spinner'
 import { trackToast } from './openToasts'
@@ -43,16 +44,18 @@ export function Toast({ tone, title, children, onDismiss, autoHide }: Props) {
     return () => clearTimeout(t)
   }, [autoHide])
 
+  const close = onDismiss && (
+    <button className={styles.close} title="Dismiss" onClick={onDismiss}>
+      <Icon name="close" size={11} />
+    </button>
+  )
   return createPortal(
     <div className={`${styles.toast} ${styles[tone]}`} role={tone === 'bad' ? 'alert' : 'status'}>
-      <div className={styles.head}>
+      <div className={`${styles.head} ${isMac ? styles.mac : ''}`}>
+        {isMac && close}
         <span className={styles.mark}>{tone === 'busy' ? <Spinner /> : <Icon name={MARK[tone]} size={13} />}</span>
         <span className={styles.title}>{title}</span>
-        {onDismiss && (
-          <button className={styles.close} title="Dismiss" onClick={onDismiss}>
-            <Icon name="close" size={11} />
-          </button>
-        )}
+        {!isMac && close}
       </div>
       {children && <div className={styles.body}>{children}</div>}
     </div>,

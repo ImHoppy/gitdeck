@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isMac } from '../../lib/platform'
 import type { DraftThread, ReviewThread } from '../../protocol/github'
 import { Icon } from '../../ui/Icon/Icon'
 import { IconButton } from '../../ui/IconButton/IconButton'
@@ -31,15 +32,19 @@ export function LineComments({ line, threads, review, links, actions, onClose }:
     if (await actions.commentNow(draft)) setText('')
     setSending(false)
   }
+  const close = (
+    <IconButton title="Close" onClick={onClose}>
+      <Icon name="close" size={11} />
+    </IconButton>
+  )
   return (
     <div className={styles.lineBox}>
       <div className={styles.lineHead}>
+        {isMac && close}
         <strong>{line.path}:{line.line}</strong>
         <span className={styles.muted}>{line.side === 'LEFT' ? 'old side' : 'new side'}</span>
         <span className={styles.spacer} />
-        <IconButton title="Close" onClick={onClose}>
-          <Icon name="close" size={11} />
-        </IconButton>
+        {!isMac && close}
       </div>
       {threads.map((t) => (
         <ThreadCard

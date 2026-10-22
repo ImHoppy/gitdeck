@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { isMac } from '../../lib/platform'
 import { Icon } from '../Icon/Icon'
 import { IconButton } from '../IconButton/IconButton'
 import styles from './PageHeader.module.css'
@@ -12,15 +13,29 @@ type Props = {
 }
 
 export function PageHeader({ title, status, tools, className, onClose }: Props) {
+  const close = (
+    <IconButton title="Close (Esc)" onClick={onClose}>
+      <Icon name="close" size={12} />
+    </IconButton>
+  )
+  if (isMac)
+    return (
+      <header className={`${styles.header} ${className ?? ''}`}>
+        <span className={styles.tools}>
+          {close}
+          {tools}
+        </span>
+        <strong className={styles.title}>{title}</strong>
+        {status}
+      </header>
+    )
   return (
     <header className={`${styles.header} ${className ?? ''}`}>
       <strong className={styles.title}>{title}</strong>
       {status}
       <span className={styles.tools}>
         {tools}
-        <IconButton title="Close (Esc)" onClick={onClose}>
-          <Icon name="close" size={12} />
-        </IconButton>
+        {close}
       </span>
     </header>
   )
