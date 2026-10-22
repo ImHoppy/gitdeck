@@ -4,12 +4,13 @@ query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
     pullRequest(number: $number) {
       id
       viewerCanUpdate
+      bodyHTML
       reviewThreads(first: 100) {
         nodes {
           id isResolved isOutdated path line originalLine startLine diffSide viewerCanResolve viewerCanUnresolve viewerCanReply
           comments(first: 100) {
             nodes {
-              id body createdAt updatedAt viewerCanUpdate viewerCanDelete diffHunk
+              id body bodyHTML createdAt updatedAt viewerCanUpdate viewerCanDelete diffHunk
               author { login }
               pullRequestReview { id }
               reactionGroups { content reactors { totalCount } }
@@ -21,8 +22,8 @@ query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
         pageInfo { hasNextPage endCursor }
         nodes {
           __typename
-          ... on IssueComment { id body createdAt updatedAt viewerCanUpdate viewerCanDelete author { login } reactionGroups { content reactors { totalCount } } }
-          ... on PullRequestReview { id body state createdAt updatedAt submittedAt viewerCanUpdate viewerCanDelete author { login } reactionGroups { content reactors { totalCount } } }
+          ... on IssueComment { id body bodyHTML createdAt updatedAt viewerCanUpdate viewerCanDelete author { login } reactionGroups { content reactors { totalCount } } }
+          ... on PullRequestReview { id body bodyHTML state createdAt updatedAt submittedAt viewerCanUpdate viewerCanDelete author { login } reactionGroups { content reactors { totalCount } } }
           ... on PullRequestCommit { commit { oid messageHeadline authoredDate author { name user { login } } } }
           ... on HeadRefForcePushedEvent { createdAt actor { login } beforeCommit { oid } afterCommit { oid } }
           ... on MergedEvent { createdAt actor { login } commit { oid } }

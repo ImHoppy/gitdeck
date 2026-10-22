@@ -55,7 +55,8 @@ export function PrDetailPane({ target, number, tab, onTab, local, handlers, onSh
   const [filesPath, setFilesPath] = useState<string | null>(null)
   const ops = useBranchOps({ local, detail, confirm: dialogs.confirm, report: actions.report, onSwitched: (branch) => local && onShowInHistory(local.id, branch) })
   const fetched = usePrFetch(local?.id ?? null, detail, tab === 'files' || tab === 'commits' || rebaseFrom)
-  const links = useMemo(() => prLinks(target.repo, detail?.headRefOid, handlers, draft.id), [target.repo, detail?.headRefOid, handlers, draft.id])
+  const images = timeline?.images
+  const links = useMemo(() => prLinks(target.repo, detail?.headRefOid, handlers, draft.id, images), [target.repo, detail?.headRefOid, handlers, draft.id, images])
 
   useEffect(() => {
     if (dialog !== 'merge' || info) return

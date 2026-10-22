@@ -133,7 +133,15 @@ export type ReviewThread = {
   comments: Comment[]
 }
 
-export type Timeline = { viewer: string; prId: string; viewerCanUpdate: boolean; items: TimelineItem[]; threads: ReviewThread[] }
+export type Timeline = {
+  viewer: string
+  prId: string
+  viewerCanUpdate: boolean
+  items: TimelineItem[]
+  threads: ReviewThread[]
+  /** Pictures hosted outside GitHub: original URL → GitHub's camo copy. */
+  images: Record<string, string>
+}
 
 export type RepoInfo = {
   defaultBranch: string

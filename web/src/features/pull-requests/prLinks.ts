@@ -23,12 +23,15 @@ export type RefHandlers = {
   onCommit: (repo: string, sha: string) => void
 }
 
-/** How a PR's text links out: references open in the PR view, pictures through gitd. */
-export function prLinks(repo: string, head: string | undefined, handlers: RefHandlers, draft?: string): MarkdownLinks {
+/**
+ * How a PR's text links out: references open in the PR view, pictures through gitd. A picture
+ * hosted outside GitHub goes through GitHub's camo copy, the only one gitd may fetch.
+ */
+export function prLinks(repo: string, head: string | undefined, handlers: RefHandlers, draft?: string, images?: Record<string, string>): MarkdownLinks {
   return {
     repo,
     head,
-    image: (url) => (url.startsWith('./') ? (draft ? draftUrl(draft, url.slice(2)) : null) : imageProxy(url)),
+    image: (url) => (url.startsWith('./') ? (draft ? draftUrl(draft, url.slice(2)) : null) : imageProxy(images?.[url] ?? url)),
     onRef: (r, n) => handlers.onRef(r ?? repo, n),
     onCommit: (r, sha) => handlers.onCommit(r ?? repo, sha),
     preview: (r, n) => refCard(r ?? repo, n),

@@ -1,8 +1,9 @@
 //! The Conversation tab in one paginated GraphQL query: `gh pr view --json` has no inline threads.
 
-use super::{login, Actor};
+use super::{camo, login, Actor};
 use crate::commands::remote::GithubRepo;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 const QUERY: &str = include_str!("timeline.graphql");
 
@@ -22,6 +23,8 @@ pub struct Timeline {
     pub viewer_can_update: bool,
     pub items: Vec<TimelineItem>,
     pub threads: Vec<ReviewThread>,
+    /// Pictures hosted outside GitHub: original URL → GitHub's camo copy.
+    pub images: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -116,6 +119,8 @@ struct RawPr {
     id: String,
     #[serde(default)]
     viewer_can_update: bool,
+    #[serde(default, rename = "bodyHTML")]
+    body_html: String,
     review_threads: Nodes<RawThread>,
     timeline_items: Nodes<RawItem>,
 }
@@ -131,6 +136,8 @@ struct RawComment {
     id: String,
     #[serde(default)]
     body: String,
+    #[serde(default, rename = "bodyHTML")]
+    body_html: String,
     #[serde(default)]
     created_at: String,
     #[serde(default)]
@@ -322,14 +329,24 @@ impl RawThread {
 /// `--slurp` wraps the pages in an array; the threads are repeated on every page.
 pub fn parse(out: &[u8]) -> Result<Timeline, serde_json::Error> {
     let pages: Vec<Page> = serde_json::from_slice(out)?;
-    let mut timeline = Timeline { viewer: String::new(), pr_id: String::new(), viewer_can_update: false, items: Vec::new(), threads: Vec::new() };
+    let mut timeline =
+        Timeline { viewer: String::new(), pr_id: String::new(), viewer_can_update: false, items: Vec::new(), threads: Vec::new(), images: HashMap::new() };
     for (i, page) in pages.into_iter().enumerate() {
         let pr = page.data.repository.pull_request;
         if i == 0 {
             timeline.viewer = page.data.viewer.login;
             timeline.pr_id = pr.id;
             timeline.viewer_can_update = pr.viewer_can_update;
+            camo::collect(&pr.body_html, &mut timeline.images);
+            for c in pr.review_threads.nodes.iter().flat_map(|t| &t.comments.nodes) {
+                camo::collect(&c.body_html, &mut timeline.images);
+            }
             timeline.threads = pr.review_threads.nodes.into_iter().map(RawThread::into_thread).collect();
+        }
+        for item in &pr.timeline_items.nodes {
+            if let RawItem::IssueComment(c) | RawItem::PullRequestReview(c) = item {
+                camo::collect(&c.body_html, &mut timeline.images);
+            }
         }
         timeline.items.extend(pr.timeline_items.nodes.into_iter().filter_map(RawItem::into_item));
     }

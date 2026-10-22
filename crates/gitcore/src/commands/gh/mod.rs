@@ -2,6 +2,7 @@
 //! Every command names the repo with `-R`, so gh never guesses it from the folder's remotes.
 
 pub mod auth;
+mod camo;
 pub mod checks;
 pub mod graphql;
 pub mod issue;

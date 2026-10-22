@@ -32,6 +32,7 @@ test('threads follow the review they were opened in', () => {
       { kind: 'commit', oid: 'abc', headline: 'h', author: 'a', at: 't' },
     ],
     threads: [thread('T2', 'PRR_gone'), thread('T1', 'PRR_1')],
+    images: {},
   }
   expect(timelineEntries(timeline).map((e) => e.key)).toEqual(['description', 'IC_1', 'PRR_1', 'T1', 'c:abc', 'T2'])
   expect(timelineEntries(null).map((e) => e.kind)).toEqual(['description'])
