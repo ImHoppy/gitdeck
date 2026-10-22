@@ -1,4 +1,4 @@
-use crate::server::AppState;
+use crate::{file_manager, server::AppState};
 use anyhow::bail;
 use gitcore::GitRunner;
 use serde::Deserialize;
@@ -18,6 +18,7 @@ pub async fn info(app: &AppState) -> anyhow::Result<Value> {
         "githubPrs": app.github.enabled(),
         "editor": app.config.lock().unwrap().editor.clone(),
         "fileManager": app.config.lock().unwrap().file_manager.clone(),
+        "fileManagerDetected": tokio::task::spawn_blocking(file_manager::detect).await.ok().flatten(),
         "fetchInterval": fetch_interval,
     }))
 }

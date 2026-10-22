@@ -22,7 +22,7 @@ type Props<S extends string, P extends string> = {
   version: string | null
   git: { path: string | null; version: string | null; onSave: (path: string) => Promise<string | null> } | null
   editor: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
-  fileManager: { path: string | null; onSave: (path: string) => Promise<string | null> } | null
+  fileManager: { path: string | null; detected: string | null; onSave: (path: string) => Promise<string | null> } | null
   /** The open repository, for its own git settings. */
   repoId: number | null
   onClose: () => void
@@ -134,7 +134,7 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
                 label="File manager"
                 placeholder="the system one, or e.g. C:/Program Files/FPilot/FPilot.exe"
                 path={fileManager.path}
-                status={fileManager.path ? `Opens with ${fileManager.path}` : 'Opens with the system file manager'}
+                status={fileManagerStatus(fileManager.path, fileManager.detected)}
                 onSave={fileManager.onSave}
               />
             )}
@@ -180,4 +180,9 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 function ChoiceSelect<T extends string>({ choice }: { choice: Choice<T> }) {
   return <Select value={choice.value} options={choice.options} onChange={choice.onChange} />
+}
+
+function fileManagerStatus(path: string | null, detected: string | null) {
+  if (path) return `Opens with ${path}`
+  return detected ? `Opens with ${detected}, the system's folder handler` : 'Opens with the system file manager'
 }

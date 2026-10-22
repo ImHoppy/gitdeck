@@ -1,4 +1,4 @@
-use crate::{handlers::repo::hub, server::AppState};
+use crate::{file_manager, handlers::repo::hub, server::AppState};
 use anyhow::{bail, Context};
 use gitcore::{commands::tracked, GitRunner};
 use serde::Deserialize;
@@ -56,7 +56,8 @@ pub struct RevealParams {
 pub async fn reveal(app: &AppState, p: RevealParams) -> anyhow::Result<Value> {
     let hub = hub(app).await?;
     let path = hub.entry(p.id)?.path.clone();
-    let manager = app.config.lock().unwrap().file_manager.clone();
+    let configured = app.config.lock().unwrap().file_manager.clone();
+    let manager = configured.or_else(file_manager::detect);
     match p.with.as_str() {
         "explorer" if manager.is_some() => {
             let target = p.path.as_deref().map(|f| path.join(f)).and_then(|f| f.parent().map(Path::to_path_buf)).unwrap_or(path);

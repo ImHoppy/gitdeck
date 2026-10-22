@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { setAvatarsEnabled } from '../../lib/avatarSource'
 import { gitd } from '../../protocol/client'
 
-export type ServerInfo = { keepRunning: boolean; version: string; git: string | null; gitVersion: string | null; githubAvatars: boolean; githubPrs: boolean; editor: string | null; fileManager: string | null; fetchInterval: number | null }
+export type ServerInfo = { keepRunning: boolean; version: string; git: string | null; gitVersion: string | null; githubAvatars: boolean; githubPrs: boolean; editor: string | null; fileManager: string | null; fileManagerDetected: string | null; fetchInterval: number | null }
 
 export function useServerInfo() {
   const [info, setInfo] = useState<ServerInfo | null>(null)

@@ -228,7 +228,7 @@ function Browse() {
       version={server.info?.version ?? null}
       repoId={selected?.id ?? null}
       editor={server.info ? { path: server.info.editor, onSave: server.setEditor } : null}
-      fileManager={server.info ? { path: server.info.fileManager, onSave: server.setFileManager } : null}
+      fileManager={server.info ? { path: server.info.fileManager, detected: server.info.fileManagerDetected, onSave: server.setFileManager } : null}
       git={server.info ? { path: server.info.git, version: server.info.gitVersion, onSave: server.setGit } : null}
       onClose={() => setSettingsOpen(false)}
     />

@@ -13,6 +13,7 @@ mod command_log;
 mod desktop_entry;
 mod events;
 mod explorer;
+mod file_manager;
 mod github;
 mod handlers;
 mod histories;
