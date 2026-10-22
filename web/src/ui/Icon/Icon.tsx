@@ -36,6 +36,7 @@ const PATHS = {
   pr: 'M4.5 4.5v7M4.5 1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM4.5 11.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM11.5 11.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM11.5 11.5V6a2 2 0 0 0-2-2H7M8.5 2.5 7 4l1.5 1.5',
   comment: 'M2 3h12v8H7l-3 2.5V11H2z',
   back: 'M10 3 5 8l5 5',
+  bell: 'M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0',
 } as const
 
 export type IconName = keyof typeof PATHS

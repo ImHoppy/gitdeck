@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../Icon/Icon'
 import { Spinner } from '../Spinner/Spinner'
+import { trackToast } from './openToasts'
 import styles from './Toast.module.css'
 
 export type ToastTone = 'info' | 'ok' | 'bad' | 'busy'
@@ -34,6 +35,8 @@ export function Toast({ tone, title, children, onDismiss, autoHide }: Props) {
   useEffect(() => {
     dismiss.current = onDismiss
   }, [onDismiss])
+  const dismissable = !!onDismiss
+  useEffect(() => (dismissable ? trackToast(Symbol('toast'), () => dismiss.current?.()) : undefined), [dismissable])
   useEffect(() => {
     if (!autoHide) return
     const t = setTimeout(() => dismiss.current?.(), autoHide)
