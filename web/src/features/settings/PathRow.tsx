@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 import styles from './SettingsPage.module.css'
 
 type Props = {
@@ -35,9 +35,9 @@ export function PathRow({ label, placeholder, path, status, onSave }: Props) {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && changed && void save()}
         />
-        <IconButton title="Save" disabled={!changed || busy} onClick={() => void save()}>
+        <Button title="Save" disabled={!changed || busy} onClick={() => void save()}>
           Save
-        </IconButton>
+        </Button>
       </div>
       <span className={error ? styles.error : styles.hint}>{error ?? status}</span>
     </div>

@@ -6,7 +6,7 @@ import { PageHeader } from '../../ui/PageHeader/PageHeader'
 import { GitConfigSection } from './GitConfigSection'
 import type { GitNotice } from './gitNotice'
 import { HostFlags, type Host } from './HostFlags'
-import { IconButton } from '../../ui/IconButton/IconButton'
+import { Button } from '../../ui/Button/Button'
 import { type Choice, ChoiceSelect, Row, Section } from './SettingRows'
 import { SettingsNav } from './SettingsNav'
 import { ToolPaths } from './ToolPaths'
@@ -153,7 +153,7 @@ export function SettingsPage<S extends string, P extends string>({ theme, submod
               <Row label="Version">{version ?? '?'}</Row>
               <div className={styles.row}>
                 <span>First-run setup</span>
-                <IconButton title="Show the first-run setup again" onClick={onSetup}>Run again</IconButton>
+                <Button title="Show the first-run setup again" onClick={onSetup}>Run again</Button>
               </div>
             </Section>
             <p className={styles.note}>Appearance and pull are kept in this browser; the git executable in gitd's config; keep running lasts until gitd exits.</p>
