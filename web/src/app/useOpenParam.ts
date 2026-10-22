@@ -6,7 +6,7 @@ const norm = (p: string) => p.replaceAll('\\', '/').replace(/\/+$/, '').toLowerC
 
 /**
  * `?open=<folder>` (from `gitd --open`, the Explorer menu): opens the project holding that folder
- * (adding one when none does), then selects the repo there.
+ * (adding one when none does), then selects the repo there. `&project=` opens that project instead.
  */
 export function useOpenParam(
   workspace: WorkspaceSnapshot | null,
@@ -26,10 +26,13 @@ export function useOpenParam(
     if (holder) {
       pick(holder.id)
       url.searchParams.delete('open')
+      url.searchParams.delete('project')
       history.replaceState(history.state, '', url)
     } else if (!tried.current) {
       tried.current = true
-      gitd.call<string>('project.open', { path }).then(openWorkspace, (e: Error) => onError(e.message))
+      const project = url.searchParams.get('project')
+      if (project) void openWorkspace(project)
+      else gitd.call<string>('project.open', { path }).then(openWorkspace, (e: Error) => onError(e.message))
     }
   }, [workspace, pick, openWorkspace, onError])
 }
