@@ -120,14 +120,27 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
                 let popups = proxy.clone();
                 let titles = proxy.clone();
                 let id = window.id();
+                let home = origin(&url).to_string();
+                let popup_home = home.clone();
                 let builder = WebViewBuilder::new_with_web_context(&mut context)
                     .with_url(url)
                     .with_background_color(background)
                     .with_initialization_script(MARK_WINDOW)
                     // window.open (the commit page pop-out) becomes another native window
                     .with_new_window_req_handler(move |url, _| {
-                        let _ = popups.send_event(Request::Open(url));
+                        if origin(&url) == popup_home {
+                            let _ = popups.send_event(Request::Open(url));
+                        } else {
+                            crate::browser::open_external(&url);
+                        }
                         NewWindowResponse::Deny
+                    })
+                    .with_navigation_handler(move |url| {
+                        if origin(&url) == home || url.starts_with("about:") {
+                            return true;
+                        }
+                        crate::browser::open_external(&url);
+                        false
                     })
                     // the page names the repo it shows; the title bar and taskbar follow
                     .with_document_title_changed_handler(move |title| {
@@ -151,6 +164,11 @@ pub fn run(event_loop: EventLoop<Request>, data_dir: PathBuf) -> ! {
             _ => {}
         }
     });
+}
+
+fn origin(url: &str) -> &str {
+    let start = url.find("://").map_or(0, |i| i + 3);
+    url[start..].find(['/', '?', '#']).map_or(url, |i| &url[..start + i])
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -183,4 +201,17 @@ pub fn on_main(work: Box<dyn FnOnce() + Send>) {
 /// False when windows were never started, so the caller can fall back to the browser.
 pub fn open(url: &str) -> bool {
     WINDOWS.get().is_some_and(|p| p.send_event(Request::Open(url.to_string())).is_ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn origin_stops_at_the_path() {
+        assert_eq!(origin("http://127.0.0.1:7777/login?token=t"), "http://127.0.0.1:7777");
+        assert_eq!(origin("http://127.0.0.1:7777?x"), "http://127.0.0.1:7777");
+        assert_eq!(origin("https://github.com"), "https://github.com");
+        assert_ne!(origin("http://127.0.0.1:7777.evil/"), "http://127.0.0.1:7777");
+    }
 }

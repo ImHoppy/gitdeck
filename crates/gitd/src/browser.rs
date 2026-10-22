@@ -26,6 +26,22 @@ pub fn open(url: &str) {
     }
 }
 
+pub fn open_external(url: &str) {
+    if !["http://", "https://", "mailto:"].iter().any(|s| url.starts_with(s)) {
+        return;
+    }
+    let spawned = if cfg!(windows) {
+        Command::new("rundll32").args(["url.dll,FileProtocolHandler", url]).spawn().is_ok()
+    } else if cfg!(target_os = "macos") {
+        Command::new("open").arg(url).spawn().is_ok()
+    } else {
+        Command::new("xdg-open").arg(url).stdout(Stdio::null()).stderr(Stdio::null()).spawn().is_ok()
+    };
+    if !spawned {
+        eprintln!("could not open {url} in the browser");
+    }
+}
+
 /// `/login` link for this server; `open` asks the page to show the repo at that path.
 pub fn login_url(bind: &std::net::SocketAddr, token: &str, open: Option<&std::path::Path>) -> String {
     let mut url = format!("http://{bind}/login?token={token}");
