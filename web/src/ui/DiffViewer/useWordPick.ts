@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { wordAt } from '../../lib/decorate'
 
 /** Where a point falls in a line's text element, as a character offset. */
@@ -18,21 +18,26 @@ function offsetAt(el: Element, x: number, y: number): number | null {
  * the diff lets text be selected. A single click or Escape lets it go.
  */
 export function useWordPick(texts: string[]) {
-  const [word, setWord] = useState<string | null>(null)
+  const [pick, setPick] = useState<{ word: string; line: number } | null>(null)
+  const down = useRef<number | null>(null)
   return {
-    word,
-    clear: () => setWord(null),
-    onMouseDown: (e: React.MouseEvent) => {
-      if (e.detail === 1) setWord(null)
+    word: pick?.word ?? null,
+    // the line holding the selection is not re-rendered, which would drop the selection
+    line: pick?.line ?? null,
+    clear: () => setPick(null),
+    onMouseDown: (i: number, e: React.MouseEvent) => {
+      down.current = i
+      if (e.detail === 1) setPick(null)
     },
     onMouseUp: () => {
       const picked = window.getSelection()?.toString() ?? ''
-      if (picked.trim() && !picked.includes('\n')) setWord(picked)
+      if (picked.trim() && !picked.includes('\n') && down.current !== null) setPick({ word: picked, line: down.current })
     },
     onDoubleClick: (i: number, e: React.MouseEvent) => {
       const el = (e.target as Element).closest('[data-text]')
       const at = el ? offsetAt(el, e.clientX, e.clientY) : null
-      if (at !== null) setWord(wordAt(texts[i], at))
+      const word = at !== null ? wordAt(texts[i], at) : null
+      if (word) setPick({ word, line: i })
     },
   }
 }

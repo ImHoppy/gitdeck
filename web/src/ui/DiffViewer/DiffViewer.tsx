@@ -84,7 +84,7 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu, gut
 
   const handlers = (i: number) => ({
     onMouseDown: (e: React.MouseEvent) => {
-      pick.onMouseDown(e)
+      pick.onMouseDown(i, e)
       down(i, e)
     },
     onDoubleClick: (e: React.MouseEvent) => pick.onDoubleClick(i, e),
@@ -102,7 +102,7 @@ export function DiffViewer({ patch, path, selected, onSelect, onContextMenu, gut
       const anchor = l.kind === 'del' ? styles.anchorAdd : styles.anchorDel
       for (const at of m.anchors) out.push({ start: at, end: at, cls: anchor })
     }
-    if (pick.word) for (const [start, end] of occurrences(l.text, pick.word)) out.push({ start, end, cls: styles.occurrence })
+    if (pick.word && pick.line !== i) for (const [start, end] of occurrences(l.text, pick.word)) out.push({ start, end, cls: styles.occurrence })
     return out
   }
 
