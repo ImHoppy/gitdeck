@@ -69,16 +69,16 @@ export function commitMenu(ctx: Ctx, sha: string, branchesHere: string[]): MenuI
   ]
 }
 
-/** The toolbar's branch switcher: local branches, then remote ones with no local branch yet. */
-export function branchMenu(ctx: Ctx, refs: GitRef[], head: string | null): MenuItem[] {
+/** The toolbar's branch switcher, default branch first: local branches, then remote ones with no local branch yet. */
+export function branchMenu(ctx: Ctx, refs: GitRef[], head: string | null, defaultBranch: string | null): MenuItem[] {
   const { cmd, currentBranch } = ctx
-  const local = refs.filter((r) => r.kind === 'branch').sort((a, b) => a.name.localeCompare(b.name))
+  const local = refs.filter((r) => r.kind === 'branch').sort((a, b) => Number(b.name === defaultBranch) - Number(a.name === defaultBranch) || a.name.localeCompare(b.name))
   const names = new Set(local.map((r) => r.name))
   const remoteOnly = refs
     .filter((r) => r.kind === 'remote' && !r.name.endsWith('/HEAD'))
     .map((r) => ({ ref: r, name: r.name.slice(r.name.indexOf('/') + 1) }))
     .filter((r) => !names.has(r.name))
-    .sort((a, b) => a.ref.name.localeCompare(b.ref.name))
+    .sort((a, b) => Number(b.name === defaultBranch) - Number(a.name === defaultBranch) || a.ref.name.localeCompare(b.ref.name))
   return [
     ...local.map((r) =>
       item(`co-${r.name}`, r.name, () => void cmd.run(`checkout ${r.name}`, { kind: 'checkout', branch: r.name }), {

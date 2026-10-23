@@ -194,7 +194,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
 
   useRepoStatus({
     repo,
-    onBranchMenu: (at) => setMenu({ items: [...branchMenu(ctx, refs, history.info?.head ?? null), ...createPr], at }),
+    onBranchMenu: (at) => setMenu({ items: [...branchMenu(ctx, refs, history.info?.head ?? null, history.info?.defaultBranch ?? null), ...createPr], at }),
     pull: { busy: pull.busy, label: PULL_ACTIONS.find((a) => a.kind === pull.action)?.label ?? 'pull', run: () => pull.run(pull.action) },
     onCommit: openCommit,
     busy: commands.busy,
@@ -225,7 +225,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
         ancestry={ancestry}
         onBack={onBack}
         lead={lead}
-        onBranchMenu={(at) => setMenu({ items: [...branchMenu(ctx, refs, history.info?.head ?? null), ...createPr], at })}
+        onBranchMenu={(at) => setMenu({ items: [...branchMenu(ctx, refs, history.info?.head ?? null, history.info?.defaultBranch ?? null), ...createPr], at })}
         sync={
           <>
             <PullButton defaultAction={pull.action} disabled={pull.busy} suffix={pull.busy ? <Spinner /> : null} onRun={pull.run} onSetDefault={pull.setAction} />
@@ -294,6 +294,7 @@ export function RepoView({ repo, workspace, onBack, onPush, pull, lead, prs }: P
         <div className={`${styles.refsPane} ${styles.wideOnly}`} style={{ width: refsWidth.size }}>
           <RefsPanel
             refs={refs}
+            defaultBranch={history.info?.defaultBranch ?? null}
             stashes={stashes}
             currentBranch={currentBranch}
             aheadBehind={aheadBehind}

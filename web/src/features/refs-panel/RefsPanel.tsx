@@ -9,6 +9,7 @@ export type RefTarget = { kind: 'ref'; ref: GitRef } | { kind: 'stash'; stash: S
 
 type Props = {
   refs: GitRef[]
+  defaultBranch: string | null
   stashes: Stash[]
   currentBranch: string | null
   aheadBehind: (ref: GitRef) => string
@@ -16,9 +17,9 @@ type Props = {
   onContext: (target: RefTarget, at: { x: number; y: number }) => void
 }
 
-export function RefsPanel({ refs, stashes, currentBranch, aheadBehind, onPick, onContext }: Props) {
-  const branches = useMemo(() => refTree(refs.filter((r) => r.kind === 'branch')), [refs])
-  const remotes = useMemo(() => refTree(refs.filter((r) => r.kind === 'remote')), [refs])
+export function RefsPanel({ refs, defaultBranch, stashes, currentBranch, aheadBehind, onPick, onContext }: Props) {
+  const branches = useMemo(() => refTree(refs.filter((r) => r.kind === 'branch'), (r) => r.name === defaultBranch), [refs, defaultBranch])
+  const remotes = useMemo(() => refTree(refs.filter((r) => r.kind === 'remote'), (r) => r.name.slice(r.name.indexOf('/') + 1) === defaultBranch), [refs, defaultBranch])
   const tags = useMemo(() => refTree(refs.filter((r) => r.kind === 'tag')), [refs])
 
   const menu = (target: RefTarget) => (e: MouseEvent) => {

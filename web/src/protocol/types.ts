@@ -57,7 +57,7 @@ export type RefKind = 'branch' | 'remote' | 'tag'
 
 export type GitRef = { sha: string; kind: RefKind; name: string; upstream: string | null }
 
-export type HistoryInfo = { key: string; head: string | null; refs: GitRef[]; count: number; hasNotes: boolean }
+export type HistoryInfo = { key: string; head: string | null; refs: GitRef[]; defaultBranch: string | null; count: number; hasNotes: boolean }
 
 /** A line's lane in the row above (`start`), here (`center`) and below (`end`); null ends at this row's commit. */
 export type GraphSegment = { start: number | null; center: number; end: number | null; color: number; fromNode: boolean; toNode: boolean }

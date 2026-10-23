@@ -3,7 +3,7 @@ use serde::Serialize;
 /// Annotated tags deref to their commit through `*objectname` (SPEC §2).
 pub const ARGS: &[&str] = &[
     "for-each-ref",
-    "--format=%(objectname)%00%(*objectname)%00%(refname)%00%(upstream)",
+    "--format=%(objectname)%00%(*objectname)%00%(refname)%00%(upstream)%00%(symref)",
     "refs/heads",
     "refs/remotes",
     "refs/tags",
@@ -55,6 +55,21 @@ fn parse_line(line: &str) -> Option<GitRef> {
     })
 }
 
+/// `(remote, branch)` for each `refs/remotes/<remote>/HEAD` symref, `origin` first.
+pub fn remote_heads(out: &[u8]) -> Vec<(String, String)> {
+    let mut heads: Vec<(String, String)> = String::from_utf8_lossy(out)
+        .lines()
+        .filter_map(|line| {
+            let f: Vec<&str> = line.split('\0').collect();
+            let remote = f.get(2)?.strip_prefix("refs/remotes/")?.strip_suffix("/HEAD")?;
+            let branch = f.get(4)?.strip_prefix("refs/remotes/")?.strip_prefix(remote)?.strip_prefix('/')?;
+            Some((remote.to_string(), branch.to_string()))
+        })
+        .collect();
+    heads.sort_by_key(|(r, _)| r != "origin");
+    heads
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,5 +86,13 @@ t\0c\0refs/tags/v1\0\n";
         assert_eq!(refs[1].kind, RefKind::Remote);
         assert_eq!(refs[2].sha, "c");
         assert_eq!(refs[2].kind, RefKind::Tag);
+    }
+
+    #[test]
+    fn remote_heads_put_origin_first() {
+        let out = b"h\0\0refs/remotes/up/HEAD\0\0refs/remotes/up/trunk\n\
+h\0\0refs/remotes/origin/HEAD\0\0refs/remotes/origin/dev\n\
+b\0\0refs/remotes/origin/dev\0\0\n";
+        assert_eq!(remote_heads(out), [("origin".into(), "dev".into()), ("up".into(), "trunk".into())]);
     }
 }

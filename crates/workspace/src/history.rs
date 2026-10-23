@@ -18,6 +18,7 @@ pub struct HistoryKey {
     pub key: String,
     pub head: Option<String>,
     pub refs: Vec<GitRef>,
+    pub default_branch: Option<String>,
 }
 
 pub struct History {
@@ -42,12 +43,28 @@ pub struct HistoryRow<'a> {
 }
 
 pub async fn key<R: GitRunner>(runner: &R, path: &Path) -> Result<HistoryKey, RunError> {
-    let (refs_out, sha) = futures::try_join!(runner.run_ok(path, refs::ARGS), runner.run(path, head::SHA_ARGS))?;
+    let (refs_out, sha, init) = futures::try_join!(
+        runner.run_ok(path, refs::ARGS),
+        runner.run(path, head::SHA_ARGS),
+        runner.run(path, &["config", "--get", "init.defaultBranch"])
+    )?;
     let head = sha.ok().then(|| String::from_utf8_lossy(&sha.stdout).trim().to_string());
     let mut h = DefaultHasher::new();
     refs_out.hash(&mut h);
     head.hash(&mut h);
-    Ok(HistoryKey { key: format!("{:016x}", h.finish()), head, refs: refs::parse(&refs_out) })
+    let refs = refs::parse(&refs_out);
+    let init = init.ok().then(|| String::from_utf8_lossy(&init.stdout).trim().to_string());
+    let default_branch = default_branch(&refs, &refs::remote_heads(&refs_out), init.as_deref());
+    Ok(HistoryKey { key: format!("{:016x}", h.finish()), head, refs, default_branch })
+}
+
+/// The remote's HEAD (`origin` first), else `init.defaultBranch`, else `main` / `master`, if that branch exists.
+fn default_branch(refs: &[GitRef], remote_heads: &[(String, String)], init: Option<&str>) -> Option<String> {
+    if let Some((_, branch)) = remote_heads.first() {
+        return Some(branch.clone());
+    }
+    let local = |name: &str| refs.iter().any(|r| r.kind == refs::RefKind::Branch && r.name == name);
+    init.into_iter().chain(["main", "master"]).find(|n| !n.is_empty() && local(n)).map(str::to_string)
 }
 
 pub async fn load<R: GitRunner>(runner: &R, path: &Path, key: HistoryKey, opts: log::LogOptions) -> Result<History, RunError> {
@@ -168,7 +185,7 @@ mod tests {
     fn filters_on_subject_author_and_hash_prefix() {
         let commits = vec![commit("aa1", "Fix grid", "Ann"), commit("bb2", "add tree", "Bob"), commit("cc3", "docs", "ann")];
         let h = History {
-            key: HistoryKey { key: "k".into(), head: None, refs: vec![] },
+            key: HistoryKey { key: "k".into(), head: None, refs: vec![], default_branch: None },
             rows: graph::layout(&parent_indices(&commits), &color_seeds(&commits)),
             commits,
         };
@@ -180,11 +197,22 @@ mod tests {
     }
 
     #[test]
+    fn default_branch_prefers_remote_head_then_config_then_main() {
+        let b = |n: &str| GitRef { sha: "a".into(), kind: refs::RefKind::Branch, name: n.into(), upstream: None };
+        let refs = [b("main"), b("trunk")];
+        let heads = [("origin".to_string(), "dev".to_string())];
+        assert_eq!(default_branch(&refs, &heads, Some("trunk")).as_deref(), Some("dev"));
+        assert_eq!(default_branch(&refs, &[], Some("trunk")).as_deref(), Some("trunk"));
+        assert_eq!(default_branch(&refs, &[], Some("gone")).as_deref(), Some("main"));
+        assert_eq!(default_branch(&[b("x")], &[], None), None);
+    }
+
+    #[test]
     fn ancestors_follow_every_parent() {
         let mut commits = vec![commit("m", "merge", "a"), commit("x", "x", "a"), commit("y", "y", "a"), commit("r", "root", "a")];
         commits[0].parents = vec!["x".into(), "y".into()];
         commits[2].parents = vec!["r".into()];
-        let h = History { key: HistoryKey { key: "k".into(), head: None, refs: vec![] }, rows: vec![], commits };
+        let h = History { key: HistoryKey { key: "k".into(), head: None, refs: vec![], default_branch: None }, rows: vec![], commits };
         assert_eq!(h.ancestors("m"), [0, 1, 2, 3]);
         assert_eq!(h.ancestors("y"), [2, 3]);
     }
