@@ -39,7 +39,14 @@ export function PatchView({ repoId, file, patch, side }: Props) {
   useEffect(() => {
     if (!side) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement || e.ctrlKey || e.altKey) return
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return
+      // picked lines are not a text selection, so the browser has nothing to copy
+      if (e.ctrlKey && e.key.toLowerCase() === 'c' && selected.size > 0 && !window.getSelection()?.toString()) {
+        e.preventDefault()
+        copySelected()
+        return
+      }
+      if (e.ctrlKey || e.altKey) return
       const key = e.key.toLowerCase()
       if (side === 'worktree' && key === 's') void run('stage')
       if (side === 'index' && key === 'u') void run('unstage')

@@ -107,9 +107,17 @@
 }
 
 .picked {
+  position: relative;
   box-shadow: inset 3px 0 var(--accent);
-  /* a layer over the add/del colour, so picked lines keep their kind and still stand out */
-  background-image: linear-gradient(var(--picked), var(--picked));
+}
+
+/* a layer over the add/del colour and the word-diff spans, so picked lines keep their kind and still stand out */
+.picked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--picked);
+  pointer-events: none;
 }
 
 .match {
